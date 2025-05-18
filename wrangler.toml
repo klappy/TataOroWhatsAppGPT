@@ -14,7 +14,7 @@ preview_bucket_name = "tataoro-chat-images"
 
 [[kv_namespaces]]
 binding = "DOC_KNOWLEDGE"
-id = "your-doc-knowledge-kv-id"
+id = "c4281158fd7346fdac1f9e10bc092079"
 
 [env.whatsapp]
 main = "workers/whatsapp.js"
