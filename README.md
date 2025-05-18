@@ -33,9 +33,22 @@ For detailed prompt configuration, see [VIBE_PROMPT.md](VIBE_PROMPT.md).
 
    ```bash
    export OPENAI_API_KEY="<your-openai-api-key>"
+   export TWILIO_ACCOUNT_SID="<your-twilio-account-sid>"
+   export TWILIO_AUTH_TOKEN="<your-twilio-auth-token>"
    ```
 
-3. **Deploy**
+3. **Bind R2 Bucket**
+
+   In your `wrangler.toml`, add an R2 bucket binding for `MEDIA_BUCKET`:
+
+   ```toml
+   [[r2_buckets]]
+   binding = "MEDIA_BUCKET"
+   bucket_name = "<your-r2-bucket-name>"
+   preview_bucket_name = "<your-r2-bucket-name>"
+   ```
+
+4. **Deploy**
 
    ```bash
    wrangler publish
