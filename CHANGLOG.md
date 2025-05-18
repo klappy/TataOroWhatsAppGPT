@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.2.0
+New system prompt: Tata Oro Curly Hair Consultation Assistant.
+
 ## v1.1.11
 Move KV and R2 bindings to the top-level of your `wrangler.toml` file and update documentation accordingly.
 
