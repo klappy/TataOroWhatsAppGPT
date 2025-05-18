@@ -1,4 +1,4 @@
-# ✅ VIBE_VERIFY.md
+# ✅ VIBE_CHECK.md
 
 This checklist verifies that the generated Cloudflare Worker correctly implements the WhatsApp + GPT-4o-mini consultation bot for Tata Oro. Paste this into Codex CLI to ensure proper structure, API calls, and behavior.
 
@@ -6,12 +6,13 @@ This checklist verifies that the generated Cloudflare Worker correctly implement
 
 ## ✅ Core File Structure
 
-- [x] A Cloudflare Worker file exists (e.g., `src/index.js`, `worker.js`, or `index.ts`)
-- [x] It uses the Cloudflare `fetch` handler pattern
+- [x] `workers/whatsapp/index.js` exists and uses the Cloudflare `fetch` handler pattern
+- [ ] `workers/doc-sync/index.js` exists
+- [ ] `workers/upload-hook/index.js` exists
 
 ```js
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request, env) {
     // ...
   },
 };

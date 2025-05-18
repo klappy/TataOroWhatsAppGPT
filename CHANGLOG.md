@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.5] - 📦 Refactoring Tata Oro WhatsApp Assistant for Multi-Worker Setup
+
+- Move WhatsApp code to `workers/whatsapp/index.js`
+- Create `workers/doc-sync` and `workers/upload-hook` workers
+- Add shared utilities in `shared` directory for GPT, embeddings, chunking, and prompt building
+- Update `wrangler.toml` with multi-worker env configurations
+- Update documentation: README.md, ARCHITECTURE.md, VIBE_CHECK.md
+
 ## [0.1.0] - Initial release
 
 - Initial implementation of Cloudflare Worker webhook handler:

@@ -2,6 +2,26 @@
 
 ## Tata Oro WhatsApp Consultation Assistant – Architecture Overview
 
+## 📁 New Project Structure
+
+```bash
+tataoro-assistant/
+├── workers/
+│   ├── whatsapp/            # WhatsApp Worker (moved from `index.js`)
+│   │   └── index.js
+│   ├── doc-sync/            # New Worker to fetch GitHub files + embed
+│   │   └── index.js
+│   ├── upload-hook/         # Optional: GitHub webhook to auto-trigger sync
+│   │   └── index.js
+├── shared/                  # Reusable GPT, chunking, embedding utilities
+│   ├── gpt.js
+│   ├── embeddings.js
+│   ├── chunker.js
+│   └── prompt-builder.js
+├── wrangler.toml            # Multi-worker deployment config
+└── package.json
+```
+
 This document describes the architecture of the AI-powered WhatsApp consultation assistant built for Tata Oro using Cloudflare Workers, OpenAI’s GPT-4o-mini, Twilio’s WhatsApp API, and Cloudflare R2.
 
 ---
@@ -88,25 +108,49 @@ All secrets are stored securely via `wrangler secret put`.
 
 ---
 
-## 🛠️ Deployment
+## 🛠️ wrangler.toml (Multi-Worker Setup)
 
-```bash
-wrangler deploy
-```
-
-### wrangler.toml (simplified)
+Update your `wrangler.toml` to define environments for each Worker:
 
 ```toml
-name = "tataoro-whatsapp-gpt"
-main = "src/index.js"
+name = "tataoro-gpt"
 compatibility_date = "2025-05-18"
 
-[[kv_namespaces]]
-binding = "CHAT_HISTORY"
-id = "<your-kv-id>"
+[env.whatsapp]
+main = "workers/whatsapp/index.js"
+name = "tataoro-whatsapp"
+route = "https://wa.tataoro.com/*"
+kv_namespaces = [
+  { binding = "CHAT_HISTORY", id = "d153e5f2f8fd404e8e7778c494396215" }
+]
+r2_buckets = [
+  { binding = "MEDIA_BUCKET", bucket_name = "tataoro-chat-images", preview_bucket_name = "tataoro-chat-images" }
+]
+
+[env.docsync]
+main = "workers/doc-sync/index.js"
+name = "tataoro-doc-sync"
+kv_namespaces = [
+  { binding = "DOC_KNOWLEDGE", id = "your-doc-knowledge-kv-id" }
+]
+# Trigger via cron or CLI — no route needed
+
+[env.uploadhook]
+main = "workers/upload-hook/index.js"
+name = "tataoro-upload-hook"
+route = "https://tataoro.com/uploadhook"
+
+[observability.logs]
+enabled = true
 ```
 
-KV and R2 bindings are also attached through the Cloudflare dashboard.
+Each `[env.*]` represents a separate Worker you can deploy independently:
+
+```bash
+wrangler deploy --env whatsapp     # deploy WhatsApp handler
+wrangler deploy --env docsync      # deploy document sync worker
+wrangler deploy --env uploadhook   # deploy webhook handler
+```
 
 ---
 
@@ -134,7 +178,7 @@ curl -X POST https://wa.tataoro.com \
 ## 📋 Related Design Files
 
 - `VIBE_PROMPT.md`: Consultation system prompt
-- `VIBE_VERIFY.md`: Testable requirements checklist
+- `VIBE_CHECK.md`: Testable requirements checklist
 - `VIBE_FEATURE_SMS.md`: SMS and WhatsApp dual-channel logic
 - `VIBE_FEATURE_R2.md`: Handles image proxy + hosting logic via Cloudflare R2
 

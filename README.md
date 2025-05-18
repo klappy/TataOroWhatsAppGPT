@@ -4,9 +4,14 @@ Cloudflare Worker webhook handler for Twilio WhatsApp messages, powered by OpenA
 
 ## Overview
 
-This Worker receives incoming WhatsApp messages via Twilio, maintains short-term chat memory in Cloudflare KV, forwards the conversation (and any images) to GPT-4o-mini, and returns a TwiML `<Response><Message>` reply.
+This repository uses a multi-worker setup to separate concerns across different Cloudflare Workers:
 
-For detailed prompt configuration, see [VIBE_PROMPT.md](VIBE_PROMPT.md).
+- **WhatsApp handler** (`workers/whatsapp/index.js`): handles incoming Twilio WhatsApp messages and generates GPT-4o-mini responses.
+- **Doc-sync worker** (`workers/doc-sync/index.js`): fetches GitHub markdown files, splits content, generates embeddings, and stores them in KV.
+- **Upload-hook worker** (`workers/upload-hook/index.js`): GitHub webhook endpoint to trigger automatic document sync.
+- **Shared utilities** (`shared/`): common modules for GPT, embeddings, chunking, and prompt building.
+
+For detailed prompt configuration, see [VIBE_PROMPT.md](vibe/plans/success/VIBE_PROMPT.md).
 
 ## Features
 
@@ -19,42 +24,48 @@ For detailed prompt configuration, see [VIBE_PROMPT.md](VIBE_PROMPT.md).
 
 ## Setup
 
-1. **Bind KV Namespace**
+Configure your `wrangler.toml` with KV namespaces and R2 bucket bindings:
 
-   In your `wrangler.toml`, add a KV namespace binding for `CHAT_HISTORY`:
+```toml
+[[kv_namespaces]]
+binding = "CHAT_HISTORY"
+id = "<your-chat-history-kv-id>"
 
-   ```toml
-   [[kv_namespaces]]
-   binding = "CHAT_HISTORY"
-   id = "<your-kv-namespace-id>"
-   ```
+[env.docsync.kv_namespaces]
+binding = "DOC_KNOWLEDGE"
+id = "<your-doc-knowledge-kv-id>"
 
-2. **Set environment variables**
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "<your-r2-bucket-name>"
+preview_bucket_name = "<your-r2-bucket-name>"
+```
 
-   ```bash
-   export OPENAI_API_KEY="<your-openai-api-key>"
-   export TWILIO_ACCOUNT_SID="<your-twilio-account-sid>"
-   export TWILIO_AUTH_TOKEN="<your-twilio-auth-token>"
-   ```
+Set required environment variables:
 
-3. **Bind R2 Bucket**
+```bash
+export OPENAI_API_KEY="<your-openai-api-key>"
+export TWILIO_ACCOUNT_SID="<your-twilio-account-sid>"
+export TWILIO_AUTH_TOKEN="<your-twilio-auth-token>"
+```
 
-   In your `wrangler.toml`, add an R2 bucket binding for `MEDIA_BUCKET`:
+## Development & Deployment
 
-   ```toml
-   [[r2_buckets]]
-   binding = "MEDIA_BUCKET"
-   bucket_name = "<your-r2-bucket-name>"
-   preview_bucket_name = "<your-r2-bucket-name>"
-   ```
+Use the `--env` flag with Wrangler to develop and deploy each worker independently:
 
-4. **Deploy**
+```bash
+# Local development
+wrangler dev --env whatsapp
+wrangler dev --env docsync
+wrangler dev --env uploadhook
 
-   ```bash
-   wrangler publish
-   ```
+# Deployment
+wrangler deploy --env whatsapp
+wrangler deploy --env docsync
+wrangler deploy --env uploadhook
+```
 
-## Development
+## Pre-commit
 
 Install Wrangler (if needed) and run pre-commit hooks:
 
@@ -65,4 +76,6 @@ pre-commit run --all-files
 
 ## Usage
 
-Configure your Twilio webhook to point to your Worker’s public URL.
+- Configure your Twilio WhatsApp webhook to point to the `whatsapp` worker endpoint (e.g., `https://<your-domain>/`).
+- Trigger document synchronization by POSTing to the `doc-sync` worker or via a scheduled cron/CLI.
+- Point your GitHub webhook to the `upload-hook` worker to automate updates.

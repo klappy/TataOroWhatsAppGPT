@@ -12,6 +12,8 @@
  * R2 Bucket Bindings:
  *   MEDIA_BUCKET       - Cloudflare R2 bucket for media storage
  */
+import { chatCompletion } from '../../shared/gpt.js';
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -121,22 +123,7 @@ Keep your responses under 750 characters per message unless generating the final
     }
 
     // Call OpenAI Chat Completion API
-    const openaiApiKey = env.OPENAI_API_KEY;
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${openaiApiKey}`,
-      },
-      body: JSON.stringify({ model: 'gpt-4o-mini', messages, temperature: 0.7 }),
-    });
-    if (!openaiResponse.ok) {
-      const error = await openaiResponse.text();
-      console.error('OpenAI API error', error);
-      return new Response('OpenAI API error', { status: 500 });
-    }
-    const openaiData = await openaiResponse.json();
-    const assistantReply = openaiData.choices?.[0]?.message?.content?.trim() || '';
+    const assistantReply = await chatCompletion(messages, env.OPENAI_API_KEY);
 
     // Update KV with new messages (short-term memory)
     if (r2Urls.length > 0) {

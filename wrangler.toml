@@ -1,15 +1,30 @@
-name = "tataoro-whatsapp-gpt"
-main = "index.js"  # adjust if it's elsewhere
+
+name = "tataoro-gpt"
 compatibility_date = "2025-05-18"
 
-[[kv_namespaces]]
-binding = "CHAT_HISTORY"
-id = "d153e5f2f8fd404e8e7778c494396215"
+[env.whatsapp]
+main = "workers/whatsapp/index.js"
+name = "tataoro-whatsapp"
+route = "https://wa.tataoro.com/*"
+kv_namespaces = [
+  { binding = "CHAT_HISTORY", id = "d153e5f2f8fd404e8e7778c494396215" }
+]
+r2_buckets = [
+  { binding = "MEDIA_BUCKET", bucket_name = "tataoro-chat-images", preview_bucket_name = "tataoro-chat-images" }
+]
 
-[[r2_buckets]]
-binding = "MEDIA_BUCKET"       # This is how you'll reference it in code (env.MEDIA_BUCKET)
-bucket_name = "tataoro-chat-images"   # Name of your R2 bucket
-preview_bucket_name = "tataoro-chat-images"  # Optional but often mirrors bucket_name
+[env.docsync]
+main = "workers/doc-sync/index.js"
+name = "tataoro-doc-sync"
+kv_namespaces = [
+  { binding = "DOC_KNOWLEDGE", id = "your-doc-knowledge-kv-id" }
+]
+# Trigger via cron or CLI — no route needed
+
+[env.uploadhook]
+main = "workers/upload-hook/index.js"
+name = "tataoro-upload-hook"
+route = "https://tataoro.com/uploadhook"
 
 [observability.logs]
 enabled = true
