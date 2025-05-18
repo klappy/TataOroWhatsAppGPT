@@ -1,6 +1,6 @@
 # VIBE_PROMPT.md
 
-Build a serverless Cloudflare Worker that acts as a webhook handler for Twilio’s WhatsApp API, integrates with the OpenAI Chat Completion API (GPT-4), and replies intelligently to user messages. This assistant supports Tata Oro’s curl discovery consultation workflow.
+Build a serverless Cloudflare Worker that acts as a webhook handler for Twilio’s WhatsApp API, integrates with the OpenAI Chat Completion API (GPT-4o-mini), and replies intelligently to user messages. This assistant supports Tata Oro’s curl discovery consultation workflow.
 
 ## GOAL
 
@@ -46,11 +46,11 @@ A valid TwiML `<Response>` XML with a `<Message>` block that replies with the as
 
 ## GPT API
 
-Use GPT-4 with the system prompt and a chat history object stored by `From` phone number (KV optional but preferred). Ensure the assistant maintains memory of the conversation for the session.
+Use GPT-4o-mini with the system prompt and a chat history object stored by `From` phone number (KV optional but preferred). Ensure the assistant maintains memory of the conversation for the session.
 
 ## IMAGE HANDLING
 
-If the message includes media, detect and include the image URL in the GPT message (i.e., send the image to GPT-4 Vision). GPT should use that visual input to inform its reply.
+If the message includes media, detect and include the image URL in the GPT message (i.e., send the image to GPT-4o-mini). GPT should use that visual input to inform its reply.
 
 ## NOTES
 
