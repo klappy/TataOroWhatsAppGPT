@@ -15,3 +15,8 @@ All notable changes to this project will be documented in this file.
 
 - Switch to GPT-4o-mini model for faster, cheaper, multimodal support
 - Update code and documentation to reflect GPT-4o-mini usage
+
+## [0.1.2] - Vision integration & checklist verification
+
+- Upgrade GPT-4o-mini vision integration: send actual `image_url` messages to model in both live prompts and KV history.
+- Update `VIBE_VERIFY.md` to correct GPT-4o-mini entries and check off verified items.

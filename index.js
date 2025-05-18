@@ -70,8 +70,9 @@ Keep your responses under 750 characters per message unless generating the final
     // Construct messages payload for OpenAI
     const messages = [{ role: 'system', content: SYSTEM_PROMPT }, ...history];
     if (mediaUrls.length > 0) {
-      const mediaMsg = `User sent images: ${mediaUrls.join(', ')}`;
-      messages.push({ role: 'user', content: mediaMsg });
+      for (const url of mediaUrls) {
+        messages.push({ role: 'user', image_url: url });
+      }
     }
     messages.push({ role: 'user', content: body });
 
@@ -95,8 +96,9 @@ Keep your responses under 750 characters per message unless generating the final
 
     // Update KV with new messages (short-term memory)
     if (mediaUrls.length > 0) {
-      const mediaMsg = `User sent images: ${mediaUrls.join(', ')}`;
-      history.push({ role: 'user', content: mediaMsg });
+      for (const url of mediaUrls) {
+        history.push({ role: 'user', image_url: url });
+      }
     }
     history.push({ role: 'user', content: body });
     history.push({ role: 'assistant', content: assistantReply });
