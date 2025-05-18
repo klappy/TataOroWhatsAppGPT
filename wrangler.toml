@@ -7,19 +7,21 @@ main = "workers/whatsapp.js"
 main = "workers/whatsapp.js"
 name = "tataoro-whatsapp"
 route = "https://wa.tataoro.com/*"
-kv_namespaces = [
-  { binding = "CHAT_HISTORY", id = "d153e5f2f8fd404e8e7778c494396215" }
-]
-r2_buckets = [
-  { binding = "MEDIA_BUCKET", bucket_name = "tataoro-chat-images", preview_bucket_name = "tataoro-chat-images" }
-]
+[[env.whatsapp.kv_namespaces]]
+binding = "CHAT_HISTORY"
+id = "d153e5f2f8fd404e8e7778c494396215"
+
+[[env.whatsapp.r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "tataoro-chat-images"
+preview_bucket_name = "tataoro-chat-images"
 
 [env.docsync]
 main = "workers/doc-sync.js"
 name = "tataoro-doc-sync"
-kv_namespaces = [
-  { binding = "DOC_KNOWLEDGE", id = "your-doc-knowledge-kv-id" }
-]
+[[env.docsync.kv_namespaces]]
+binding = "DOC_KNOWLEDGE"
+id = "your-doc-knowledge-kv-id"
 # Trigger via cron or CLI — no route needed
 
 [env.uploadhook]

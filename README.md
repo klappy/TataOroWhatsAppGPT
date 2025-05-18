@@ -40,7 +40,7 @@ Configure your `wrangler.toml` with KV namespaces and R2 bucket bindings:
 binding = "CHAT_HISTORY"
 id = "<your-chat-history-kv-id>"
 
-[env.docsync.kv_namespaces]
+[[env.docsync.kv_namespaces]]
 binding = "DOC_KNOWLEDGE"
 id = "<your-doc-knowledge-kv-id>"
 

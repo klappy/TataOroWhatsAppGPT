@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.1.10
+Ensure all bindings in `wrangler.toml` use array-of-tables formatting and update documentation accordingly.
+
 ## v1.1.9
 Refactor worker filenames: move /workers/{name}/index.js to /workers/{name}.js, update wrangler.toml and documentation references.  
 
