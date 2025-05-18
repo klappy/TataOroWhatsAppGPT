@@ -4,12 +4,31 @@
  * and responds with TwiML XML back to WhatsApp.
  *
  * Environment Variables:
- *   OPENAI_API_KEY   - OpenAI API key
+ *   OPENAI_API_KEY     - OpenAI API key
+ *   TWILIO_ACCOUNT_SID - Twilio Account SID for authenticated media downloads
+ *   TWILIO_AUTH_TOKEN  - Twilio Auth Token for authenticated media downloads
  * KV Namespace Bindings:
- *   CHAT_HISTORY     - Cloudflare KV namespace for conversation history
+ *   CHAT_HISTORY       - Cloudflare KV namespace for conversation history
+ * R2 Bucket Bindings:
+ *   MEDIA_BUCKET       - Cloudflare R2 bucket for media storage
  */
 export default {
   async fetch(request, env) {
+    const url = new URL(request.url);
+    const baseUrl = url.origin;
+    // Serve media from R2 on GET /images/<key>
+    if (request.method === 'GET' && url.pathname.startsWith('/images/')) {
+      const key = decodeURIComponent(url.pathname.slice('/images/'.length));
+      const object = await env.MEDIA_BUCKET.get(key, { type: 'stream' });
+      if (!object) {
+        return new Response('Not Found', { status: 404 });
+      }
+      const headers = {};
+      if (object.httpMetadata?.contentType) {
+        headers['Content-Type'] = object.httpMetadata.contentType;
+      }
+      return new Response(object.body, { headers });
+    }
     // Handle CORS preflight requests
     if (request.method === 'OPTIONS') {
       return new Response(null, {
@@ -44,7 +63,31 @@ export default {
       if (url) mediaUrls.push(url);
     }
 
-    console.log('Incoming message', { from, body, mediaUrls });
+    // Download Twilio media via Basic Auth, upload to R2, and build public URLs
+    const r2Urls = [];
+    for (const [i, twilioUrl] of mediaUrls.entries()) {
+      try {
+        const twilioResponse = await fetch(twilioUrl, {
+          headers: {
+            Authorization: 'Basic ' + btoa(env.TWILIO_ACCOUNT_SID + ':' + env.TWILIO_AUTH_TOKEN),
+          },
+        });
+        if (!twilioResponse.ok) {
+          console.error('Failed to fetch Twilio media', twilioUrl, await twilioResponse.text());
+          continue;
+        }
+        const contentType = twilioResponse.headers.get('content-type') || 'application/octet-stream';
+        const extension = contentType.split('/')[1] || 'bin';
+        const key = `${from}/${Date.now()}-${i}.${extension}`;
+        const buffer = await twilioResponse.arrayBuffer();
+        await env.MEDIA_BUCKET.put(key, buffer, { httpMetadata: { contentType } });
+        r2Urls.push(`${baseUrl}/images/${encodeURIComponent(key)}`);
+      } catch (err) {
+        console.error('Error processing media', err);
+      }
+    }
+
+    console.log('Incoming message', { from, body, mediaUrls, r2Urls });
 
     // Load conversation history from KV
     const historyKey = `chat_history:${from}`;
@@ -69,14 +112,9 @@ Keep your responses under 750 characters per message unless generating the final
 
     // Construct messages payload for OpenAI
     const messages = [{ role: 'system', content: SYSTEM_PROMPT }, ...history];
-    if (mediaUrls.length > 0) {
-      const contentArray = mediaUrls.map(url => ({
-        type: 'image_url',
-        image_url: { url },
-      }));
-      if (body) {
-        contentArray.push({ type: 'text', text: body });
-      }
+    if (r2Urls.length > 0) {
+      const contentArray = r2Urls.map(url => ({ type: 'image_url', image_url: { url } }));
+      if (body) contentArray.push({ type: 'text', text: body });
       messages.push({ role: 'user', content: contentArray });
     } else {
       messages.push({ role: 'user', content: body });
@@ -101,14 +139,9 @@ Keep your responses under 750 characters per message unless generating the final
     const assistantReply = openaiData.choices?.[0]?.message?.content?.trim() || '';
 
     // Update KV with new messages (short-term memory)
-    if (mediaUrls.length > 0) {
-      const contentArray = mediaUrls.map(url => ({
-        type: 'image_url',
-        image_url: { url },
-      }));
-      if (body) {
-        contentArray.push({ type: 'text', text: body });
-      }
+    if (r2Urls.length > 0) {
+      const contentArray = r2Urls.map(url => ({ type: 'image_url', image_url: { url } }));
+      if (body) contentArray.push({ type: 'text', text: body });
       history.push({ role: 'user', content: contentArray });
     } else {
       history.push({ role: 'user', content: body });

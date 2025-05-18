@@ -32,3 +32,10 @@ All notable changes to this project will be documented in this file.
 
 - Implement GPT-4o image message formatting in `index.js`: messages include content arrays with `image_url` objects and optional caption text entries.
 - Check off new media detection items in `VIBE_VERIFY.md`.
+
+## [0.1.5] - Twilio media R2 storage & static serving
+
+- Download Twilio media using Basic Auth (`TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN`)
+- Upload media to R2 bucket (`MEDIA_BUCKET`) for public access
+- Serve R2 media via GET `/images/<key>` route in Worker
+- Pass R2 URLs to OpenAI GPT-4o-mini for image processing
