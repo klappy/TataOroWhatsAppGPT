@@ -78,7 +78,7 @@ User sends message via WhatsApp/SMS → Twilio Webhook → Cloudflare Worker
 
 ## 🧠 System Prompt Logic
 
-The assistant behaves as:
+The assistant uses a system prompt extracted into the `shared/systemPrompt.js` module to guide the step-by-step consultation behavior:
 
 - A bilingual, warm, step-by-step curl consultant
 - Collects photos, hair history, product use, curl goals, and expectations
