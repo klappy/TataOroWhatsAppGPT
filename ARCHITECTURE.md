@@ -117,6 +117,7 @@ Update your `wrangler.toml` to define environments for each Worker:
 ```toml
 name = "tataoro-gpt"
 compatibility_date = "2025-05-18"
+main = "workers/whatsapp/index.js"
 
 [env.whatsapp]
 main = "workers/whatsapp/index.js"
