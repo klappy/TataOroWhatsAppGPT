@@ -1,5 +1,5 @@
-import { embedText } from '../../shared/embeddings.js';
-import { chunkText } from '../../shared/chunker.js';
+import { embedText } from '../shared/embeddings.js';
+import { chunkText } from '../shared/chunker.js';
 
 export default {
   async fetch(request, env) {

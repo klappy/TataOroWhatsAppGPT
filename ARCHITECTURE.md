@@ -117,10 +117,10 @@ Update your `wrangler.toml` to define environments for each Worker:
 ```toml
 name = "tataoro-gpt"
 compatibility_date = "2025-05-18"
-main = "workers/whatsapp/index.js"
+main = "workers/whatsapp.js"
 
 [env.whatsapp]
-main = "workers/whatsapp/index.js"
+main = "workers/whatsapp.js"
 name = "tataoro-whatsapp"
 route = "https://wa.tataoro.com/*"
 kv_namespaces = [
@@ -131,7 +131,7 @@ r2_buckets = [
 ]
 
 [env.docsync]
-main = "workers/doc-sync/index.js"
+main = "workers/doc-sync.js"
 name = "tataoro-doc-sync"
 kv_namespaces = [
   { binding = "DOC_KNOWLEDGE", id = "your-doc-knowledge-kv-id" }
@@ -139,7 +139,7 @@ kv_namespaces = [
 # Trigger via cron or CLI — no route needed
 
 [env.uploadhook]
-main = "workers/upload-hook/index.js"
+main = "workers/upload-hook.js"
 name = "tataoro-upload-hook"
 route = "https://tataoro.com/uploadhook"
 

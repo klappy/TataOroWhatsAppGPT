@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.1.9
+Refactor worker filenames: move /workers/{name}/index.js to /workers/{name}.js, update wrangler.toml and documentation references.  
+
 ## v1.1.8
 Add top-level default entry-point in wrangler.toml to support default Wrangler deploy without --env flag.  
 

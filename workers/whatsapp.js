@@ -12,8 +12,8 @@
  * R2 Bucket Bindings:
  *   MEDIA_BUCKET       - Cloudflare R2 bucket for media storage
  */
-import { chatCompletion } from '../../shared/gpt.js';
-import { SYSTEM_PROMPT } from '../../shared/systemPrompt.js';
+import { chatCompletion } from '../shared/gpt.js';
+import { SYSTEM_PROMPT } from '../shared/systemPrompt.js';
 
 export default {
   async fetch(request, env) {

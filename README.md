@@ -6,9 +6,9 @@ Cloudflare Worker webhook handler for Twilio WhatsApp messages, powered by OpenA
 
 This repository uses a multi-worker setup to separate concerns across different Cloudflare Workers:
 
-- **WhatsApp handler** (`workers/whatsapp/index.js`): handles incoming Twilio WhatsApp messages and generates GPT-4o-mini responses.
-- **Doc-sync worker** (`workers/doc-sync/index.js`): fetches GitHub markdown files, splits content, generates embeddings, and stores them in KV.
-- **Upload-hook worker** (`workers/upload-hook/index.js`): GitHub webhook endpoint to trigger automatic document sync.
+- **WhatsApp handler** (`workers/whatsapp.js`): handles incoming Twilio WhatsApp messages and generates GPT-4o-mini responses.
+- **Doc-sync worker** (`workers/doc-sync.js`): fetches GitHub markdown files, splits content, generates embeddings, and stores them in KV.
+- **Upload-hook worker** (`workers/upload-hook.js`): GitHub webhook endpoint to trigger automatic document sync.
 - **Shared utilities** (`shared/`): common modules for GPT, embeddings, chunking, and prompt building.
 
 For detailed prompt configuration, see [VIBE_PROMPT.md](vibe/plans/success/VIBE_PROMPT.md).
@@ -27,10 +27,10 @@ For detailed prompt configuration, see [VIBE_PROMPT.md](vibe/plans/success/VIBE_
 Ensure your `wrangler.toml` defines the default `main` entry point for the WhatsApp worker:
 
 ```toml
-main = "workers/whatsapp/index.js"
+main = "workers/whatsapp.js"
 
 [env.whatsapp]
-main = "workers/whatsapp/index.js"
+main = "workers/whatsapp.js"
 ```
 
 Configure your `wrangler.toml` with KV namespaces and R2 bucket bindings:

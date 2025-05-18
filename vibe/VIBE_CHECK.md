@@ -6,9 +6,9 @@ This checklist verifies that the generated Cloudflare Worker correctly implement
 
 ## ✅ Core File Structure
 
-- [x] `workers/whatsapp/index.js` exists and uses the Cloudflare `fetch` handler pattern
-- [x] `workers/doc-sync/index.js` exists
-- [x] `workers/upload-hook/index.js` exists
+- [x] `workers/whatsapp.js` exists and uses the Cloudflare `fetch` handler pattern
+- [x] `workers/doc-sync.js` exists
+- [x] `workers/upload-hook.js` exists
 
 ```js
 export default {
