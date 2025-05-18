@@ -1,0 +1,3 @@
+name = "tataoro-whatsapp-gpt"
+main = "index.js"  # adjust if it's elsewhere
+compatibility_date = "2025-05-18"
