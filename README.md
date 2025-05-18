@@ -33,14 +33,14 @@ main = "workers/whatsapp.js"
 main = "workers/whatsapp.js"
 ```
 
-Configure your `wrangler.toml` with KV namespaces and R2 bucket bindings:
+Configure your `wrangler.toml` with top-level KV namespaces and R2 bucket bindings:
 
 ```toml
 [[kv_namespaces]]
 binding = "CHAT_HISTORY"
 id = "<your-chat-history-kv-id>"
 
-[[env.docsync.kv_namespaces]]
+[[kv_namespaces]]
 binding = "DOC_KNOWLEDGE"
 id = "<your-doc-knowledge-kv-id>"
 

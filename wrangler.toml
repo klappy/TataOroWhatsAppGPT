@@ -3,25 +3,27 @@ name = "tataoro-gpt"
 compatibility_date = "2025-05-18"
 main = "workers/whatsapp.js"
 
-[env.whatsapp]
-main = "workers/whatsapp.js"
-name = "tataoro-whatsapp"
-route = "https://wa.tataoro.com/*"
-[[env.whatsapp.kv_namespaces]]
+[[kv_namespaces]]
 binding = "CHAT_HISTORY"
 id = "d153e5f2f8fd404e8e7778c494396215"
 
-[[env.whatsapp.r2_buckets]]
+[[r2_buckets]]
 binding = "MEDIA_BUCKET"
 bucket_name = "tataoro-chat-images"
 preview_bucket_name = "tataoro-chat-images"
 
+[[kv_namespaces]]
+binding = "DOC_KNOWLEDGE"
+id = "your-doc-knowledge-kv-id"
+
+[env.whatsapp]
+main = "workers/whatsapp.js"
+name = "tataoro-whatsapp"
+route = "https://wa.tataoro.com/*"
+
 [env.docsync]
 main = "workers/doc-sync.js"
 name = "tataoro-doc-sync"
-[[env.docsync.kv_namespaces]]
-binding = "DOC_KNOWLEDGE"
-id = "your-doc-knowledge-kv-id"
 # Trigger via cron or CLI — no route needed
 
 [env.uploadhook]

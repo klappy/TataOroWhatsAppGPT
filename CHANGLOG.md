@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.1.11
+Move KV and R2 bindings to the top-level of your `wrangler.toml` file and update documentation accordingly.
+
 ## v1.1.10
 Ensure all bindings in `wrangler.toml` use array-of-tables formatting and update documentation accordingly.
 
