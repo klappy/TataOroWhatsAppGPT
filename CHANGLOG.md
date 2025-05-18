@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.1.6
+Fix missing entry-point error in Wrangler deploy by setting main path explicitly.  
+
 ## [1.1.5] - 📦 Refactoring Tata Oro WhatsApp Assistant for Multi-Worker Setup
 
 - Move WhatsApp code to `workers/whatsapp/index.js`

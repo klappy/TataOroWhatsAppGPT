@@ -22,6 +22,8 @@ tataoro-assistant/
 └── package.json
 ```
 
+Ensure that the `main` entry in the `wrangler.toml` for each environment matches the Worker script paths shown above.
+
 This document describes the architecture of the AI-powered WhatsApp consultation assistant built for Tata Oro using Cloudflare Workers, OpenAI’s GPT-4o-mini, Twilio’s WhatsApp API, and Cloudflare R2.
 
 ---

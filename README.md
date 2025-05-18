@@ -24,6 +24,13 @@ For detailed prompt configuration, see [VIBE_PROMPT.md](vibe/plans/success/VIBE_
 
 ## Setup
 
+Ensure your `wrangler.toml` defines the correct `main` entry point for the WhatsApp worker:
+
+```toml
+[env.whatsapp]
+main = "workers/whatsapp/index.js"
+```
+
 Configure your `wrangler.toml` with KV namespaces and R2 bucket bindings:
 
 ```toml
