@@ -1,0 +1,10 @@
+name = "tataoro-whatsapp-gpt"
+main = "index.js"  # adjust if it's elsewhere
+compatibility_date = "2025-05-18"
+
+[[kv_namespaces]]
+binding = "CHAT_HISTORY"
+id = "d153e5f2f8fd404e8e7778c494396215"
+
+[observability.logs]
+enabled = true
