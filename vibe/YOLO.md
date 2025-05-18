@@ -29,9 +29,13 @@ For **each `.md` file** in `vibe_plans/pending/`:
    - `VIBE_CHECK.md`
    - `CHANGELOG.md`
    - Any other `.md` or config file specified in the prompt.
-3. **Stage and commit all changes**.
+3. **Check your vibe.**
+   - Read the prompt inside of ./vibe/VIBE_CHECK.md
+   - Follow the instructions to ensure you pass your own vibe check.
+   - Report findings and ask user to review before moving to stage/commit.
+4. **Stage and commit all changes**.
    - Commit message must match the **version string** (e.g., `v1.2.0`) found in the filename and/or `CHANGELOG.md`.
-4. **Move the plan file** from `pending/` to `success/`.
+5. **Move the plan file** from `pending/` to `success/`.
 
 Repeat until all plans in `pending/` are complete.
 
