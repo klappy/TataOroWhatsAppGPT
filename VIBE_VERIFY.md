@@ -24,6 +24,7 @@ export default {
 - [x] Parses incoming `POST` requests from Twilio
 - [x] Extracts `Body`, `From`, and any `MediaUrl{N}` fields
 - [x] Responds in valid TwiML XML:
+
   - Includes XML declaration: `<?xml version="1.0" encoding="UTF-8"?>`
   - Structure:
 
@@ -32,7 +33,9 @@ export default {
       <Message>Your reply</Message>
     </Response>
     ```
+
   - Escapes XML special characters (`&`, `<`, `>`, `"`, `'`)
+
 - [x] Returns HTTP 200 status code for Twilio webhook responses
 - [x] Sets headers: `Content-Type: text/xml; charset=UTF-8` (or `application/xml`)
 
@@ -45,7 +48,19 @@ export default {
 - [x] Sends a `system` prompt that includes:
   > "You are a warm, empathetic, and knowledgeable virtual assistant for Tata Oro..."
 - [x] Sends user messages with full chat history (conversation memory optional)
-- [x] If media is detected, sends `image_url` input to GPT-4o-mini (for vision use)
+- [x] If media is detected, sends image input using valid GPT-4o format:
+
+  - [x] Messages include `content` as an array
+  - [x] Each image is wrapped like:
+
+    ```json
+    {
+      "type": "image_url",
+      "image_url": { "url": "https://..." }
+    }
+    ```
+
+  - [x] If caption is present, it's included as `{ "type": "text", "text": "..." }`
 
 ---
 

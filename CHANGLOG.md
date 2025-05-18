@@ -27,3 +27,8 @@ All notable changes to this project will be documented in this file.
   - Ensure XML declaration, `<Response><Message>` structure, XML escaping rules, HTTP 200 response, and proper Content-Type header.
   - Recommended verifying `X-Twilio-Signature` header for incoming requests.
 - Implemented `escapeXml` in `index.js`, updated TwiML generation to include XML prolog and `text/xml; charset=UTF-8` header.
+
+## [0.1.4] - GPT-4o-mini media detection & checklist updates
+
+- Implement GPT-4o image message formatting in `index.js`: messages include content arrays with `image_url` objects and optional caption text entries.
+- Check off new media detection items in `VIBE_VERIFY.md`.

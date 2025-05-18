@@ -70,11 +70,17 @@ Keep your responses under 750 characters per message unless generating the final
     // Construct messages payload for OpenAI
     const messages = [{ role: 'system', content: SYSTEM_PROMPT }, ...history];
     if (mediaUrls.length > 0) {
-      for (const url of mediaUrls) {
-        messages.push({ role: 'user', image_url: url });
+      const contentArray = mediaUrls.map(url => ({
+        type: 'image_url',
+        image_url: { url },
+      }));
+      if (body) {
+        contentArray.push({ type: 'text', text: body });
       }
+      messages.push({ role: 'user', content: contentArray });
+    } else {
+      messages.push({ role: 'user', content: body });
     }
-    messages.push({ role: 'user', content: body });
 
     // Call OpenAI Chat Completion API
     const openaiApiKey = env.OPENAI_API_KEY;
@@ -96,11 +102,17 @@ Keep your responses under 750 characters per message unless generating the final
 
     // Update KV with new messages (short-term memory)
     if (mediaUrls.length > 0) {
-      for (const url of mediaUrls) {
-        history.push({ role: 'user', image_url: url });
+      const contentArray = mediaUrls.map(url => ({
+        type: 'image_url',
+        image_url: { url },
+      }));
+      if (body) {
+        contentArray.push({ type: 'text', text: body });
       }
+      history.push({ role: 'user', content: contentArray });
+    } else {
+      history.push({ role: 'user', content: body });
     }
-    history.push({ role: 'user', content: body });
     history.push({ role: 'assistant', content: assistantReply });
     // Keep history for 24 hours
     await env.CHAT_HISTORY.put(historyKey, JSON.stringify(history), { expirationTtl: 86400 });
