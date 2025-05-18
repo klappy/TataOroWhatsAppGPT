@@ -24,14 +24,17 @@ export default {
 - [x] Parses incoming `POST` requests from Twilio
 - [x] Extracts `Body`, `From`, and any `MediaUrl{N}` fields
 - [x] Responds in valid TwiML XML:
+  - Includes XML declaration: `<?xml version="1.0" encoding="UTF-8"?>`
+  - Structure:
 
-```xml
-<Response>
-  <Message>Your reply</Message>
-</Response>
-```
-
-- [x] Sets headers: `Content-Type: application/xml`
+    ```xml
+    <Response>
+      <Message>Your reply</Message>
+    </Response>
+    ```
+  - Escapes XML special characters (`&`, `<`, `>`, `"`, `'`)
+- [x] Returns HTTP 200 status code for Twilio webhook responses
+- [x] Sets headers: `Content-Type: text/xml; charset=UTF-8` (or `application/xml`)
 
 ---
 
@@ -66,7 +69,7 @@ https://wa.me/16895292934?text=<encoded summary>
 ## ✅ Cloudflare Features (Optional Enhancements)
 
 - [x] Uses `env.OPENAI_API_KEY` securely
-- [ ] Uses `env.TWILIO_AUTH_TOKEN` if verifying requests (optional)
+- [ ] Validates incoming Twilio requests by verifying the `X-Twilio-Signature` header using `env.TWILIO_AUTH_TOKEN` (optional but recommended)
 - [x] May use Cloudflare KV or in-memory cache for session memory (if needed)
 
 ---

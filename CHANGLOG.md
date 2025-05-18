@@ -20,3 +20,10 @@ All notable changes to this project will be documented in this file.
 
 - Upgrade GPT-4o-mini vision integration: send actual `image_url` messages to model in both live prompts and KV history.
 - Update `VIBE_VERIFY.md` to correct GPT-4o-mini entries and check off verified items.
+
+## [0.1.3] - Twilio TwiML compliance enhancements
+
+- Added TwiML checks to `VIBE_VERIFY.md` based on Twilio Messaging TwiML docs:
+  - Ensure XML declaration, `<Response><Message>` structure, XML escaping rules, HTTP 200 response, and proper Content-Type header.
+  - Recommended verifying `X-Twilio-Signature` header for incoming requests.
+- Implemented `escapeXml` in `index.js`, updated TwiML generation to include XML prolog and `text/xml; charset=UTF-8` header.

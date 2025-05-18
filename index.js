@@ -107,10 +107,18 @@ Keep your responses under 750 characters per message unless generating the final
 
     console.log('Assistant reply', assistantReply);
 
-    // Respond with TwiML
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${assistantReply}</Message></Response>`;
+    // Respond with TwiML, escaping XML special characters
+    function escapeXml(unsafe) {
+      return unsafe.replace(/&/g, '&amp;')
+                   .replace(/</g, '&lt;')
+                   .replace(/>/g, '&gt;')
+                   .replace(/"/g, '&quot;')
+                   .replace(/'/g, '&apos;');
+    }
+    const escapedReply = escapeXml(assistantReply);
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${escapedReply}</Message></Response>`;
     return new Response(twiml, {
-      headers: { 'Content-Type': 'application/xml', 'Access-Control-Allow-Origin': '*' },
+      headers: { 'Content-Type': 'text/xml; charset=UTF-8', 'Access-Control-Allow-Origin': '*' },
     });
   },
 };
