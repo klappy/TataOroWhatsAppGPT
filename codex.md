@@ -1,0 +1,29 @@
+# Codex Project Instructions
+
+Welcome to the Tata Oro Assistant project. This guide provides Codex CLI with the necessary context to assist in development tasks.
+
+## Project Structure
+
+- `workers/`: Contains all Cloudflare Workers.
+
+  - `whatsapp/`: Handles WhatsApp interactions.
+  - `doc-sync/`: Manages document synchronization and embedding.
+  - `upload-hook/`: Processes GitHub webhook events.
+
+- `shared/`: Houses reusable utilities and helper functions.
+
+## Coding Standards
+
+- Use ES6+ syntax.
+- Prefer functional components over class-based ones.
+- Maintain consistent naming conventions: kebab-case for filenames, camelCase for variables and functions.
+
+## Deployment
+
+- Use `wrangler deploy --env [environment]` to deploy specific workers.
+- Ensure all changes are committed before deployment.
+
+## Testing
+
+- Write unit tests for all new functions.
+- Use Jest as the testing framework.
