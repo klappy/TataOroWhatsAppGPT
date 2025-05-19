@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.3.2 - Bug Fix: history undefined after reset
+
+- Safely handle missing session data after reset to prevent `ReferenceError: history is not defined`; update workers/whatsapp.js for defensive KV reads and docs/architecture/kv-state-machine.md to emphasize safe defaults.
+
 ## v1.3.1 - Architecture Documentation
 
 - Added antifragile-integrations, async-flow, kv-state-machine, openai-routing docs.

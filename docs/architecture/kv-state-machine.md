@@ -46,3 +46,4 @@ Standardize how consultation sessions are stored and referenced in Cloudflare KV
 - Always update `last_active` on inbound message
 - Only update `*_status` when integration confirmed
 - Use atomic `put` / `get` for each session
+- Reads should defensively handle missing or malformed session data; use safe defaults (e.g., empty `history` array, default `progress_status` to "started", empty `r2Urls`, etc.)

@@ -97,16 +97,17 @@ export default {
 
     const now = Math.floor(Date.now() / 1000);
     const sessionKey = `chat_history:${from}`;
-    const storedSession = await env.CHAT_HISTORY.get(sessionKey);
-    const session = storedSession
-      ? JSON.parse(storedSession)
-      : {
-          history: [],
-          progress_status: 'started',
-          last_active: now,
-          summary_email_sent: false,
-          nudge_sent: false,
-        };
+    // Safely read session data from KV and provide defaults to prevent missing data errors
+    const stored = await env.CHAT_HISTORY.get(sessionKey, { type: 'json' });
+    const sessionData = stored || {};
+    const session = {
+      history: Array.isArray(sessionData.history) ? sessionData.history : [],
+      progress_status: sessionData.progress_status || 'started',
+      summary_email_sent: sessionData.summary_email_sent || false,
+      nudge_sent: sessionData.nudge_sent || false,
+      r2Urls: Array.isArray(sessionData.r2Urls) ? sessionData.r2Urls : [],
+      ...sessionData,
+    };
     session.last_active = now;
 
     const incoming = body.trim().toLowerCase();
