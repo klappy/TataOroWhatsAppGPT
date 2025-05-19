@@ -119,6 +119,25 @@ export default {
       });
     }
 
+    const emailTriggers = ['send email', 'email summary'];
+    if (emailTriggers.includes(incoming)) {
+      if (!session.history || session.history.length === 0) {
+        const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>Sorry, I haven’t captured any conversation yet to summarize. Let’s chat a bit more before sending the email!</Message></Response>`;
+        return new Response(twiml, {
+          headers: { 'Content-Type': 'text/xml; charset=UTF-8', 'Access-Control-Allow-Origin': '*' },
+        });
+      }
+      const summary = await generateOrFetchSummary({ env, session, phone: from });
+      await sendConsultationEmail({ env, phone: from, summary, history: session.history, r2Urls: session.r2Urls || [] });
+      session.summary = summary;
+      session.summary_email_sent = true;
+      await env.CHAT_HISTORY.put(sessionKey, JSON.stringify(session), { expirationTtl: 86400 });
+      const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>Done! 💌 I’ve sent your consultation summary to Tata by email.</Message></Response>`;
+      return new Response(twiml, {
+        headers: { 'Content-Type': 'text/xml; charset=UTF-8', 'Access-Control-Allow-Origin': '*' },
+      });
+    }
+
 
     // Construct messages payload for OpenAI
     const messages = [{ role: 'system', content: SYSTEM_PROMPT }, ...history];

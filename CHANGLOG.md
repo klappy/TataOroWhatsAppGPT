@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.3.1 - Architecture Documentation
+
+- Added antifragile-integrations, async-flow, kv-state-machine, openai-routing docs.
+- Added back manual "send email" / "email summary" command in async flow documentation to match supported features
+
 ## v1.3.0 - Implement planned consultation workflow enhancements
 
 - Track and store session metadata (progress_status, last_active, summary_email_sent, nudge_sent, history, r2Urls) in KV
