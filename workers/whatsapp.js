@@ -14,9 +14,10 @@
  */
 import { chatCompletion } from '../shared/gpt.js';
 import { SYSTEM_PROMPT } from '../shared/systemPrompt.js';
+import { sendConsultationEmail } from '../shared/emailer.js';
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const baseUrl = url.origin;
     // Serve media from R2 on GET /images/<key>
@@ -120,8 +121,15 @@ export default {
       history.push({ role: 'user', content: body });
     }
     history.push({ role: 'assistant', content: assistantReply });
+
     // Keep history for 24 hours
     await env.CHAT_HISTORY.put(historyKey, JSON.stringify(history), { expirationTtl: 86400 });
+    const summaryHandoffLinkRegex = /https?:\/\/wa\.me\/\d+\?text=/;
+    if (summaryHandoffLinkRegex.test(assistantReply)) {
+      ctx.waitUntil(
+        sendConsultationEmail({ env, phone: from, summary: assistantReply, history, r2Urls })
+      );
+    }
 
     console.log('Assistant reply', assistantReply);
 

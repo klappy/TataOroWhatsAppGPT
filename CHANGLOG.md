@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.2.2 - Email chat summary, transcript, and images
+
+- Add shared/emailer.js for Resend email integration
+- Automatically send consultation summary, transcript, and image links after summary handoff link
+- Configure wrangler.toml [vars] for EMAIL_ENABLED, EMAIL_PROVIDER, EMAIL_FROM, EMAIL_TO
+- Update workers/whatsapp.js to trigger email upon summary generation
+- Update documentation to include email feature (README.md, ARCHITECTURE.md)
+
 ## v1.2.1
 
 Fixed system prompt to what it was suppose to be.

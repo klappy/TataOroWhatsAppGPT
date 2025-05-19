@@ -31,5 +31,11 @@ main = "workers/upload-hook.js"
 name = "tataoro-upload-hook"
 route = "https://tataoro.com/uploadhook"
 
+[vars]
+EMAIL_ENABLED = true
+EMAIL_PROVIDER = "resend"
+EMAIL_FROM = "consultations@tataoro.com"
+EMAIL_TO = "tatacurly@tataoro.com"
+
 [observability.logs]
 enabled = true

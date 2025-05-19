@@ -21,6 +21,7 @@ For detailed prompt configuration, see [VIBE_PROMPT.md](vibe/plans/success/VIBE_
 - GPT-4o-mini vision support for understanding images
 - Generates TwiML responses for Twilio webhook
 - Basic logging and CORS handling
+- Email consultation summary, transcript, and image links to configured recipients via Resend
 
 ## Setup
 
@@ -56,6 +57,13 @@ Set required environment variables:
 export OPENAI_API_KEY="<your-openai-api-key>"
 export TWILIO_ACCOUNT_SID="<your-twilio-account-sid>"
 export TWILIO_AUTH_TOKEN="<your-twilio-auth-token>"
+
+# Email settings
+export EMAIL_ENABLED=true
+export EMAIL_PROVIDER="resend"
+export EMAIL_FROM="consultations@tataoro.com"
+export EMAIL_TO="tata@tataoro.com"
+export RESEND_API_KEY="<your-resend-api-key>"
 ```
 
 ## Development & Deployment

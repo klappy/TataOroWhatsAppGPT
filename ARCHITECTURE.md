@@ -95,6 +95,11 @@ The assistant uses a system prompt extracted into the `shared/systemPrompt.js` m
 | `OPENAI_API_KEY`     | Secure API key for OpenAI GPT-4o-mini                  |
 | `TWILIO_AUTH_TOKEN`  | Used for Twilio media downloads and webhook validation |
 | `TWILIO_ACCOUNT_SID` | Used for R2 proxy or image access routing              |
+| `EMAIL_ENABLED`      | Enable sending consultation emails                     |
+| `EMAIL_PROVIDER`     | Email provider (e.g., resend)                          |
+| `EMAIL_FROM`         | Sender address for consultation emails                 |
+| `EMAIL_TO`           | Recipient address for consultation emails              |
+| `RESEND_API_KEY`     | API key for Resend email service                       |
 
 All secrets are stored securely via `wrangler secret put`.
 
@@ -146,6 +151,13 @@ name = "tataoro-doc-sync"
 main = "workers/upload-hook.js"
 name = "tataoro-upload-hook"
 route = "https://tataoro.com/uploadhook"
+
+[vars]
+EMAIL_ENABLED = true
+EMAIL_PROVIDER = "resend"
+EMAIL_FROM = "consultations@tataoro.com"
+EMAIL_TO = "tatacurly@tataoro.com"
+RESEND_API_KEY = "<your-resend-api-key>"
 
 [observability.logs]
 enabled = true
