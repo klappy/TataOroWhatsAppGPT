@@ -23,6 +23,12 @@ For detailed prompt configuration, see [VIBE_PROMPT.md](vibe/plans/success/VIBE_
 - Generates TwiML responses for Twilio webhook
 - Basic logging and CORS handling
 - Email consultation summary, transcript, and image links to configured recipients via Resend
+- Track consultation progress status (photo received, midway, summary ready, complete)
+- Automatically upsert Shopify customer on key milestones (photo, name, summary)
+- Manual "send email" command to forward summary to Tata via email
+- Scheduled timeout-based email summary for incomplete consultations
+- Scheduled WhatsApp nudges for stalled consultations
+- Scheduler worker (`workers/scheduler.js`) with hourly cron checks
 
 ## Setup
 
@@ -65,6 +71,13 @@ export EMAIL_PROVIDER="resend"
 export EMAIL_FROM="consultations@tataoro.com"
 export EMAIL_TO="tata@tataoro.com"
 export RESEND_API_KEY="<your-resend-api-key>"
+
+# Shopify settings
+export SHOPIFY_STORE_DOMAIN="<your-shopify-store-domain>"
+export SHOPIFY_API_TOKEN="<your-shopify-api-token>"
+
+# Twilio WhatsApp number for sending nudges
+export TWILIO_WHATSAPP_NUMBER="whatsapp:<your-twilio-whatsapp-number>"
 ```
 
 ## Development & Deployment
@@ -76,6 +89,7 @@ Use the `--env` flag with Wrangler to develop and deploy each worker independent
 wrangler dev --env whatsapp
 wrangler dev --env docsync
 wrangler dev --env uploadhook
+wrangler dev --env scheduler
 
 # Deployment (Default: WhatsApp worker)
 wrangler deploy
@@ -83,7 +97,8 @@ wrangler deploy
 wrangler deploy --env whatsapp
 wrangler deploy --env docsync
 wrangler deploy --env uploadhook
-```
+wrangler deploy --env scheduler
+``` 
 
 ## Pre-commit
 

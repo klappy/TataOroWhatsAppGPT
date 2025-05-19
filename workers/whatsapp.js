@@ -15,6 +15,8 @@
 import { chatCompletion } from '../shared/gpt.js';
 import { SYSTEM_PROMPT } from '../shared/systemPrompt.js';
 import { sendConsultationEmail } from '../shared/emailer.js';
+import { upsertShopifyCustomer } from '../shared/shopify.js';
+import { generateOrFetchSummary } from '../shared/summary.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -93,15 +95,24 @@ export default {
 
     console.log('Incoming message', { from, body, mediaUrls, r2Urls });
 
-    // Load conversation history from KV
-    const historyKey = `chat_history:${from}`;
-    const stored = await env.CHAT_HISTORY.get(historyKey);
-    const history = stored ? JSON.parse(stored) : [];
-    // Reset conversation if user sends a reset keyword
+    const now = Math.floor(Date.now() / 1000);
+    const sessionKey = `chat_history:${from}`;
+    const storedSession = await env.CHAT_HISTORY.get(sessionKey);
+    const session = storedSession
+      ? JSON.parse(storedSession)
+      : {
+          history: [],
+          progress_status: 'started',
+          last_active: now,
+          summary_email_sent: false,
+          nudge_sent: false,
+        };
+    session.last_active = now;
+
     const incoming = body.trim().toLowerCase();
     const resetTriggers = ['reset', 'clear', 'start over', 'new consultation'];
     if (resetTriggers.includes(incoming)) {
-      await env.CHAT_HISTORY.delete(historyKey);
+      await env.CHAT_HISTORY.delete(sessionKey);
       const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>No problem! I’ve cleared our conversation so we can start fresh. 🌱 What would you like to do next?</Message></Response>`;
       return new Response(twiml, {
         headers: { 'Content-Type': 'text/xml; charset=UTF-8', 'Access-Control-Allow-Origin': '*' },
@@ -122,24 +133,38 @@ export default {
     // Call OpenAI Chat Completion API
     const assistantReply = await chatCompletion(messages, env.OPENAI_API_KEY);
 
-    // Update KV with new messages (short-term memory)
+    // Store messages in session history
     if (r2Urls.length > 0) {
       const contentArray = r2Urls.map(url => ({ type: 'image_url', image_url: { url } }));
       if (body) contentArray.push({ type: 'text', text: body });
-      history.push({ role: 'user', content: contentArray });
+      session.history.push({ role: 'user', content: contentArray });
     } else {
-      history.push({ role: 'user', content: body });
+      session.history.push({ role: 'user', content: body });
     }
-    history.push({ role: 'assistant', content: assistantReply });
+    session.history.push({ role: 'assistant', content: assistantReply });
 
-    // Keep history for 24 hours
-    await env.CHAT_HISTORY.put(historyKey, JSON.stringify(history), { expirationTtl: 86400 });
+    // Detect summary handoff link
     const summaryHandoffLinkRegex = /https?:\/\/wa\.me\/\d+\?text=/;
     if (summaryHandoffLinkRegex.test(assistantReply)) {
+      session.summary = assistantReply;
+      session.progress_status = 'summary-ready';
       ctx.waitUntil(
-        sendConsultationEmail({ env, phone: from, summary: assistantReply, history, r2Urls })
+        sendConsultationEmail({ env, phone: from, summary: assistantReply, history: session.history, r2Urls: session.r2Urls || [] })
+      );
+      ctx.waitUntil(
+        upsertShopifyCustomer({
+          env,
+          firstName: session.name,
+          phone: from,
+          email: session.email,
+          tags: 'whatsapp,consultation-lead,summary-complete',
+          note: 'Consultation summary generated',
+        })
       );
     }
+
+    // Save session state with TTL
+    await env.CHAT_HISTORY.put(sessionKey, JSON.stringify(session), { expirationTtl: 86400 });
 
     console.log('Assistant reply', assistantReply);
 

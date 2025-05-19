@@ -31,11 +31,20 @@ main = "workers/upload-hook.js"
 name = "tataoro-upload-hook"
 route = "https://tataoro.com/uploadhook"
 
+[env.scheduler]
+main = "workers/scheduler.js"
+name = "tataoro-scheduler"
+triggers = { crons = ["0 * * * *"] }
+
 [vars]
 EMAIL_ENABLED = true
 EMAIL_PROVIDER = "resend"
 EMAIL_FROM = "consultations@tataoro.com"
 EMAIL_TO = "tatacurly@tataoro.com"
+RESEND_API_KEY = "<your-resend-api-key>"
+SHOPIFY_STORE_DOMAIN = "<your-shopify-store-domain>"
+SHOPIFY_API_TOKEN = "<your-shopify-api-token>"
+TWILIO_WHATSAPP_NUMBER = "whatsapp:<your-twilio-whatsapp-number>"
 
 [observability.logs]
 enabled = true

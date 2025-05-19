@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.3.0 - Implement planned consultation workflow enhancements
+
+- Track and store session metadata (progress_status, last_active, summary_email_sent, nudge_sent, history, r2Urls) in KV
+- Upsert Shopify customer record on milestones (photo upload, name collection, summary complete)
+- Manual "send email" / "email summary" command to forward summary via email
+- Scheduler worker (`workers/scheduler.js`) for timeout-based email summaries and WhatsApp nudges
+- Configure wrangler.toml with scheduler, Shopify, and Twilio settings
+- Update README.md and ARCHITECTURE.md with new features and environment variables
+
 ## v1.2.3 - Reset conversation via incoming keywords
 
 - Detect reset triggers ("reset", "clear", "start over", "new consultation") and clear session history
