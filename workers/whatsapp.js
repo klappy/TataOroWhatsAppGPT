@@ -141,7 +141,7 @@ export default {
 
 
     // Construct messages payload for OpenAI
-    const messages = [{ role: 'system', content: SYSTEM_PROMPT }, ...history];
+    const messages = [{ role: 'system', content: SYSTEM_PROMPT }, ...session.history];
     if (r2Urls.length > 0) {
       const contentArray = r2Urls.map(url => ({ type: 'image_url', image_url: { url } }));
       if (body) contentArray.push({ type: 'text', text: body });

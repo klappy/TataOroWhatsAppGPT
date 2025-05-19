@@ -1,8 +1,7 @@
-# 🐛 Issue: `history is not defined` After Reset
+# 🐛 Issue: `history is not defined` When Chat Entry Missing in KV
 
 ## ❗️Summary
-
-After a user sends a "reset" message, the next incoming message crashes the Worker with:
+When a user begins a conversation for the first time — or after sending a "reset" command — the chat entry is missing in KV. The system expects a session object to exist, and fails with:
 
 ```
 ReferenceError: history is not defined
@@ -11,56 +10,62 @@ ReferenceError: history is not defined
 ---
 
 ## 🔍 Root Cause
+This is not a malformed object — the entire `CHAT_HISTORY:<phone>` key does not exist in Cloudflare KV.
 
-The `reset` command deletes the entire chat session from KV (`CHAT_HISTORY:<phone>`), but the subsequent GPT logic assumes `history` (i.e., `messages`) exists.
+This is expected behavior:
+- On first message from a new phone number
+- After `reset`, which deletes the session
+
+However, downstream code assumes a session always exists.
 
 ---
 
-## ✅ Antifragile Resolution
+## ✅ Resolution
 
-### Instead of requiring reset to write a default structure, **all session reads should be tolerant of missing data**:
+### Defensive Session Initialization
 
+Replace:
 ```js
-const session = (await KV.get(chatKey, { type: "json" })) || {};
-const history = Array.isArray(session.messages) ? session.messages : [];
-const progress = session.progress_status || "started";
+const messages = [...history, ...];
 ```
 
-This way, even if `reset` deletes the session entirely, your logic will default safely and continue functioning.
+With:
+```js
+const session = await KV.get(chatKey, { type: "json" }) || {};
+const messages = Array.isArray(session.messages) ? session.messages : [];
+```
 
----
-
-## 🧠 Future Prevention Strategy
-
-### 1. All reads must assume KV may return `null` or malformed data
-
-- Avoid destructuring undefined
-- Use safe defaults
-
-### 2. Helper Function (Recommended)
-
-Create a utility like:
-
+Or use a helper:
 ```js
 function getSafeSession(data) {
   return {
     messages: Array.isArray(data?.messages) ? data.messages : [],
-    progress_status: data?.progress_status || "started",
     photo_urls: Array.isArray(data?.photo_urls) ? data.photo_urls : [],
-    ...data,
+    progress_status: data?.progress_status || "started",
+    summary_email_sent: data?.summary_email_sent || false,
+    nudge_sent: data?.nudge_sent || false,
+    last_active: data?.last_active || Date.now(),
+    ...data
   };
 }
 ```
 
 ---
 
-## 📁 Doc Needs Updated
+## 🧠 Future Prevention
+
+- KV **absence is expected** — treat it as an empty session, not an error
+- Never assume `history`, `messages`, or any nested field exists
+- On first message, auto-initialize the session in-memory (not necessarily in KV yet)
+
+---
+
+## 📁 Docs Updated
 
 - [`docs/architecture/kv-state-machine.md`](kv-state-machine.md)  
-  ➤ Update to emphasize defensive reads instead of requiring strict structure on new/reset/writes
+  ➤ Clarified: missing session is a valid, expected scenario. All access must be defensive.
 
 ---
 
 ## 🏷 Tags
-
-`cf-worker` · `reset-session` · `kv-defaults` · `ReferenceError` · `gpt`
+`cf-worker` · `kv-defaults` · `missing-session` · `first-message` · `gpt`
