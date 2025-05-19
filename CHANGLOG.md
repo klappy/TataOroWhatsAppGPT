@@ -2,26 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.2.1
+
+Fixed system prompt to what it was suppose to be.
+
 ## v1.2.0
+
 New system prompt: Tata Oro Curly Hair Consultation Assistant.
 
 ## v1.1.11
+
 Move KV and R2 bindings to the top-level of your `wrangler.toml` file and update documentation accordingly.
 
 ## v1.1.10
+
 Ensure all bindings in `wrangler.toml` use array-of-tables formatting and update documentation accordingly.
 
 ## v1.1.9
-Refactor worker filenames: move /workers/{name}/index.js to /workers/{name}.js, update wrangler.toml and documentation references.  
+
+Refactor worker filenames: move /workers/{name}/index.js to /workers/{name}.js, update wrangler.toml and documentation references.
 
 ## v1.1.8
-Add top-level default entry-point in wrangler.toml to support default Wrangler deploy without --env flag.  
+
+Add top-level default entry-point in wrangler.toml to support default Wrangler deploy without --env flag.
 
 ## v1.1.6
-Fix missing entry-point error in Wrangler deploy by setting main path explicitly.  
+
+Fix missing entry-point error in Wrangler deploy by setting main path explicitly.
 
 ## v1.1.7
-Extracted system prompt to shared module for maintainability  
+
+Extracted system prompt to shared module for maintainability
 
 ## [1.1.5] - 📦 Refactoring Tata Oro WhatsApp Assistant for Multi-Worker Setup
 
