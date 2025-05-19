@@ -22,6 +22,8 @@ This project uses a structured folder system to manage the lifecycle of Codex-co
   - Consult all related docs in `/docs/`
   - Apply antifragile practices and architectural alignment
   - Follow patterns from `/docs/architecture/` and `/docs/decisions/`
+- Stage and commit all changes with a descriptive commit message
+  - `vX.X.X-issue-name-02-planned`
 
 ---
 
@@ -32,6 +34,10 @@ This project uses a structured folder system to manage the lifecycle of Codex-co
   - Automated or manual tests
   - Thorough code and feature review
   - Cross-feature regression check to ensure nothing else was broken
+
+- Stage and commit all changes with a descriptive commit message
+
+  - `vX.X.X-issue-name-03-qa`
 
 - Do **not** close the issue yet — move to `04-documentation` only after validation
 
@@ -45,6 +51,10 @@ This project uses a structured folder system to manage the lifecycle of Codex-co
   - Markdown specs reflect the final state of the feature
   - Nothing conflicts with other decisions or constraints
 
+- Stage and commit all changes with a descriptive commit message
+
+  - `vX.X.X-issue-name-04-documentation`
+
 - Once docs are updated and verified → move to `05-closed/`
 
 ---
@@ -52,10 +62,21 @@ This project uses a structured folder system to manage the lifecycle of Codex-co
 ## 📂 `05-closed/` – Completed & Documented
 
 - Final resting place for issues that:
+
   - Have been implemented
   - Passed QA
   - Are fully documented
   - Did not regress or break related functionality
+
+- Stage and commit all changes with a descriptive commit message
+
+  - `vX.X.X-issue-name-05-closed`
+
+- Create a tagged release
+
+  - `vX.X.X`
+
+- Push branch and tags to remote
 
 ---
 
