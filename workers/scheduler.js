@@ -42,14 +42,19 @@ export default {
                   Array.isArray(msg.content) && msg.content.some(e => e.type === 'image_url')
                 )))
           ) {
-            const summary = await generateOrFetchSummary({ env, session, phone: key.name.split(':')[1] });
+            const phone = key.name.split(':')[1];
+            const summary = await generateOrFetchSummary({ env, session, phone });
+            const { objects } = await env.MEDIA_BUCKET.list({ prefix: `${phone}/` });
+            const photoUrls = (objects || []).map(obj =>
+              `${env.WHATSAPP_BASE_URL}/images/${encodeURIComponent(obj.key)}`
+            );
             ctx.waitUntil(
               sendConsultationEmail({
                 env,
-                phone: key.name.split(':')[1],
+                phone,
                 summary,
                 history: session.history,
-                r2Urls: session.r2Urls || [],
+                r2Urls: photoUrls,
               })
             );
             session.summary_email_sent = true;

@@ -105,7 +105,6 @@ export default {
       progress_status: sessionData.progress_status || 'started',
       summary_email_sent: sessionData.summary_email_sent || false,
       nudge_sent: sessionData.nudge_sent || false,
-      r2Urls: Array.isArray(sessionData.r2Urls) ? sessionData.r2Urls : [],
       ...sessionData,
     };
     session.last_active = now;
@@ -128,8 +127,10 @@ export default {
           headers: { 'Content-Type': 'text/xml; charset=UTF-8', 'Access-Control-Allow-Origin': '*' },
         });
       }
-      const summary = await generateOrFetchSummary({ env, session, phone: from });
-      await sendConsultationEmail({ env, phone: from, summary, history: session.history, r2Urls: session.r2Urls || [] });
+      const summary = await generateOrFetchSummary({ env, session, phone: from, baseUrl });
+      const { objects } = await env.MEDIA_BUCKET.list({ prefix: `${from}/` });
+      const photoUrls = (objects || []).map(obj => `${baseUrl}/images/${encodeURIComponent(obj.key)}`);
+      await sendConsultationEmail({ env, phone: from, summary, history: session.history, r2Urls: photoUrls });
       session.summary = summary;
       session.summary_email_sent = true;
       await env.CHAT_HISTORY.put(sessionKey, JSON.stringify(session), { expirationTtl: 86400 });
@@ -168,8 +169,10 @@ export default {
     if (summaryHandoffLinkRegex.test(assistantReply)) {
       session.summary = assistantReply;
       session.progress_status = 'summary-ready';
+      const { objects } = await env.MEDIA_BUCKET.list({ prefix: `${from}/` });
+      const photoUrls = (objects || []).map(obj => `${baseUrl}/images/${encodeURIComponent(obj.key)}`);
       ctx.waitUntil(
-        sendConsultationEmail({ env, phone: from, summary: assistantReply, history: session.history, r2Urls: session.r2Urls || [] })
+        sendConsultationEmail({ env, phone: from, summary: assistantReply, history: session.history, r2Urls: photoUrls })
       );
       ctx.waitUntil(
         upsertShopifyCustomer({

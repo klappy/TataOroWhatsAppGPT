@@ -10,6 +10,7 @@ This project uses a structured folder system to manage the lifecycle of Codex-co
 - Each issue should include user description or observed behavior
 - Use Codex or manual review to **vet, clarify, and reframe** as a proper spec
 - Once a clear issue has been generated and documented → move to `02-planned/`
+- Prepend the filename with an incremented version number using semver
 
 ---
 
@@ -27,6 +28,7 @@ This project uses a structured folder system to manage the lifecycle of Codex-co
 ## 📂 `03-qa/` – Implementation Complete, Needs Testing
 
 - Issue has been implemented but needs:
+
   - Automated or manual tests
   - Thorough code and feature review
   - Cross-feature regression check to ensure nothing else was broken
@@ -38,6 +40,7 @@ This project uses a structured folder system to manage the lifecycle of Codex-co
 ## 📂 `04-documentation/` – Documentation Review
 
 - Ensure:
+
   - All related docs (architecture, decisions, features, issues) are updated
   - Markdown specs reflect the final state of the feature
   - Nothing conflicts with other decisions or constraints
@@ -61,4 +64,3 @@ This project uses a structured folder system to manage the lifecycle of Codex-co
 - Always refer to `/docs/architecture/` and `/docs/decisions/` before planning or building
 - Prefer antifragile patterns (see: `antifragile-integrations.md`)
 - Each folder acts as a queue — process oldest issues first when possible
-

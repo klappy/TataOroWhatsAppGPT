@@ -69,11 +69,11 @@ try {
 
 ## 🛠 Suggested Module Placement
 
-| Function         | File                |
-| ---------------- | ------------------- |
-| Email Logic      | `shared/emailer.js` |
-| Shopify Customer | `shared/shopify.js` |
-| Session Summary   | `shared/summary.js` |
+| Function                          | File                   |
+| --------------------------------- | ---------------------- |
+| Email Logic                       | `shared/emailer.js`    |
+| Shopify Customer                  | `shared/shopify.js`    |
+| Session Summary                   | `shared/summary.js`    |
 | Scheduler Worker (retry & nudges) | `workers/scheduler.js` |
 
 ---
