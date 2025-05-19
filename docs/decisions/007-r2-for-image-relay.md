@@ -16,21 +16,22 @@ Users upload hair photos via WhatsApp. These images need to:
 
 We use Cloudflare R2 to store images uploaded via WhatsApp:
 
-- URLs are preserved in the session object (`photo_urls[]`)
-- Public links are used in the summary and WhatsApp deep link
 - Images are uploaded with the user’s phone number + timestamp as key
+- Public links are used in summaries and WhatsApp deep links
+- Photo URLs are dynamically discovered from R2 at summary time, instead of persisting in KV
 
 ## Consequences
 
 - R2 offers cost-effective object storage and integrates directly with Workers
 - We must ensure uploaded photos are not overwritten in race conditions
 - Image uploads must be idempotent and fast
-- No metadata service is used — everything must be tracked in KV
+- Photo metadata is inferred via R2 listing; no need to persist photo URLs in KV
 
 ## Implementation Notes
 
 - Uploaded images use key format: `whatsapp:{phone}/{timestamp}-{filename}.jpg`
 - Stored as public objects to support easy sharing via summary/email/WhatsApp
+- During summary generation, list all R2 objects matching the user's phone-prefix to gather photo URLs
 
 ## Benefits
 
