@@ -97,6 +97,16 @@ export default {
     const historyKey = `chat_history:${from}`;
     const stored = await env.CHAT_HISTORY.get(historyKey);
     const history = stored ? JSON.parse(stored) : [];
+    // Reset conversation if user sends a reset keyword
+    const incoming = body.trim().toLowerCase();
+    const resetTriggers = ['reset', 'clear', 'start over', 'new consultation'];
+    if (resetTriggers.includes(incoming)) {
+      await env.CHAT_HISTORY.delete(historyKey);
+      const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>No problem! I’ve cleared our conversation so we can start fresh. 🌱 What would you like to do next?</Message></Response>`;
+      return new Response(twiml, {
+        headers: { 'Content-Type': 'text/xml; charset=UTF-8', 'Access-Control-Allow-Origin': '*' },
+      });
+    }
 
 
     // Construct messages payload for OpenAI

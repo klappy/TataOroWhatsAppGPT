@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.2.3 - Reset conversation via incoming keywords
+
+- Detect reset triggers ("reset", "clear", "start over", "new consultation") and clear session history
+- Update workers/whatsapp.js to handle reset without invoking GPT and send confirmation message
+- Update documentation for reset conversation feature (README.md, ARCHITECTURE.md, VIBE_CHECK.md)
+
 ## v1.2.2 - Email chat summary, transcript, and images
 
 - Add shared/emailer.js for Resend email integration

@@ -82,6 +82,18 @@ https://wa.me/16895292934?text=<encoded summary>
 
 ---
 
+## ✅ Reset Conversation via Message
+
+| Input Message       | Expected Behavior                                  |
+|---------------------|----------------------------------------------------|
+| `reset`             | KV entry deleted, reset message returned           |
+| `clear`             | KV entry deleted, reset message returned           |
+| `start over`        | KV entry deleted, reset message returned           |
+| `new consultation`  | KV entry deleted, reset message returned           |
+| any other message   | Normal assistant flow continues                    |
+
+---
+
 ## ✅ Cloudflare Features (Optional Enhancements)
 
 - [x] Uses `env.OPENAI_API_KEY` securely
