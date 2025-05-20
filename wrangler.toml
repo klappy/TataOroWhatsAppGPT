@@ -16,11 +16,6 @@ preview_bucket_name = "tataoro-chat-images"
 binding = "DOC_KNOWLEDGE"
 id = "c4281158fd7346fdac1f9e10bc092079"
 
-[env.whatsapp]
-main = "workers/whatsapp.js"
-name = "tataoro-whatsapp"
-route = "https://wa.tataoro.com/*"
-
 [env.docsync]
 main = "workers/doc-sync.js"
 name = "tataoro-doc-sync"
@@ -40,6 +35,11 @@ triggers = { crons = ["0 * * * *"] }
 main = "workers/admin.js"
 name = "tataoro-admin"
 route = "https://wa.tataoro.com/admin*"
+
+[env.whatsapp]
+main = "workers/whatsapp.js"
+name = "tataoro-whatsapp"
+route = "https://wa.tataoro.com/*"
 
 [vars]
 EMAIL_ENABLED = true
