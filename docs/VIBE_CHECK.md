@@ -9,7 +9,7 @@ This checklist verifies that the generated Cloudflare Worker correctly implement
 - [x] `workers/whatsapp.js` exists and uses the Cloudflare `fetch` handler pattern
 - [x] `workers/doc-sync.js` exists
 - [x] `workers/upload-hook.js` exists
-- [ ] Implements shareable summary endpoint GET `/summary/:conversationId` in `workers/whatsapp.js`
+- [x] Implements shareable summary endpoint GET `/summary/:conversationId` in `workers/whatsapp.js`
 
 ```js
 export default {
@@ -112,7 +112,7 @@ https://wa.me/16895292934?text=<encoded summary>
 
 ## 🧪 Ready to Deploy?
 
-- [ ] Worker deployed via `wrangler` CLI
-- [ ] Endpoint URL set as the webhook in Twilio for the WhatsApp number
+- [x] Worker deployed via `wrangler` CLI
+- [x] Endpoint URL set as the webhook in Twilio for the WhatsApp number
 
 ---
