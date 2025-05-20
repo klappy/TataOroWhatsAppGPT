@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.4.1 - Update Admin Route
+- Admin dashboard now served under `https://wa.tataoro.com/admin` instead of the `admin.tataoro.com` subdomain.
+
 ## v1.4.0 - Admin Dashboard Worker
 - Added `workers/admin.js` providing a lightweight web UI for listing sessions, viewing details, and resetting conversations.
 - Updated `wrangler.toml` with `[env.admin]` configuration.

@@ -31,7 +31,7 @@ For detailed prompt configuration, see [VIBE_PROMPT.md](docs/issues/05-closed/VI
 - Scheduled WhatsApp nudges for stalled consultations
 - Stateless GET `/summary/:conversationId` endpoint for dynamic, read-only HTML consultation summaries (chat messages, metadata, images) without separate storage.
 - Scheduler worker (`workers/scheduler.js`) with hourly cron checks
-- Lightweight admin portal (`workers/admin.js`) to browse sessions and reset them
+- Lightweight admin portal (`workers/admin.js`) to browse sessions and reset them (available at `/admin` under the WhatsApp domain)
 
 ## Setup
 
