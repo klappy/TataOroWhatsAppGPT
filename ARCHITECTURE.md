@@ -6,19 +6,22 @@
 
 ```bash
 tataoro-assistant/
-├── workers/
-│   ├── whatsapp/            # WhatsApp Worker (moved from `index.js`)
-│   │   └── index.js
-│   ├── doc-sync/            # New Worker to fetch GitHub files + embed
-│   │   └── index.js
-│   ├── upload-hook/         # Optional: GitHub webhook to auto-trigger sync
-│   │   └── index.js
-├── shared/                  # Reusable GPT, chunking, embedding utilities
-│   ├── gpt.js
-│   ├── embeddings.js
-│   ├── chunker.js
-│   └── prompt-builder.js
-├── wrangler.toml            # Multi-worker deployment config
+├── workers/                  # Edge runtimes for request handling and background jobs
+│   ├── whatsapp.js           # Handles incoming WhatsApp webhook from Twilio
+│   ├── doc-sync.js           # Fetches GitHub files and updates embeddings
+│   ├── upload-hook.js        # (Optional) GitHub webhook to trigger doc sync
+│   ├── scheduler.js          # Cron-triggered tasks: email summaries & WhatsApp nudges
+├── shared/                   # Reusable utilities: GPT, embedding, email, R2, and Shopify
+│   ├── chunker.js            # Split docs into semantic chunks
+│   ├── embeddings.js         # OpenAI embeddings helper
+│   ├── emailer.js            # Consultation summary email logic (Resend)
+│   ├── gpt.js                # Chat completion wrapper
+│   ├── prompt-builder.js     # Message formatting for GPT
+│   ├── r2.js                 # R2 key management and cleanup
+│   ├── shopify.js            # Shopify customer upsert helper
+│   ├── summary.js            # Consultation summary generation
+│   └── systemPrompt.js       # Central system prompt for the assistant
+├── wrangler.toml             # Multi-worker deployment config and bindings
 └── package.json
 ```
 
@@ -102,18 +105,22 @@ The assistant uses a system prompt extracted into the `shared/systemPrompt.js` m
 
 ## 🔐 Environment Variables
 
-| Variable             | Description                                            |
-| -------------------- | ------------------------------------------------------ |
-| `OPENAI_API_KEY`     | Secure API key for OpenAI GPT-4o-mini                  |
-| `TWILIO_AUTH_TOKEN`  | Used for Twilio media downloads and webhook validation |
-| `TWILIO_ACCOUNT_SID` | Used for R2 proxy or image access routing              |
-| `EMAIL_ENABLED`      | Enable sending consultation emails                     |
-| `EMAIL_PROVIDER`     | Email provider (e.g., resend)                          |
-| `EMAIL_FROM`         | Sender address for consultation emails                 |
-| `EMAIL_TO`           | Recipient address for consultation emails              |
-| `RESEND_API_KEY`     | API key for Resend email service                       |
+| Variable                  | Description                                            |
+| ------------------------- | ------------------------------------------------------ |
+| `OPENAI_API_KEY`          | API key for OpenAI GPT-4o-mini                          |
+| `TWILIO_AUTH_TOKEN`       | Twilio auth token for webhook validation and media downloads |
+| `TWILIO_ACCOUNT_SID`      | Twilio Account SID for signing requests                |
+| `TWILIO_WHATSAPP_NUMBER`  | Twilio WhatsApp sender number (e.g., `whatsapp:+14155238886`) |
+| `EMAIL_ENABLED`           | Enable sending consultation summary emails             |
+| `EMAIL_PROVIDER`          | Email provider (e.g., `resend`)                        |
+| `EMAIL_FROM`              | Sender address for summary emails                      |
+| `EMAIL_TO`                | Recipient address for summary emails                   |
+| `RESEND_API_KEY`          | API key for Resend email service                       |
+| `SHOPIFY_STORE_DOMAIN`    | Domain for the Shopify store (e.g., `tataoro.com`)     |
+| `SHOPIFY_API_TOKEN`       | API token for Shopify Admin API                        |
+| `WHATSAPP_BASE_URL`       | Base URL for WhatsApp handler (e.g., `https://wa.tataoro.com`)|
 
-All secrets are stored securely via `wrangler secret put`.
+Sensitive values (`OPENAI_API_KEY`, `TWILIO_AUTH_TOKEN`, `TWILIO_ACCOUNT_SID`, `RESEND_API_KEY`, `SHOPIFY_API_TOKEN`) should be set via `wrangler secret put`. Other configuration vars belong in the `[vars]` section of `wrangler.toml`.
 
 ---
 
@@ -147,7 +154,7 @@ preview_bucket_name = "tataoro-chat-images"
 
 [[kv_namespaces]]
 binding = "DOC_KNOWLEDGE"
-id = "your-doc-knowledge-kv-id"
+id = "c4281158fd7346fdac1f9e10bc092079"
 
 [env.whatsapp]
 main = "workers/whatsapp.js"
@@ -173,11 +180,9 @@ triggers = { crons = ["0 * * * *"] }
 EMAIL_ENABLED = true
 EMAIL_PROVIDER = "resend"
 EMAIL_FROM = "consultations@tataoro.com"
-EMAIL_TO = "tata@tataoro.com"
-RESEND_API_KEY = "<your-resend-api-key>"
-SHOPIFY_STORE_DOMAIN = "<your-shopify-store-domain>"
-SHOPIFY_API_TOKEN = "<your-shopify-api-token>"
-TWILIO_WHATSAPP_NUMBER = "whatsapp:<your-twilio-whatsapp-number>"
+EMAIL_TO = "tatacurly@tataoro.com"
+SHOPIFY_STORE_DOMAIN = "tataoro.com"
+WHATSAPP_BASE_URL = "https://wa.tataoro.com"
 
 [observability.logs]
 enabled = true
@@ -216,10 +221,14 @@ curl -X POST https://wa.tataoro.com \
 
 ## 📋 Related Design Files
 
-- `VIBE_PROMPT.md`: Consultation system prompt
-- `VIBE_CHECK.md`: Testable requirements checklist
-- `VIBE_FEATURE_SMS.md`: SMS and WhatsApp dual-channel logic
-- `VIBE_FEATURE_R2.md`: Handles image proxy + hosting logic via Cloudflare R2
+- `docs/issues/05-closed/VIBE_PROMPT.md`: Consultation system prompt and high-level requirements
+- `docs/VIBE_CHECK.md`: Testable requirements checklist for worker implementation
+- `docs/architecture/async-flow.md`: Flow of messages, integration triggers, and async jobs
+- `docs/architecture/openai-routing.md`: GPT summary generation and R2 integration design
+- `docs/architecture/kv-state-machine.md`: Session state machine and KV management
+- `docs/architecture/image-discovery-from-r2.md`: Dynamic image listing strategy from R2
+- `docs/architecture/antifragile-integrations.md`: Resilience patterns for external service failures
+- `docs/features/implemented/`: Detailed specs for each implemented feature (Shopify, email, nudges, etc.)
 
 ---
 
