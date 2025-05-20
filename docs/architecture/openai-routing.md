@@ -35,8 +35,11 @@ const messages = [
 ## 🧾 Summary Detection
 
 - Assistant is instructed to produce a structured Markdown summary
-- Worker detects summary handoff link in assistant reply using `summaryHandoffLinkRegex` (e.g., a wa.me link)
-- Triggers downstream logic: send summary email and upsert Shopify customer
+- Worker detects summary handoff link in the assistant reply using
+  `summaryHandoffLinkRegex` (e.g., a wa.me link). When detected, the worker calls
+  `generateOrFetchSummary` to regenerate the summary with real R2 image URLs so
+  the inline message matches the emailed summary. It then sends the summary
+  email and upserts the Shopify customer record.
 
 ---
 
