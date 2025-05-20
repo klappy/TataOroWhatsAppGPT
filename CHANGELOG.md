@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.3.4 - Bug Fix: summary photo links
+- Ensure `shared/summary.js` always appends direct R2 image URLs to the
+  consultation summary if the model omits them.
+
 ## v1.3.3 - Bug Fix: progress status never updated
 - Update workers/whatsapp.js to set `progress_status` to `photo-received` or `midway`
   based on incoming messages so scheduler emails and nudges trigger correctly.
