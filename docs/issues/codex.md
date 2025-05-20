@@ -11,6 +11,7 @@ This project uses a structured folder system to manage the lifecycle of Codex-co
 - Use Codex or manual review to **vet, clarify, and reframe** as a proper spec
 - Once a clear issue has been generated and documented → move to `02-planned/`
 - Prepend the filename with an incremented version number using semver
+- Make sure to commit the issue before and after making changes
 
 ---
 
