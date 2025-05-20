@@ -46,6 +46,7 @@ This document describes the architecture of the AI-powered WhatsApp consultation
 - Parses message content and media URLs
 - Formats valid TwiML XML response for WhatsApp/SMS
 - Routes messages through GPT-4o-mini and constructs dynamic responses
+- Serves a dynamic summary HTML page at `/summary/:conversationId`, rendering live chat history, metadata, and R2-hosted images without any writes or pre-generation.
 
 ### 3. **OpenAI GPT-4o-mini API**
 

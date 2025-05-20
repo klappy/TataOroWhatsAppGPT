@@ -9,6 +9,7 @@ This checklist verifies that the generated Cloudflare Worker correctly implement
 - [x] `workers/whatsapp.js` exists and uses the Cloudflare `fetch` handler pattern
 - [x] `workers/doc-sync.js` exists
 - [x] `workers/upload-hook.js` exists
+- [ ] Implements shareable summary endpoint GET `/summary/:conversationId` in `workers/whatsapp.js`
 
 ```js
 export default {

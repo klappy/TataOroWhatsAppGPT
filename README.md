@@ -28,6 +28,7 @@ For detailed prompt configuration, see [VIBE_PROMPT.md](docs/issues/05-closed/VI
 - Manual "send email" command to forward summary to Tata via email
 - Scheduled timeout-based email summary for incomplete consultations
 - Scheduled WhatsApp nudges for stalled consultations
+- Stateless GET `/summary/:conversationId` endpoint for dynamic, read-only HTML consultation summaries (chat messages, metadata, images) without separate storage.
 - Scheduler worker (`workers/scheduler.js`) with hourly cron checks
 
 ## Setup

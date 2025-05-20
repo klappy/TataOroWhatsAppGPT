@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.3.9 - Stateless Summary Endpoint for Long Conversations
+- Serve a live, read-only HTML consultation summary via GET `/summary/:conversationId`, dynamically rendering chat messages, metadata, and inline images from KV and R2 without any separate storage or pre-generation.
+
 ## v1.3.8 - Fix R2 cleanup logic on reset
 - Reset logic now always lists and deletes all R2 objects under the user prefix, ensuring no orphaned images remain.
 
