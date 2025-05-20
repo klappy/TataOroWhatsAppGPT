@@ -14,4 +14,10 @@ describe('r2 helpers', () => {
     await deleteR2Objects(env, ['a.jpg', 'b.jpg']);
     assert.deepStrictEqual(deleted, ['a.jpg', 'b.jpg']);
   });
+
+  it('extracts full key with phone prefix from URL', () => {
+    const key = 'whatsapp:+14232807430/1747559515643-0.jpeg';
+    const url = `https://wa.example.com/images/${encodeURIComponent(key)}`;
+    assert.strictEqual(r2KeyFromUrl(url), key);
+  });
 });

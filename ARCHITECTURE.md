@@ -126,11 +126,52 @@ Sensitive values (`OPENAI_API_KEY`, `TWILIO_AUTH_TOKEN`, `TWILIO_ACCOUNT_SID`, `
 
 ## 📦 R2 Image Handling (If Enabled)
 
-- Downloads image from Twilio via authenticated API call
-- Rehosts it to R2 using Worker’s R2 binding
-- Generates a public R2 URL
-- Injects URL into GPT input message as valid `image_url`
-- R2 URL also included in consultation summary for Tata
+Each image uploaded via WhatsApp is stored under an R2 object key using the following pattern:
+
+```text
+whatsapp:+{E164PhoneNumber}/{timestamp}-{index}.jpeg
+```
+
+### Example
+
+```text
+whatsapp:+14155238886/1700000000000-0.jpeg
+whatsapp:+14155238886/1700000005000-1.jpeg
+```
+
+### Visual Example
+
+Below is a screenshot from the Cloudflare R2 dashboard illustrating the per-user prefix and object keys:
+
+![Cloudflare R2 Dashboard showing whatsapp:+{E164PhoneNumber}/ prefix](docs/architecture/r2-dashboard-prefix.png)
+
+### Upload & URL Generation
+
+- Downloads image from Twilio via authenticated API call and uploads it to R2 under the above key.
+- Generates a public R2 URL by encoding the full key:
+
+  ```js
+  const url = `${baseUrl}/images/${encodeURIComponent(key)}`;
+  ```
+
+### Cleanup & Reset
+
+- To remove uploaded images (e.g., on conversation reset), delete the full object keys:
+
+  ```js
+  // Using stored R2 URLs and helper to extract the keys
+  const keys = session.r2Urls.map(r2KeyFromUrl).filter(Boolean);
+  await deleteR2Objects(env, keys);
+
+  // Or list and delete all objects by phone prefix
+  const prefix = `whatsapp:+${phone}/`;
+  const { objects } = await env.MEDIA_BUCKET.list({ prefix });
+  await deleteR2Objects(env, objects.map((o) => o.key));
+  ```
+
+**Note:** When calling `env.MEDIA_BUCKET.delete(key)`, always include the full object key with the `whatsapp:+{E164PhoneNumber}/` prefix.
+
+This ensures cleanup uses the complete `whatsapp:+phone/...` prefix when deleting objects in R2.
 
 ---
 

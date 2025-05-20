@@ -33,6 +33,22 @@ We use Cloudflare R2 to store images uploaded via WhatsApp:
 - Stored as public objects to support easy sharing via summary/email/WhatsApp
 - During summary generation, list all R2 objects matching the user's phone-prefix to gather photo URLs
 
+### Deletion & Cleanup Strategy
+
+When resetting or clearing a conversation, delete all uploaded images by listing and removing each object under the same phone prefix:
+
+```js
+const prefix = `whatsapp:${phone}/`;
+const { objects } = await env.MEDIA_BUCKET.list({ prefix });
+await Promise.all(objects.map((obj) => env.MEDIA_BUCKET.delete(obj.key)));
+```
+
+Alternatively, if storing full R2 keys in session metadata, use the helper:
+
+```js
+await deleteR2Objects(env, session.r2Keys);
+```
+
 ## Benefits
 
 - Supports multimodal GPT input

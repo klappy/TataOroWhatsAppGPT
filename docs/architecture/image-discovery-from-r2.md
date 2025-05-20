@@ -14,14 +14,20 @@ Avoid writing to KV entirely — instead, dynamically **list all images from R2*
 
 All image uploads use this key format:
 
+```text
+whatsapp:+{E164PhoneNumber}/{timestamp}-{index}.jpeg
 ```
-whatsapp:+<phone>/<timestamp>-<filename>.jpg
-```
+
+## 🖼 Visual Example
+
+Below is a screenshot from the Cloudflare R2 Dashboard illustrating the per-user prefix and object keys:
+
+![Cloudflare R2 Dashboard showing whatsapp:+{E164PhoneNumber}/ prefix](./r2-dashboard-prefix.png)
 
 📌 Example:
 
-```
-whatsapp:+14335551212/1716120082-hair.jpg
+```text
+whatsapp:+14335551212/1716120082-0.jpeg
 ```
 
 ---
@@ -31,13 +37,28 @@ whatsapp:+14335551212/1716120082-hair.jpg
 To fetch all images the user uploaded, list objects using the phone-number prefix:
 
 ```js
-const prefix = `whatsapp:${phone}/`;
-const { objects } = await env.R2.list({ prefix });
+const prefix = `whatsapp:+${phone}/`;
+const { objects } = await env.MEDIA_BUCKET.list({ prefix });
 
 const photoUrls = objects.map((obj) => `https://r2.cdn.com/${obj.key}`);
 ```
 
 These URLs are then included in the final summary without requiring prior tracking.
+
+---
+
+### Cleanup Strategy
+
+To delete all session images (e.g., on reset), use the same phone-prefix listing and delete each object key:
+
+> **Note:** When calling `MEDIA_BUCKET.delete(key)`, be sure to include the full object key (including the `whatsapp:+{E164PhoneNumber}/` prefix).
+
+```js
+const { objects } = await env.MEDIA_BUCKET.list({ prefix: `whatsapp:+${phone}/` });
+await Promise.all(objects.map((obj) => env.MEDIA_BUCKET.delete(obj.key)));
+```
+
+This deletion approach is part of our antifragile strategy: it tolerates partial failures and avoids reliance on stale external state.
 
 ---
 
