@@ -131,13 +131,8 @@ export default {
     const incoming = body.trim().toLowerCase();
     const resetTriggers = ['reset', 'clear', 'start over', 'new consultation'];
     if (resetTriggers.includes(incoming)) {
-      let keys = Array.isArray(session.r2Urls)
-        ? session.r2Urls.map(r2KeyFromUrl).filter(Boolean)
-        : [];
-      if (keys.length === 0) {
-        const list = await env.MEDIA_BUCKET.list({ prefix: `${from}/` });
-        keys = (list.objects || []).map(obj => obj.key);
-      }
+      const { objects } = await env.MEDIA_BUCKET.list({ prefix: `${from}/` });
+      const keys = (objects || []).map(obj => obj.key);
       await deleteR2Objects(env, keys);
       await env.CHAT_HISTORY.delete(sessionKey);
       const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>No problem! I’ve cleared our conversation so we can start fresh. 🌱 What would you like to do next?</Message></Response>`;

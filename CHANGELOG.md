@@ -14,6 +14,9 @@ All notable changes to this project will be documented in this file.
 - Deleting conversations now also removes any R2-hosted photos for that phone number
 - Added r2 cleanup helper and tests
 
+## v1.3.8 - Fix R2 cleanup logic on reset
+- Reset logic now always lists and deletes all R2 objects under the user prefix, ensuring no orphaned images remain.
+
 ## v1.3.3 - Bug Fix: progress status never updated
 - Update workers/whatsapp.js to set `progress_status` to `photo-received` or `midway`
   based on incoming messages so scheduler emails and nudges trigger correctly.
