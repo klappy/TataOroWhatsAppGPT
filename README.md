@@ -108,6 +108,14 @@ Install Wrangler (if needed) and run pre-commit hooks:
 npm install -g wrangler
 pre-commit run --all-files
 ``` 
+## Testing
+
+Run unit tests with Node's built-in test runner:
+
+```bash
+npm test
+```
+
 
 ## Usage
 
