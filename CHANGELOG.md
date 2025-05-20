@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
 - Ensure `shared/summary.js` always appends direct R2 image URLs to the
   consultation summary if the model omits them.
 
+## v1.3.6 - Cleanup R2 images on reset
+- Deleting conversations now also removes any R2-hosted photos for that phone number
+- Added r2 cleanup helper and tests
+
 ## v1.3.3 - Bug Fix: progress status never updated
 - Update workers/whatsapp.js to set `progress_status` to `photo-received` or `midway`
   based on incoming messages so scheduler emails and nudges trigger correctly.

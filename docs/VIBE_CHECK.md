@@ -86,10 +86,10 @@ https://wa.me/16895292934?text=<encoded summary>
 
 | Input Message       | Expected Behavior                                  |
 |---------------------|----------------------------------------------------|
-| `reset`             | KV entry deleted, reset message returned           |
-| `clear`             | KV entry deleted, reset message returned           |
-| `start over`        | KV entry deleted, reset message returned           |
-| `new consultation`  | KV entry deleted, reset message returned           |
+| `reset`             | KV entry deleted, uploaded images removed from R2, reset message returned |
+| `clear`             | KV entry deleted, uploaded images removed from R2, reset message returned |
+| `start over`        | KV entry deleted, uploaded images removed from R2, reset message returned |
+| `new consultation`  | KV entry deleted, uploaded images removed from R2, reset message returned |
 | any other message   | Normal assistant flow continues                    |
 
 ---

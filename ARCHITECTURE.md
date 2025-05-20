@@ -56,6 +56,7 @@ This document describes the architecture of the AI-powered WhatsApp consultation
 - Retention: 24-hour TTL
 - Memory key: `chat_history:<phoneNumber>`
 - Supports resetting conversation when users send reset keywords ("reset", "clear", "start over", "new consultation")
+  - Uploaded R2 images are deleted during reset to avoid orphaned media
 - Stores session metadata alongside history (progress_status, last_active, summary_email_sent, nudge_sent, summary, r2Urls)
 
 ### 5. **Cloudflare R2 (Optional Image Hosting)**
