@@ -41,5 +41,11 @@ export async function generateOrFetchSummary({ env, session, phone, baseUrl }) {
     })),
   ];
   const summary = await chatCompletion(messages, env.OPENAI_API_KEY);
-  return summary;
+  // Ensure photo URLs are included even if the model omits them
+  let finalSummary = summary;
+  if (photoUrls.length > 0 && !photoUrls.every(url => summary.includes(url))) {
+    const photoSection = `Photos Provided: ${photoUrls.join(' | ')}`;
+    finalSummary = `${summary}\n${photoSection}`;
+  }
+  return finalSummary;
 }

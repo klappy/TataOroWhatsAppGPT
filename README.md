@@ -11,7 +11,7 @@ This repository uses a multi-worker setup to separate concerns across different 
 - **Upload-hook worker** (`workers/upload-hook.js`): GitHub webhook endpoint to trigger automatic document sync.
 - **Shared utilities** (`shared/`): common modules for GPT, embeddings, chunking, and prompt building.
 
-For detailed prompt configuration, see [VIBE_PROMPT.md](vibe/plans/success/VIBE_PROMPT.md).
+For detailed prompt configuration, see [VIBE_PROMPT.md](docs/issues/05-closed/VIBE_PROMPT.md).
 
 ## Features
 
@@ -108,6 +108,14 @@ Install Wrangler (if needed) and run pre-commit hooks:
 npm install -g wrangler
 pre-commit run --all-files
 ``` 
+## Testing
+
+Run unit tests with Node's built-in test runner:
+
+```bash
+npm test
+```
+
 
 ## Usage
 
