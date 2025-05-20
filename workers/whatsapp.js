@@ -17,6 +17,7 @@ import { SYSTEM_PROMPT } from '../shared/systemPrompt.js';
 import { sendConsultationEmail } from '../shared/emailer.js';
 import { upsertShopifyCustomer } from '../shared/shopify.js';
 import { generateOrFetchSummary } from '../shared/summary.js';
+import { deleteR2Objects, r2KeyFromUrl } from '../shared/r2.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -105,9 +106,16 @@ export default {
       progress_status: sessionData.progress_status || 'started',
       summary_email_sent: sessionData.summary_email_sent || false,
       nudge_sent: sessionData.nudge_sent || false,
+      r2Urls: Array.isArray(sessionData.r2Urls) ? sessionData.r2Urls : [],
       ...sessionData,
     };
     session.last_active = now;
+    if (!Array.isArray(session.r2Urls)) {
+      session.r2Urls = [];
+    }
+    if (r2Urls.length > 0) {
+      session.r2Urls.push(...r2Urls);
+    }
 
     // Update progress status based on incoming content
     if (session.progress_status === 'started') {
@@ -123,6 +131,14 @@ export default {
     const incoming = body.trim().toLowerCase();
     const resetTriggers = ['reset', 'clear', 'start over', 'new consultation'];
     if (resetTriggers.includes(incoming)) {
+      let keys = Array.isArray(session.r2Urls)
+        ? session.r2Urls.map(r2KeyFromUrl).filter(Boolean)
+        : [];
+      if (keys.length === 0) {
+        const list = await env.MEDIA_BUCKET.list({ prefix: `${from}/` });
+        keys = (list.objects || []).map(obj => obj.key);
+      }
+      await deleteR2Objects(env, keys);
       await env.CHAT_HISTORY.delete(sessionKey);
       const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>No problem! I’ve cleared our conversation so we can start fresh. 🌱 What would you like to do next?</Message></Response>`;
       return new Response(twiml, {
