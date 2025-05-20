@@ -109,6 +109,17 @@ export default {
     };
     session.last_active = now;
 
+    // Update progress status based on incoming content
+    if (session.progress_status === 'started') {
+      if (r2Urls.length > 0) {
+        session.progress_status = 'photo-received';
+      } else if (body) {
+        session.progress_status = 'midway';
+      }
+    } else if (session.progress_status === 'photo-received' && body) {
+      session.progress_status = 'midway';
+    }
+
     const incoming = body.trim().toLowerCase();
     const resetTriggers = ['reset', 'clear', 'start over', 'new consultation'];
     if (resetTriggers.includes(incoming)) {
