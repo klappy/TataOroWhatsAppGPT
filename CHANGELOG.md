@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.3.3 - Bug Fix: progress status never updated
+- Update workers/whatsapp.js to set `progress_status` to `photo-received` or `midway`
+  based on incoming messages so scheduler emails and nudges trigger correctly.
+
 ## v1.3.2 - Bug Fix: history undefined after reset
 
 - Safely handle missing session data after reset to prevent `ReferenceError: history is not defined`; update workers/whatsapp.js for defensive KV reads and docs/architecture/kv-state-machine.md to emphasize safe defaults.
@@ -111,3 +115,6 @@ Extracted system prompt to shared module for maintainability
 - Upload media to R2 bucket (`MEDIA_BUCKET`) for public access
 - Serve R2 media via GET `/images/<key>` route in Worker
 - Pass R2 URLs to OpenAI GPT-4o-mini for image processing
+## v1.3.3 - Bug Fix: progress status never updated
+- Update workers/whatsapp.js to set `progress_status` to `photo-received` or `midway`
+  based on incoming messages so scheduler emails and nudges trigger correctly.
