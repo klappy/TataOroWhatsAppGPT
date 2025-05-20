@@ -11,6 +11,7 @@ tataoro-assistant/
 │   ├── doc-sync.js           # Fetches GitHub files and updates embeddings
 │   ├── upload-hook.js        # (Optional) GitHub webhook to trigger doc sync
 │   ├── scheduler.js          # Cron-triggered tasks: email summaries & WhatsApp nudges
+│   ├── admin.js              # Lightweight dashboard for sessions and summaries
 ├── shared/                   # Reusable utilities: GPT, embedding, email, R2, and Shopify
 │   ├── chunker.js            # Split docs into semantic chunks
 │   ├── embeddings.js         # OpenAI embeddings helper
@@ -217,6 +218,11 @@ route = "https://tataoro.com/uploadhook"
 main = "workers/scheduler.js"
 name = "tataoro-scheduler"
 triggers = { crons = ["0 * * * *"] }
+
+[env.admin]
+main = "workers/admin.js"
+name = "tataoro-admin"
+route = "https://admin.tataoro.com/*"
 
 [vars]
 EMAIL_ENABLED = true

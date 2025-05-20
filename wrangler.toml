@@ -36,6 +36,11 @@ main = "workers/scheduler.js"
 name = "tataoro-scheduler"
 triggers = { crons = ["0 * * * *"] }
 
+[env.admin]
+main = "workers/admin.js"
+name = "tataoro-admin"
+route = "https://admin.tataoro.com/*"
+
 [vars]
 EMAIL_ENABLED = true
 EMAIL_PROVIDER = "resend"

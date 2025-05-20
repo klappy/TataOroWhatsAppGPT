@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.4.0 - Admin Dashboard Worker
+- Added `workers/admin.js` providing a lightweight web UI for listing sessions, viewing details, and resetting conversations.
+- Updated `wrangler.toml` with `[env.admin]` configuration.
+- Documented admin portal in README and ARCHITECTURE.
+
 ## v1.3.9 - Stateless Summary Endpoint for Long Conversations
 - Serve a live, read-only HTML consultation summary via GET `/summary/:conversationId`, dynamically rendering chat messages, metadata, and inline images from KV and R2 without any separate storage or pre-generation.
 
