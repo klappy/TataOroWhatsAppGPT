@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.3.8 - Fix R2 cleanup logic on reset
+- Reset logic now always lists and deletes all R2 objects under the user prefix, ensuring no orphaned images remain.
+
+## v1.3.6 - Cleanup R2 images on reset
+- Deleting conversations now also removes any R2-hosted photos for that phone number
+- Added r2 cleanup helper and tests
+
 ## v1.3.5 - Fix inline summary links
 - When the assistant generates the final WhatsApp summary, replace the model's
   output with `generateOrFetchSummary` so photo URLs match the email summary.
@@ -9,13 +16,6 @@ All notable changes to this project will be documented in this file.
 ## v1.3.4 - Bug Fix: summary photo links
 - Ensure `shared/summary.js` always appends direct R2 image URLs to the
   consultation summary if the model omits them.
-
-## v1.3.6 - Cleanup R2 images on reset
-- Deleting conversations now also removes any R2-hosted photos for that phone number
-- Added r2 cleanup helper and tests
-
-## v1.3.8 - Fix R2 cleanup logic on reset
-- Reset logic now always lists and deletes all R2 objects under the user prefix, ensuring no orphaned images remain.
 
 ## v1.3.3 - Bug Fix: progress status never updated
 - Update workers/whatsapp.js to set `progress_status` to `photo-received` or `midway`
@@ -77,13 +77,13 @@ Refactor worker filenames: move /workers/{name}/index.js to /workers/{name}.js, 
 
 Add top-level default entry-point in wrangler.toml to support default Wrangler deploy without --env flag.
 
-## v1.1.6
-
-Fix missing entry-point error in Wrangler deploy by setting main path explicitly.
-
 ## v1.1.7
 
 Extracted system prompt to shared module for maintainability
+
+## v1.1.6
+
+Fix missing entry-point error in Wrangler deploy by setting main path explicitly.
 
 ## [1.1.5] - 📦 Refactoring Tata Oro WhatsApp Assistant for Multi-Worker Setup
 
@@ -93,24 +93,17 @@ Extracted system prompt to shared module for maintainability
 - Update `wrangler.toml` with multi-worker env configurations
 - Update documentation: README.md, ARCHITECTURE.md, VIBE_CHECK.md
 
-## [0.1.0] - Initial release
+## [0.1.5] - Twilio media R2 storage & static serving
 
-- Initial implementation of Cloudflare Worker webhook handler:
-  - Accept Twilio WhatsApp messages (text & images)
-  - Short-term memory in KV storage (`CHAT_HISTORY`)
-  - System prompt & chat history injection for GPT-4
-  - GPT-4 Vision support for image understanding
-  - TwiML `<Response><Message>` reply formatting
+- Download Twilio media using Basic Auth (`TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN`)
+- Upload media to R2 bucket (`MEDIA_BUCKET`) for public access
+- Serve R2 media via GET `/images/<key>` route in Worker
+- Pass R2 URLs to OpenAI GPT-4o-mini for image processing
 
-## [0.1.1] - Switch to GPT-4o-mini
+## [0.1.4] - GPT-4o-mini media detection & checklist updates
 
-- Switch to GPT-4o-mini model for faster, cheaper, multimodal support
-- Update code and documentation to reflect GPT-4o-mini usage
-
-## [0.1.2] - Vision integration & checklist verification
-
-- Upgrade GPT-4o-mini vision integration: send actual `image_url` messages to model in both live prompts and KV history.
-- Update `VIBE_VERIFY.md` to correct GPT-4o-mini entries and check off verified items.
+- Implement GPT-4o image message formatting in `index.js`: messages include content arrays with `image_url` objects and optional caption text entries.
+- Check off new media detection items in `VIBE_VERIFY.md`.
 
 ## [0.1.3] - Twilio TwiML compliance enhancements
 
@@ -119,17 +112,21 @@ Extracted system prompt to shared module for maintainability
   - Recommended verifying `X-Twilio-Signature` header for incoming requests.
 - Implemented `escapeXml` in `index.js`, updated TwiML generation to include XML prolog and `text/xml; charset=UTF-8` header.
 
-## [0.1.4] - GPT-4o-mini media detection & checklist updates
+## [0.1.2] - Vision integration & checklist verification
 
-- Implement GPT-4o image message formatting in `index.js`: messages include content arrays with `image_url` objects and optional caption text entries.
-- Check off new media detection items in `VIBE_VERIFY.md`.
+- Upgrade GPT-4o-mini vision integration: send actual `image_url` messages to model in both live prompts and KV history.
+- Update `VIBE_VERIFY.md` to correct GPT-4o-mini entries and check off verified items.
 
-## [0.1.5] - Twilio media R2 storage & static serving
+## [0.1.1] - Switch to GPT-4o-mini
 
-- Download Twilio media using Basic Auth (`TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN`)
-- Upload media to R2 bucket (`MEDIA_BUCKET`) for public access
-- Serve R2 media via GET `/images/<key>` route in Worker
-- Pass R2 URLs to OpenAI GPT-4o-mini for image processing
-## v1.3.3 - Bug Fix: progress status never updated
-- Update workers/whatsapp.js to set `progress_status` to `photo-received` or `midway`
-  based on incoming messages so scheduler emails and nudges trigger correctly.
+- Switch to GPT-4o-mini model for faster, cheaper, multimodal support
+- Update code and documentation to reflect GPT-4o-mini usage
+
+## [0.1.0] - Initial release
+
+- Initial implementation of Cloudflare Worker webhook handler:
+  - Accept Twilio WhatsApp messages (text & images)
+  - Short-term memory in KV storage (`CHAT_HISTORY`)
+  - System prompt & chat history injection for GPT-4
+  - GPT-4 Vision support for image understanding
+  - TwiML `<Response><Message>` reply formatting
