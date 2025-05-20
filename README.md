@@ -108,6 +108,15 @@ Install Wrangler (if needed) and run pre-commit hooks:
 npm install -g wrangler
 pre-commit run --all-files
 ``` 
+## Testing
+
+Run unit tests with Jest:
+
+```bash
+npm install
+npm test
+```
+
 
 ## Usage
 
