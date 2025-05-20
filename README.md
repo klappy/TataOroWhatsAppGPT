@@ -9,6 +9,7 @@ This repository uses a multi-worker setup to separate concerns across different 
 - **WhatsApp handler** (`workers/whatsapp.js`): handles incoming Twilio WhatsApp messages and generates GPT-4o-mini responses.
 - **Doc-sync worker** (`workers/doc-sync.js`): fetches GitHub markdown files, splits content, generates embeddings, and stores them in KV.
 - **Upload-hook worker** (`workers/upload-hook.js`): GitHub webhook endpoint to trigger automatic document sync.
+- **Admin dashboard worker** (`workers/admin.js`): lightweight web UI to inspect and reset sessions.
 - **Shared utilities** (`shared/`): common modules for GPT, embeddings, chunking, and prompt building.
 
 For detailed prompt configuration, see [VIBE_PROMPT.md](docs/issues/05-closed/VIBE_PROMPT.md).
@@ -30,6 +31,7 @@ For detailed prompt configuration, see [VIBE_PROMPT.md](docs/issues/05-closed/VI
 - Scheduled WhatsApp nudges for stalled consultations
 - Stateless GET `/summary/:conversationId` endpoint for dynamic, read-only HTML consultation summaries (chat messages, metadata, images) without separate storage.
 - Scheduler worker (`workers/scheduler.js`) with hourly cron checks
+- Lightweight admin portal (`workers/admin.js`) to browse sessions and reset them
 
 ## Setup
 
@@ -91,6 +93,7 @@ wrangler dev --env whatsapp
 wrangler dev --env docsync
 wrangler dev --env uploadhook
 wrangler dev --env scheduler
+wrangler dev --env admin
 
 # Deployment (Default: WhatsApp worker)
 wrangler deploy
@@ -99,7 +102,8 @@ wrangler deploy --env whatsapp
 wrangler deploy --env docsync
 wrangler deploy --env uploadhook
 wrangler deploy --env scheduler
-``` 
+wrangler deploy --env admin
+```
 
 ## Pre-commit
 
