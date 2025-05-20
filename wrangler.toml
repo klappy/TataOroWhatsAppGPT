@@ -39,7 +39,7 @@ triggers = { crons = ["0 * * * *"] }
 [env.admin]
 main = "workers/admin.js"
 name = "tataoro-admin"
-route = "https://admin.tataoro.com/*"
+route = "https://wa.tataoro.com/admin*"
 
 [vars]
 EMAIL_ENABLED = true
