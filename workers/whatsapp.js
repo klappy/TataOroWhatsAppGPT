@@ -163,7 +163,7 @@ export default {
     }
 
     // Call OpenAI Chat Completion API
-    const assistantReply = await chatCompletion(messages, env.OPENAI_API_KEY);
+    let assistantReply = await chatCompletion(messages, env.OPENAI_API_KEY);
 
     // Store messages in session history
     if (r2Urls.length > 0) {
@@ -173,17 +173,15 @@ export default {
     } else {
       session.history.push({ role: 'user', content: body });
     }
-    session.history.push({ role: 'assistant', content: assistantReply });
-
-    // Detect summary handoff link
     const summaryHandoffLinkRegex = /https?:\/\/wa\.me\/\d+\?text=/;
     if (summaryHandoffLinkRegex.test(assistantReply)) {
+      assistantReply = await generateOrFetchSummary({ env, session, phone: from, baseUrl });
       session.summary = assistantReply;
       session.progress_status = 'summary-ready';
       const { objects } = await env.MEDIA_BUCKET.list({ prefix: `${from}/` });
       const photoUrls = (objects || []).map(obj => `${baseUrl}/images/${encodeURIComponent(obj.key)}`);
       ctx.waitUntil(
-        sendConsultationEmail({ env, phone: from, summary: assistantReply, history: session.history, r2Urls: photoUrls })
+        sendConsultationEmail({ env, phone: from, summary: assistantReply, history: [...session.history, { role: 'assistant', content: assistantReply }], r2Urls: photoUrls })
       );
       ctx.waitUntil(
         upsertShopifyCustomer({
@@ -196,6 +194,8 @@ export default {
         })
       );
     }
+
+    session.history.push({ role: 'assistant', content: assistantReply });
 
     // Save session state with TTL
     await env.CHAT_HISTORY.put(sessionKey, JSON.stringify(session), { expirationTtl: 86400 });

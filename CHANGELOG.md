@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.3.5 - Fix inline summary links
+- When the assistant generates the final WhatsApp summary, replace the model's
+  output with `generateOrFetchSummary` so photo URLs match the email summary.
+
 ## v1.3.4 - Bug Fix: summary photo links
 - Ensure `shared/summary.js` always appends direct R2 image URLs to the
   consultation summary if the model omits them.
