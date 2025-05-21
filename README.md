@@ -7,7 +7,7 @@ Cloudflare Worker webhook handler for Twilio WhatsApp messages, powered by OpenA
 This repository now exposes a **single Cloudflare Worker** with a modular router
 (`workers/router.js`). It dispatches incoming requests to pure handler functions:
 
-- `handleWhatsAppRequest` – `/api/messages` webhook for Twilio
+- `handleWhatsAppRequest` – `/whatsapp/incoming` webhook for Twilio
 - `handleImagesRequest` – serves `/images/*` from R2
 - `handleAdminRequest` – lightweight dashboard at `/admin`
 - `handleSummaryRequest` – read-only summaries under `/summary/*`
@@ -114,7 +114,8 @@ Install Wrangler (if needed) and run pre-commit hooks:
 ```bash
 npm install -g wrangler
 pre-commit run --all-files
-``` 
+```
+
 ## Testing
 
 Run unit tests with Node's built-in test runner:
@@ -123,9 +124,8 @@ Run unit tests with Node's built-in test runner:
 npm test
 ```
 
-
 ## Usage
 
-- Configure your Twilio WhatsApp webhook to point to `/api/messages` (e.g., `https://<your-domain>/api/messages`).
+- Configure your Twilio WhatsApp webhook to point to `/whatsapp/incoming` (e.g., `https://<your-domain>/whatsapp/incoming`).
 - Trigger document synchronization by POSTing to `/internal/doc-sync` or via a scheduled cron/CLI.
 - Point your GitHub webhook to `/uploadhook` to automate updates.

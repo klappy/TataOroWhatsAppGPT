@@ -2,40 +2,56 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.4.4 - Router Worker
+
+- Changed back /api/messages to /whatsapp/incoming
+- Updated tests, docs and configuration to match
+
 ## v1.4.3 - Router Worker
+
 - Consolidated all routes into a single router worker with modular handlers.
 - Updated docs and configuration to remove multi-worker setup.
 
 ## v1.4.2 - Multi-channel route refactor
+
 - Adopted `/whatsapp/incoming` route and new summary worker.
 - Standardized storage keys using channel prefixes.
+
 ## v1.4.1 - Update Admin Route
+
 - Admin dashboard now served under `https://wa.tataoro.com/admin` instead of the `admin.tataoro.com` subdomain.
 
 ## v1.4.0 - Admin Dashboard Worker
+
 - Added `workers/admin.js` providing a lightweight web UI for listing sessions, viewing details, and resetting conversations.
 - Updated `wrangler.toml` with `[env.admin]` configuration.
 - Documented admin portal in README and ARCHITECTURE.
 
 ## v1.3.9 - Stateless Summary Endpoint for Long Conversations
+
 - Serve a live, read-only HTML consultation summary via GET `/summary/:conversationId`, dynamically rendering chat messages, metadata, and inline images from KV and R2 without any separate storage or pre-generation.
 
 ## v1.3.8 - Fix R2 cleanup logic on reset
+
 - Reset logic now always lists and deletes all R2 objects under the user prefix, ensuring no orphaned images remain.
 
 ## v1.3.6 - Cleanup R2 images on reset
+
 - Deleting conversations now also removes any R2-hosted photos for that phone number
 - Added r2 cleanup helper and tests
 
 ## v1.3.5 - Fix inline summary links
+
 - When the assistant generates the final WhatsApp summary, replace the model's
   output with `generateOrFetchSummary` so photo URLs match the email summary.
 
 ## v1.3.4 - Bug Fix: summary photo links
+
 - Ensure `shared/summary.js` always appends direct R2 image URLs to the
   consultation summary if the model omits them.
 
 ## v1.3.3 - Bug Fix: progress status never updated
+
 - Update workers/whatsapp.js to set `progress_status` to `photo-received` or `midway`
   based on incoming messages so scheduler emails and nudges trigger correctly.
 
