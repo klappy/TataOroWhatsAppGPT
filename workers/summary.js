@@ -1,3 +1,5 @@
+import { renderSummaryHTML } from '../shared/summary.js';
+
 export async function handleSummaryRequest(request, env) {
   const url = new URL(request.url);
   const baseUrl = url.origin;
@@ -23,51 +25,15 @@ export async function handleSummaryRequest(request, env) {
     const { objects: objs } = await env.MEDIA_BUCKET.list({
       prefix: mediaPrefix("whatsapp", normalizePhoneNumber(phone)),
     });
-    const htmlParts = [];
-    htmlParts.push(
-      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Consultation Summary</title><style>body{white-space:pre-line;font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:600px;margin:auto;padding:1em;background-color:#ece5dd}h1{color:#075e54;font-size:1.5em;margin-bottom:0.5em}.metadata{font-size:0.9em;color:#666;margin-bottom:1em}.bubble{border-radius:0.4em;padding:0.75em;margin:0.5em 0;max-width:90%;clear:both}.user{background-color:#dcf8c6;align-self:flex-end;float:right}.assistant{background-color:#fff;align-self:flex-start;float:left}.summary{background-color:#fff8e1;padding:1em;margin:1em 0;border-left:4px solid #ffeb3b;white-space:pre-line}img{max-width:100%;border-radius:0.3em;margin:0.25em 0}a{color:#128c7e;word-break:break-word}</style></head><body><h1>Consultation Summary</h1>'
-    );
-    htmlParts.push(
-      `<div class="metadata"><p>Progress status: ${
-        session.progress_status
-      }</p><p>Last active: ${escapeXml(new Date(session.last_active * 1000).toLocaleString())}</p>${
-        session.summary ? `<p class="summary">${session.summary}</p>` : ""
-      }</div>`
-    );
-    htmlParts.push('<div class="messages">');
-    for (const msg of session.history || []) {
-      htmlParts.push(`<div class="message bubble ${msg.role}"><strong>${msg.role}:</strong> `);
-      if (typeof msg.content === "string") {
-        htmlParts.push(msg.content);
-      } else if (Array.isArray(msg.content)) {
-        for (const entry of msg.content) {
-          if (entry.type === "text" && entry.text) htmlParts.push(entry.text);
-          if (entry.type === "image_url" && entry.image_url?.url)
-            htmlParts.push(`<img src="${escapeXml(entry.image_url.url)}">`);
-        }
-      }
-      htmlParts.push("</div>");
-    }
-    htmlParts.push("</div>");
-    if (objs?.length) {
-      htmlParts.push("<h2>Uploaded Images</h2>");
-      for (const obj of objs) {
-        htmlParts.push(`<img src="${baseUrl}/images/${encodeURIComponent(obj.key)}">`);
-      }
-    }
-    htmlParts.push("</body></html>");
-    return new Response(htmlParts.join(""), {
+    const html = renderSummaryHTML({
+      session,
+      mediaObjects: objs,
+      phone,
+      baseUrl,
+    });
+    return new Response(html, {
       headers: { "Content-Type": "text/html;charset=UTF-8" },
     });
   }
   return new Response("Not Found", { status: 404 });
-
-  function escapeXml(unsafe) {
-    return unsafe
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&apos;");
-  }
 }

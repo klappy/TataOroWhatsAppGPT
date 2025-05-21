@@ -38,6 +38,7 @@ For detailed prompt configuration, see [VIBE_PROMPT.md](docs/issues/05-closed/VI
 - Scheduled WhatsApp nudges for stalled consultations
 - Automatically detects when GPT sends the final summary and marks the session as `summary-ready`
 - Stateless GET `/summary/:conversationId` endpoint for dynamic, read-only HTML consultation summaries (chat messages, metadata, images) without separate storage.
+- Shared HTML renderer ensures email summaries match the public summary layout.
 - Dedicated `/images/*` route serves public R2-hosted media
 - Scheduler worker (`workers/scheduler.js`) with hourly cron checks
 - Lightweight admin portal (`workers/admin.js`) to browse sessions and reset them (available at `/admin` under the WhatsApp domain)
