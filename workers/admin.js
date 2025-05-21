@@ -1,4 +1,5 @@
 import { chatHistoryPrefix, chatHistoryKey, mediaPrefix, normalizePhoneNumber } from '../shared/storageKeys.js';
+import { renderAdminSessionHTML, generateOrFetchSummary } from '../shared/summary.js';
 
 export async function handleAdminRequest(request, env) {
     const url = new URL(request.url);
@@ -22,10 +23,17 @@ export async function handleAdminRequest(request, env) {
           const phone = normalizePhoneNumber(key.name.slice(chatHistoryPrefix('whatsapp').length));
           const session = await env.CHAT_HISTORY.get(key.name, { type: 'json' });
           if (!session) continue;
-          rows.push(`<tr><td>${phone}</td><td>${session.progress_status || ''}</td><td>${new Date((session.last_active||0)*1000).toLocaleString()}</td><td><a href="/admin/sessions/${encodeURIComponent(phone)}">view</a></td></tr>`);
+          if ((!session.history || session.history.length === 0)) {
+            console.warn('Empty history for session', phone);
+          }
+          if (session.progress_status === 'summary-ready' && !session.summary) {
+            console.warn('Missing summary for ready session', phone);
+          }
+          const rowClass = session.progress_status === 'summary-ready' ? 'ready' : '';
+          rows.push(`<tr class="${rowClass}"><td>${phone}</td><td>${session.name || ''}</td><td>${session.progress_status || ''}</td><td>${new Date((session.last_active||0)*1000).toLocaleString()}</td><td><a href="/admin/sessions/${encodeURIComponent(phone)}">view</a></td></tr>`);
         }
       } while (cursor);
-      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Sessions</title><style>table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:4px}</style></head><body><h1>Sessions</h1><table><tr><th>Phone</th><th>Status</th><th>Last Active</th><th></th></tr>${rows.join('')}</table></body></html>`;
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Sessions</title><style>table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px}tr.ready{background:#e8f5e9}</style></head><body><h1>Sessions</h1><table><tr><th>Phone</th><th>Name</th><th>Status</th><th>Last Active</th><th></th></tr>${rows.join('')}</table></body></html>`;
       return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
     }
 
@@ -35,10 +43,9 @@ export async function handleAdminRequest(request, env) {
       const session = await env.CHAT_HISTORY.get(key, { type: 'json' });
       if (!session) return new Response('Not Found', { status: 404 });
       const { objects } = await env.MEDIA_BUCKET.list({ prefix: mediaPrefix('whatsapp', phone) });
-      const photos = (objects||[]).map(o => `<img src="${base}/images/${encodeURIComponent(o.key)}" style="max-width:100%">`).join('');
-      const messages = (session.history||[]).map(m => `<div><strong>${m.role}:</strong> ${typeof m.content==='string'?m.content:m.content.map(e=>e.type==='text'?e.text:`<img src='${e.image_url.url}' style='max-width:100%'>`).join(' ')}</div>`).join('');
-      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${phone}</title></head><body><h1>${phone}</h1><p>Status: ${session.progress_status}</p><form method="post" action="/admin/sessions/${encodeURIComponent(phone)}/reset"><button type="submit">Reset Session</button></form><div>${messages}</div><div>${photos}</div></body></html>`;
-      return new Response(html, { headers:{'Content-Type':'text/html;charset=UTF-8'} });
+      const html = renderAdminSessionHTML({ session, mediaObjects: objects || [], phone, baseUrl: base });
+      const withReset = html.replace('</body>', `<form method="post" action="/admin/sessions/${encodeURIComponent(phone)}/reset"><button type="submit">Reset Session</button></form></body>`);
+      return new Response(withReset, { headers:{'Content-Type':'text/html;charset=UTF-8'} });
     }
 
     if (sub.startsWith('/sessions/') && sub.endsWith('/reset') && request.method === 'POST') {
@@ -57,7 +64,10 @@ export async function handleAdminRequest(request, env) {
       const key = chatHistoryKey('whatsapp', phone);
       const session = await env.CHAT_HISTORY.get(key, { type: 'json' });
       if (!session) return new Response('Not Found', { status: 404 });
-      const summary = await (await import('../shared/summary.js')).generateOrFetchSummary({ env, session, phone, baseUrl: base });
+      const summary = await generateOrFetchSummary({ env, session, phone, baseUrl: base });
+      session.summary = summary;
+      session.progress_status = 'summary-ready';
+      await env.CHAT_HISTORY.put(key, JSON.stringify(session), { expirationTtl: 86400 });
       return new Response(`<pre>${summary}</pre>`, { headers:{'Content-Type':'text/html;charset=UTF-8'} });
     }
 
