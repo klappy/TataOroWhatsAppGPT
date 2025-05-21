@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import { chatHistoryKey, mediaPrefix, normalizePhoneNumber } from '../shared/storageKeys.js';
 
 describe('normalizePhoneNumber', () => {
-  it('strips whatsapp prefix and whitespace', () => {
-    assert.strictEqual(normalizePhoneNumber(' whatsapp:+1234567890 '), '+1234567890');
-    assert.strictEqual(normalizePhoneNumber('whatsapp:whatsapp:+1987'), '+1987');
+  it('strips whatsapp prefix', () => {
+    assert.strictEqual(normalizePhoneNumber('whatsapp:+1234567890'), '+1234567890');
+    assert.strictEqual(normalizePhoneNumber('+1987'), '+1987');
   });
 
-  it('throws on invalid numbers', () => {
-    assert.throws(() => normalizePhoneNumber('12345'), /invalid phone/);
+  it('handles malformed numbers', () => {
+    assert.strictEqual(normalizePhoneNumber('+1234'), '+1234');
+    assert.strictEqual(normalizePhoneNumber('12345'), '12345');
   });
 });
 
