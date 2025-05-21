@@ -36,7 +36,9 @@ export async function handleSummaryRequest(request, env) {
     );
     htmlParts.push('<div class="messages">');
     for (const msg of session.history || []) {
-      htmlParts.push(`<div class="message ${msg.role}"><strong>${escapeXml(msg.role)}:</strong> `);
+      htmlParts.push(
+        `<div class="message bubble ${msg.role}"><strong>${escapeXml(msg.role)}:</strong> `
+      );
       if (typeof msg.content === "string") {
         htmlParts.push(escapeXml(msg.content));
       } else if (Array.isArray(msg.content)) {
