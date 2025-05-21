@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.4.5 - Session Key Normalization
+
+- Added `normalizePhoneNumber` helper and hardened `chatHistoryKey`.
+- All WhatsApp session keys now use strict `whatsapp:+E164/history.json` format.
+- Updated workers and tests accordingly.
+
 ## v1.4.4 - Router Worker
 
 - Changed back /api/messages to /whatsapp/incoming

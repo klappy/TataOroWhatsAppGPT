@@ -1,4 +1,4 @@
-import { chatHistoryPrefix, chatHistoryKey, mediaPrefix } from '../shared/storageKeys.js';
+import { chatHistoryPrefix, chatHistoryKey, mediaPrefix, normalizePhoneNumber } from '../shared/storageKeys.js';
 
 export async function handleAdminRequest(request, env) {
     const url = new URL(request.url);
@@ -19,7 +19,7 @@ export async function handleAdminRequest(request, env) {
         const list = await env.CHAT_HISTORY.list({ prefix: chatHistoryPrefix('whatsapp'), cursor, limit: 100 });
         cursor = list.cursor;
         for (const key of list.keys) {
-          const phone = key.name.slice(chatHistoryPrefix('whatsapp').length);
+          const phone = normalizePhoneNumber(key.name.slice(chatHistoryPrefix('whatsapp').length));
           const session = await env.CHAT_HISTORY.get(key.name, { type: 'json' });
           if (!session) continue;
           rows.push(`<tr><td>${phone}</td><td>${session.progress_status || ''}</td><td>${new Date((session.last_active||0)*1000).toLocaleString()}</td><td><a href="/admin/sessions/${encodeURIComponent(phone)}">view</a></td></tr>`);
@@ -30,7 +30,7 @@ export async function handleAdminRequest(request, env) {
     }
 
     if (sub.startsWith('/sessions/') && request.method === 'GET') {
-      const phone = decodeURIComponent(sub.slice('/sessions/'.length));
+      const phone = normalizePhoneNumber(decodeURIComponent(sub.slice('/sessions/'.length)));
       const key = chatHistoryKey('whatsapp', phone);
       const session = await env.CHAT_HISTORY.get(key, { type: 'json' });
       if (!session) return new Response('Not Found', { status: 404 });
@@ -42,7 +42,7 @@ export async function handleAdminRequest(request, env) {
     }
 
     if (sub.startsWith('/sessions/') && sub.endsWith('/reset') && request.method === 'POST') {
-      const phone = decodeURIComponent(sub.slice('/sessions/'.length, -('/reset'.length)));
+      const phone = normalizePhoneNumber(decodeURIComponent(sub.slice('/sessions/'.length, -('/reset'.length))));
       const key = chatHistoryKey('whatsapp', phone);
       const { objects } = await env.MEDIA_BUCKET.list({ prefix: mediaPrefix('whatsapp', phone) });
       for (const obj of objects || []) {
@@ -53,7 +53,7 @@ export async function handleAdminRequest(request, env) {
     }
 
     if (sub.startsWith('/summary/') && request.method === 'GET') {
-      const phone = decodeURIComponent(sub.slice('/summary/'.length));
+      const phone = normalizePhoneNumber(decodeURIComponent(sub.slice('/summary/'.length)));
       const key = chatHistoryKey('whatsapp', phone);
       const session = await env.CHAT_HISTORY.get(key, { type: 'json' });
       if (!session) return new Response('Not Found', { status: 404 });

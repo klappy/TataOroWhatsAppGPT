@@ -17,6 +17,7 @@ All image uploads use this key format:
 ```text
 whatsapp:+{E164PhoneNumber}/{timestamp}-{index}.jpeg
 ```
+Phone numbers are normalized using the `normalizePhoneNumber` helper before constructing the key.
 
 ## 🖼 Visual Example
 

@@ -1,6 +1,6 @@
 import { sendConsultationEmail } from '../shared/emailer.js';
 import { generateOrFetchSummary } from '../shared/summary.js';
-import { chatHistoryPrefix, mediaPrefix } from '../shared/storageKeys.js';
+import { chatHistoryPrefix, mediaPrefix, normalizePhoneNumber } from '../shared/storageKeys.js';
 
 async function sendWhatsAppNudge(env, phone) {
   const message = "Hi love! 💛 Just checking in — you were making great progress in your curl consultation! 🌱 Let me know if you're ready to finish or if you have any questions.";
@@ -43,7 +43,7 @@ export default {
                   Array.isArray(msg.content) && msg.content.some(e => e.type === 'image_url')
                 )))
           ) {
-            const phone = key.name.slice(chatHistoryPrefix('whatsapp').length);
+            const phone = normalizePhoneNumber(key.name.slice(chatHistoryPrefix('whatsapp').length));
             const summary = await generateOrFetchSummary({ env, session, phone });
             const { objects } = await env.MEDIA_BUCKET.list({ prefix: mediaPrefix('whatsapp', phone) });
             const photoUrls = (objects || []).map(obj =>
@@ -62,7 +62,7 @@ export default {
             await env.CHAT_HISTORY.put(key.name, JSON.stringify(session), { expirationTtl: 86400 });
           }
           if (!session.nudge_sent && now - lastActive > 7200) {
-            ctx.waitUntil(sendWhatsAppNudge(env, key.name.slice(chatHistoryPrefix('whatsapp').length)));
+            ctx.waitUntil(sendWhatsAppNudge(env, normalizePhoneNumber(key.name.slice(chatHistoryPrefix('whatsapp').length))));
             session.nudge_sent = true;
             await env.CHAT_HISTORY.put(key.name, JSON.stringify(session), { expirationTtl: 86400 });
           }
