@@ -6,7 +6,7 @@ Cloudflare Worker webhook handler for Twilio WhatsApp messages, powered by OpenA
 
 This repository uses a multi-worker setup to separate concerns across different Cloudflare Workers:
 
-- **WhatsApp handler** (`workers/whatsapp.js`): handles incoming Twilio WhatsApp messages and generates GPT-4o-mini responses.
+- **WhatsApp handler** (`workers/whatsapp-incoming.js`): handles incoming Twilio WhatsApp messages and generates GPT-4o-mini responses.
 - **Doc-sync worker** (`workers/doc-sync.js`): fetches GitHub markdown files, splits content, generates embeddings, and stores them in KV.
 - **Upload-hook worker** (`workers/upload-hook.js`): GitHub webhook endpoint to trigger automatic document sync.
 - **Admin dashboard worker** (`workers/admin.js`): lightweight web UI to inspect and reset sessions.
@@ -38,10 +38,10 @@ For detailed prompt configuration, see [VIBE_PROMPT.md](docs/issues/05-closed/VI
 Ensure your `wrangler.toml` defines the default `main` entry point for the WhatsApp worker:
 
 ```toml
-main = "workers/whatsapp.js"
+main = "workers/whatsapp-incoming.js"
 
 [env.whatsapp]
-main = "workers/whatsapp.js"
+main = "workers/whatsapp-incoming.js"
 ```
 
 Configure your `wrangler.toml` with top-level KV namespaces and R2 bucket bindings:
@@ -124,6 +124,6 @@ npm test
 
 ## Usage
 
-- Configure your Twilio WhatsApp webhook to point to the `whatsapp` worker endpoint (e.g., `https://<your-domain>/`).
+- Configure your Twilio WhatsApp webhook to point to `/whatsapp/incoming` (e.g., `https://<your-domain>/whatsapp/incoming`).
 - Trigger document synchronization by POSTing to the `doc-sync` worker or via a scheduled cron/CLI.
 - Point your GitHub webhook to the `upload-hook` worker to automate updates.

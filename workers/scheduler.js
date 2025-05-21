@@ -1,5 +1,6 @@
 import { sendConsultationEmail } from '../shared/emailer.js';
 import { generateOrFetchSummary } from '../shared/summary.js';
+import { chatHistoryPrefix, mediaPrefix } from '../shared/storageKeys.js';
 
 async function sendWhatsAppNudge(env, phone) {
   const message = "Hi love! 💛 Just checking in — you were making great progress in your curl consultation! 🌱 Let me know if you're ready to finish or if you have any questions.";
@@ -24,10 +25,10 @@ export default {
     const now = Math.floor(Date.now() / 1000);
     let cursor;
     do {
-      const list = await env.CHAT_HISTORY.list({ cursor, limit: 100 });
+      const list = await env.CHAT_HISTORY.list({ prefix: chatHistoryPrefix('whatsapp'), cursor, limit: 100 });
       cursor = list.cursor;
       for (const key of list.keys) {
-        if (!key.name.startsWith('chat_history:')) continue;
+        if (!key.name.startsWith(chatHistoryPrefix('whatsapp'))) continue;
         const stored = await env.CHAT_HISTORY.get(key.name);
         if (!stored) continue;
         const session = JSON.parse(stored);
@@ -42,9 +43,9 @@ export default {
                   Array.isArray(msg.content) && msg.content.some(e => e.type === 'image_url')
                 )))
           ) {
-            const phone = key.name.split(':')[1];
+            const phone = key.name.slice(chatHistoryPrefix('whatsapp').length);
             const summary = await generateOrFetchSummary({ env, session, phone });
-            const { objects } = await env.MEDIA_BUCKET.list({ prefix: `${phone}/` });
+            const { objects } = await env.MEDIA_BUCKET.list({ prefix: mediaPrefix('whatsapp', phone) });
             const photoUrls = (objects || []).map(obj =>
               `${env.WHATSAPP_BASE_URL}/images/${encodeURIComponent(obj.key)}`
             );
@@ -61,7 +62,7 @@ export default {
             await env.CHAT_HISTORY.put(key.name, JSON.stringify(session), { expirationTtl: 86400 });
           }
           if (!session.nudge_sent && now - lastActive > 7200) {
-            ctx.waitUntil(sendWhatsAppNudge(env, key.name.split(':')[1]));
+            ctx.waitUntil(sendWhatsAppNudge(env, key.name.slice(chatHistoryPrefix('whatsapp').length)));
             session.nudge_sent = true;
             await env.CHAT_HISTORY.put(key.name, JSON.stringify(session), { expirationTtl: 86400 });
           }

@@ -1,7 +1,7 @@
 
 name = "tataoro-gpt"
 compatibility_date = "2025-05-18"
-main = "workers/whatsapp.js"
+main = "workers/whatsapp-incoming.js"
 
 [[kv_namespaces]]
 binding = "CHAT_HISTORY"
@@ -37,9 +37,17 @@ name = "tataoro-admin"
 route = "https://wa.tataoro.com/admin*"
 
 [env.whatsapp]
-main = "workers/whatsapp.js"
+main = "workers/whatsapp-incoming.js"
 name = "tataoro-whatsapp"
-route = "https://wa.tataoro.com/*"
+route = "https://wa.tataoro.com/whatsapp/incoming"
+
+[env.summary]
+main = "workers/summary.js"
+name = "tataoro-summary"
+routes = [
+  "https://wa.tataoro.com/summary*",
+  "https://wa.tataoro.com/images/*"
+]
 
 [vars]
 EMAIL_ENABLED = true

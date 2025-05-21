@@ -7,7 +7,8 @@
 ```bash
 tataoro-assistant/
 ├── workers/                  # Edge runtimes for request handling and background jobs
-│   ├── whatsapp.js           # Handles incoming WhatsApp webhook from Twilio
+│   ├── whatsapp-incoming.js  # Handles incoming WhatsApp webhook from Twilio
+│   ├── summary.js           # Public summary and image viewer
 │   ├── doc-sync.js           # Fetches GitHub files and updates embeddings
 │   ├── upload-hook.js        # (Optional) GitHub webhook to trigger doc sync
 │   ├── scheduler.js          # Cron-triggered tasks: email summaries & WhatsApp nudges
@@ -184,7 +185,7 @@ Update your `wrangler.toml` to define environments for each Worker:
 ```toml
 name = "tataoro-gpt"
 compatibility_date = "2025-05-18"
-main = "workers/whatsapp.js"
+main = "workers/whatsapp-incoming.js"
 
 [[kv_namespaces]]
 binding = "CHAT_HISTORY"
@@ -200,9 +201,17 @@ binding = "DOC_KNOWLEDGE"
 id = "c4281158fd7346fdac1f9e10bc092079"
 
 [env.whatsapp]
-main = "workers/whatsapp.js"
+main = "workers/whatsapp-incoming.js"
 name = "tataoro-whatsapp"
-route = "https://wa.tataoro.com/*"
+route = "https://wa.tataoro.com/whatsapp/incoming"
+
+[env.summary]
+main = "workers/summary.js"
+name = "tataoro-summary"
+routes = [
+  "https://wa.tataoro.com/summary*",
+  "https://wa.tataoro.com/images/*"
+]
 
 [env.docsync]
 main = "workers/doc-sync.js"

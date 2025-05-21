@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.4.2 - Multi-channel route refactor
+- Adopted `/whatsapp/incoming` route and new summary worker.
+- Standardized storage keys using channel prefixes.
 ## v1.4.1 - Update Admin Route
 - Admin dashboard now served under `https://wa.tataoro.com/admin` instead of the `admin.tataoro.com` subdomain.
 

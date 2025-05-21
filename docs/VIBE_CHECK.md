@@ -6,7 +6,8 @@ This checklist verifies that the generated Cloudflare Worker correctly implement
 
 ## ✅ Core File Structure
 
-- [x] `workers/whatsapp.js` exists and uses the Cloudflare `fetch` handler pattern
+- [x] `workers/whatsapp-incoming.js` exists and uses the Cloudflare `fetch` handler pattern
+- [x] `workers/summary.js` exists for `/summary/:conversationId` and `/images/*`
 - [x] `workers/doc-sync.js` exists
 - [x] `workers/upload-hook.js` exists
 - [x] Implements shareable summary endpoint GET `/summary/:conversationId` in `workers/whatsapp.js`
@@ -116,3 +117,5 @@ https://wa.me/16895292934?text=<encoded summary>
 - [x] Endpoint URL set as the webhook in Twilio for the WhatsApp number
 
 ---
+- [x] Routes follow `/[channel]/[service]` pattern (e.g., `/whatsapp/incoming`)
+- [x] Keys follow `[datastore]/[namespace]/[platform]:[id]/...` format
