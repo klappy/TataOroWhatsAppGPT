@@ -170,7 +170,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
   let prompt = SYSTEM_PROMPT;
   if (SYSTEM_PROMPT.includes("{{USER_PHONE}}")) {
     if (hasValidPhone) {
-      prompt = SYSTEM_PROMPT.replaceAll("{{USER_PHONE}}", phone);
+      prompt = SYSTEM_PROMPT.replaceAll("{{USER_PHONE}}", encodeURIComponent(phone));
     } else {
       console.warn("Skipping phone injection due to invalid number");
     }
