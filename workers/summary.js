@@ -25,7 +25,7 @@ export async function handleSummaryRequest(request, env) {
     });
     const htmlParts = [];
     htmlParts.push(
-      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Consultation Summary</title><style>body{font-family:sans-serif;max-width:600px;margin:auto;padding:1em;whitespace:pre-line}.message{margin-bottom:1em}.user{color:#0066cc}.assistant{color:#008000}.metadata{font-size:.9em;color:#666}img{max-width:100%;display:block;margin:0.5em 0}</style></head><body><h1>Consultation Summary</h1>'
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Consultation Summary</title><style>body{font-family:sans-serif;max-width:600px;margin:auto;padding:1em;white-space:pre-line}.message{margin-bottom:1em}.user{color:#0066cc}.assistant{color:#008000}.metadata{font-size:.9em;color:#666}img{max-width:100%;display:block;margin:0.5em 0}</style></head><body><h1>Consultation Summary</h1>'
     );
     htmlParts.push(
       `<div class="metadata"><p>Progress status: ${escapeXml(
