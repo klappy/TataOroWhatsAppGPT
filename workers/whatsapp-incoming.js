@@ -200,6 +200,13 @@ export async function handleWhatsAppRequest(request, env, ctx) {
   // Call OpenAI Chat Completion API
   let assistantReply = await chatCompletion(messages, env.OPENAI_API_KEY);
 
+  // Detect assistant-generated summary
+  const summaryHeader = "Client Curl Discovery Summary for Tata Oro";
+  if (assistantReply.includes(summaryHeader)) {
+    session.summary = assistantReply;
+    session.progress_status = "summary-ready";
+  }
+
   // Store messages in session history
   if (r2Urls.length > 0) {
     const contentArray = r2Urls.map((url) => ({ type: "image_url", image_url: { url } }));
