@@ -45,6 +45,7 @@ export default {
           ) {
             const phone = normalizePhoneNumber(key.name.slice(chatHistoryPrefix('whatsapp').length));
             const summary = await generateOrFetchSummary({ env, session, phone });
+            session.summary = summary;
             const { objects } = await env.MEDIA_BUCKET.list({ prefix: mediaPrefix('whatsapp', phone) });
             const photoUrls = (objects || []).map(obj =>
               `${env.WHATSAPP_BASE_URL}/images/${encodeURIComponent(obj.key)}`
