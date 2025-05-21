@@ -31,8 +31,18 @@ For detailed prompt configuration, see [VIBE_PROMPT.md](docs/issues/05-closed/VI
 - Scheduled timeout-based email summary for incomplete consultations
 - Scheduled WhatsApp nudges for stalled consultations
 - Stateless GET `/summary/:conversationId` endpoint for dynamic, read-only HTML consultation summaries (chat messages, metadata, images) without separate storage.
+- Dedicated `/images/*` worker serves public R2-hosted media
 - Scheduler worker (`workers/scheduler.js`) with hourly cron checks
 - Lightweight admin portal (`workers/admin.js`) to browse sessions and reset them (available at `/admin` under the WhatsApp domain)
+
+### Public Media Delivery
+
+Images uploaded via WhatsApp are stored in R2. The `images` Worker exposes them at
+`https://wa.tataoro.com/images/{encodedKey}`. Example:
+
+```js
+const url = `${WHATSAPP_BASE_URL}/images/${encodeURIComponent(key)}`;
+```
 
 ## Setup
 

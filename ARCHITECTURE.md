@@ -178,6 +178,12 @@ This ensures cleanup uses the complete `whatsapp:+phone/...` prefix when deletin
 
 ---
 
+## Public Media Delivery
+
+A dedicated `images` Worker serves public R2-hosted objects. It accepts only `GET` requests and returns the object's body with the original `Content-Type`. Other Workers must not handle `/images/*`.
+
+---
+
 ## 🛠️ wrangler.toml (Multi-Worker Setup)
 
 Update your `wrangler.toml` to define environments for each Worker:
@@ -210,8 +216,12 @@ main = "workers/summary.js"
 name = "tataoro-summary"
 routes = [
   "https://wa.tataoro.com/summary*",
-  "https://wa.tataoro.com/images/*"
 ]
+
+[env.images]
+main = "workers/images.js"
+name = "tataoro-images"
+route = "https://wa.tataoro.com/images/*"
 
 [env.docsync]
 main = "workers/doc-sync.js"

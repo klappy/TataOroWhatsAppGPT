@@ -2,16 +2,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const baseUrl = url.origin;
-    if (request.method === 'GET' && url.pathname.startsWith('/images/')) {
-      const key = decodeURIComponent(url.pathname.slice('/images/'.length));
-      const object = await env.MEDIA_BUCKET.get(key, { type: 'stream' });
-      if (!object) return new Response('Not Found', { status: 404 });
-      const headers = {};
-      if (object.httpMetadata?.contentType) {
-        headers['Content-Type'] = object.httpMetadata.contentType;
-      }
-      return new Response(object.body, { headers });
-    }
+    // Do not handle /images/* here — served by dedicated images worker
     if (request.method === 'GET' && url.pathname.startsWith('/summary/')) {
       const rawId = decodeURIComponent(url.pathname.slice('/summary/'.length));
       let phone = rawId;

@@ -45,9 +45,13 @@ route = "https://wa.tataoro.com/whatsapp/incoming"
 main = "workers/summary.js"
 name = "tataoro-summary"
 routes = [
-  "https://wa.tataoro.com/summary*",
-  "https://wa.tataoro.com/images/*"
+  "https://wa.tataoro.com/summary*"
 ]
+
+[env.images]
+main = "workers/images.js"
+name = "tataoro-images"
+route = "https://wa.tataoro.com/images/*"
 
 [vars]
 EMAIL_ENABLED = true
