@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.4.3 - Router Worker
+- Consolidated all routes into a single router worker with modular handlers.
+- Updated docs and configuration to remove multi-worker setup.
+
 ## v1.4.2 - Multi-channel route refactor
 - Adopted `/whatsapp/incoming` route and new summary worker.
 - Standardized storage keys using channel prefixes.

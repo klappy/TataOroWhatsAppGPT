@@ -1,8 +1,7 @@
 /**
  * GitHub webhook handler to trigger document sync.
  */
-export default {
-  async fetch(request, env) {
+export async function handleUploadHookRequest(request, env) {
     if (request.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405 });
     }
@@ -16,5 +15,4 @@ export default {
       console.error('Upload-hook error', err);
       return new Response('Internal Error', { status: 500 });
     }
-  },
-};
+}

@@ -7,12 +7,14 @@
 ```bash
 tataoro-assistant/
 ├── workers/                  # Edge runtimes for request handling and background jobs
-│   ├── whatsapp-incoming.js  # Handles incoming WhatsApp webhook from Twilio
-│   ├── summary.js           # Public summary and image viewer
-│   ├── doc-sync.js           # Fetches GitHub files and updates embeddings
-│   ├── upload-hook.js        # (Optional) GitHub webhook to trigger doc sync
-│   ├── scheduler.js          # Cron-triggered tasks: email summaries & WhatsApp nudges
-│   ├── admin.js              # Lightweight dashboard for sessions and summaries
+│   ├── router.js             # Central HTTP router
+│   ├── whatsapp-incoming.js  # Twilio webhook handler
+│   ├── images.js             # Public image delivery
+│   ├── admin.js              # Lightweight dashboard
+│   ├── summary.js            # Read-only transcript view
+│   ├── upload-hook.js        # GitHub webhook to trigger doc sync
+│   ├── doc-sync.js           # Manual document ingestion
+│   └── scheduler.js          # Cron tasks: email summaries & nudges
 ├── shared/                   # Reusable utilities: GPT, embedding, email, R2, and Shopify
 │   ├── chunker.js            # Split docs into semantic chunks
 │   ├── embeddings.js         # OpenAI embeddings helper
@@ -23,11 +25,11 @@ tataoro-assistant/
 │   ├── shopify.js            # Shopify customer upsert helper
 │   ├── summary.js            # Consultation summary generation
 │   └── systemPrompt.js       # Central system prompt for the assistant
-├── wrangler.toml             # Multi-worker deployment config and bindings
+├── wrangler.toml             # Router deployment config and bindings
 └── package.json
 ```
 
-Ensure that the `main` entry in the `wrangler.toml` for each environment matches the Worker script paths shown above.
+`wrangler.toml` points to `workers/router.js` and binds KV and R2 resources used by all handlers.
 
 This document describes the architecture of the AI-powered WhatsApp consultation assistant built for Tata Oro using Cloudflare Workers, OpenAI’s GPT-4o-mini, Twilio’s WhatsApp API, and Cloudflare R2.
 
@@ -184,64 +186,28 @@ A dedicated `images` Worker serves public R2-hosted objects. It accepts only `GE
 
 ---
 
-## 🛠️ wrangler.toml (Multi-Worker Setup)
+## 🛠️ wrangler.toml
 
-Update your `wrangler.toml` to define environments for each Worker:
+The project deploys a single Worker with a router. A minimal `wrangler.toml` looks like:
 
 ```toml
-name = "tataoro-gpt"
+name = "tataoro-router"
 compatibility_date = "2025-05-18"
-main = "workers/whatsapp-incoming.js"
+main = "workers/router.js"
+route = "https://wa.tataoro.com/*"
 
 [[kv_namespaces]]
 binding = "CHAT_HISTORY"
 id = "d153e5f2f8fd404e8e7778c494396215"
 
-[[r2_buckets]]
-binding = "MEDIA_BUCKET"
-bucket_name = "tataoro-chat-images"
-preview_bucket_name = "tataoro-chat-images"
-
 [[kv_namespaces]]
 binding = "DOC_KNOWLEDGE"
 id = "c4281158fd7346fdac1f9e10bc092079"
 
-[env.whatsapp]
-main = "workers/whatsapp-incoming.js"
-name = "tataoro-whatsapp"
-route = "https://wa.tataoro.com/whatsapp/incoming"
-
-[env.summary]
-main = "workers/summary.js"
-name = "tataoro-summary"
-routes = [
-  "https://wa.tataoro.com/summary*",
-]
-
-[env.images]
-main = "workers/images.js"
-name = "tataoro-images"
-route = "https://wa.tataoro.com/images/*"
-
-[env.docsync]
-main = "workers/doc-sync.js"
-name = "tataoro-doc-sync"
-# Trigger via cron or CLI — no route needed
-
-[env.uploadhook]
-main = "workers/upload-hook.js"
-name = "tataoro-upload-hook"
-route = "https://tataoro.com/uploadhook"
-
-[env.scheduler]
-main = "workers/scheduler.js"
-name = "tataoro-scheduler"
-triggers = { crons = ["0 * * * *"] }
-
-[env.admin]
-main = "workers/admin.js"
-name = "tataoro-admin"
-route = "https://wa.tataoro.com/admin*"
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "tataoro-chat-images"
+preview_bucket_name = "tataoro-chat-images"
 
 [vars]
 EMAIL_ENABLED = true
@@ -254,15 +220,6 @@ WHATSAPP_BASE_URL = "https://wa.tataoro.com"
 [observability.logs]
 enabled = true
 ```
-
-Each `[env.*]` represents a separate Worker you can deploy independently:
-
-```bash
-wrangler deploy --env whatsapp     # deploy WhatsApp handler
-wrangler deploy --env docsync      # deploy document sync worker
-wrangler deploy --env uploadhook   # deploy webhook handler
-```
-
 ---
 
 ## 🧪 Testing

@@ -1,7 +1,6 @@
 import { chatHistoryPrefix, chatHistoryKey, mediaPrefix } from '../shared/storageKeys.js';
 
-export default {
-  async fetch(request, env) {
+export async function handleAdminRequest(request, env) {
     const url = new URL(request.url);
     const base = url.origin;
     const path = url.pathname.replace(/\/+$/, '');
@@ -76,4 +75,3 @@ export default {
 
     return new Response('Not Found', { status: 404 });
   }
-};

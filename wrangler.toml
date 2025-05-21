@@ -1,57 +1,20 @@
-
-name = "tataoro-gpt"
+name = "tataoro-router"
 compatibility_date = "2025-05-18"
-main = "workers/whatsapp-incoming.js"
+main = "workers/router.js"
+route = "https://wa.tataoro.com/*"
 
 [[kv_namespaces]]
 binding = "CHAT_HISTORY"
 id = "d153e5f2f8fd404e8e7778c494396215"
 
-[[r2_buckets]]
-binding = "MEDIA_BUCKET"
-bucket_name = "tataoro-chat-images"
-preview_bucket_name = "tataoro-chat-images"
-
 [[kv_namespaces]]
 binding = "DOC_KNOWLEDGE"
 id = "c4281158fd7346fdac1f9e10bc092079"
 
-[env.docsync]
-main = "workers/doc-sync.js"
-name = "tataoro-doc-sync"
-# Trigger via cron or CLI — no route needed
-
-[env.uploadhook]
-main = "workers/upload-hook.js"
-name = "tataoro-upload-hook"
-route = "https://tataoro.com/uploadhook"
-
-[env.scheduler]
-main = "workers/scheduler.js"
-name = "tataoro-scheduler"
-triggers = { crons = ["0 * * * *"] }
-
-[env.admin]
-main = "workers/admin.js"
-name = "tataoro-admin"
-route = "https://wa.tataoro.com/admin*"
-
-[env.whatsapp]
-main = "workers/whatsapp-incoming.js"
-name = "tataoro-whatsapp"
-route = "https://wa.tataoro.com/whatsapp/incoming"
-
-[env.summary]
-main = "workers/summary.js"
-name = "tataoro-summary"
-routes = [
-  "https://wa.tataoro.com/summary*"
-]
-
-[env.images]
-main = "workers/images.js"
-name = "tataoro-images"
-route = "https://wa.tataoro.com/images/*"
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "tataoro-chat-images"
+preview_bucket_name = "tataoro-chat-images"
 
 [vars]
 EMAIL_ENABLED = true

@@ -4,11 +4,12 @@ Welcome to the Tata Oro Assistant project. This guide provides Codex CLI with th
 
 ## Project Structure
 
-- `workers/`: Contains all Cloudflare Workers.
+- `workers/`: Contains modular handler functions and the router.
 
-  - `whatsapp/`: Handles WhatsApp interactions.
-  - `doc-sync/`: Manages document synchronization and embedding.
-  - `upload-hook/`: Processes GitHub webhook events.
+  - `router.js`: central HTTP router
+  - `whatsapp-incoming.js`: WhatsApp interactions
+  - `doc-sync.js`: Document synchronization and embedding
+  - `upload-hook.js`: Processes GitHub webhook events
 
 - `shared/`: Houses reusable utilities and helper functions.
 
@@ -19,8 +20,7 @@ Welcome to the Tata Oro Assistant project. This guide provides Codex CLI with th
 - Maintain consistent naming conventions: kebab-case for filenames, camelCase for variables and functions.
 
 ## Deployment
-
-- Use `wrangler deploy --env [environment]` to deploy specific workers.
+- Use `wrangler deploy` to publish the router.
 - Ensure all changes are committed before deployment.
 
 ## Testing
