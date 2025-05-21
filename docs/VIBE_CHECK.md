@@ -11,6 +11,7 @@ This checklist verifies that the generated Cloudflare Worker correctly implement
 - [x] `workers/doc-sync.js` exists
 - [x] `workers/upload-hook.js` exists
 - [x] Implements shareable summary endpoint GET `/summary/:conversationId` in `workers/whatsapp.js`
+- [x] Uses key names like `whatsapp:+14155551234/history.json` and `whatsapp:+14155551234/1700000000000-0.jpeg`
 
 ```js
 export default {
