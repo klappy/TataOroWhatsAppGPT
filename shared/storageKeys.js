@@ -1,19 +1,6 @@
 const debug = globalThis.DEBUG ? (...args) => console.warn(...args) : () => {};
-
-export function normalizePhoneNumber(input) {
-  if (typeof input !== 'string') {
-    debug('normalizePhoneNumber: input not string', input);
-    throw new Error('invalid phone');
-  }
-  let phone = input.trim();
-  while (phone.toLowerCase().startsWith('whatsapp:')) {
-    phone = phone.slice('whatsapp:'.length);
-  }
-  if (!/^\+\d+$/.test(phone)) {
-    debug('normalizePhoneNumber: invalid format', input);
-    throw new Error('invalid phone');
-  }
-  return phone;
+export function normalizePhoneNumber(raw) {
+  return (raw || '').trim().replace(/^whatsapp:/i, '');
 }
 
 export function chatHistoryKey(platform, id) {

@@ -48,7 +48,11 @@ export async function handleWhatsAppRequest(request, env, ctx) {
       return new Response('Unsupported Media Type', { status: 415 });
     }
 
-    const from = normalizePhoneNumber(formParams.get('From') || '');
+    const phone = normalizePhoneNumber(formParams.get('From') || '');
+    const hasValidPhone = /^\+\d{6,15}$/.test(phone);
+    if (!hasValidPhone) {
+      console.warn('Invalid phone number', phone);
+    }
     const body = formParams.get('Body') || '';
     const numMedia = parseInt(formParams.get('NumMedia') || '0');
     const mediaUrls = [];
@@ -72,7 +76,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
         }
         const contentType = twilioResponse.headers.get('content-type') || 'application/octet-stream';
         const extension = contentType.split('/')[1] || 'bin';
-        const key = mediaObjectKey('whatsapp', from, `${Date.now()}-${i}.${extension}`);
+        const key = mediaObjectKey('whatsapp', phone, `${Date.now()}-${i}.${extension}`);
         const buffer = await twilioResponse.arrayBuffer();
         await env.MEDIA_BUCKET.put(key, buffer, { httpMetadata: { contentType } });
         r2Urls.push(`${baseUrl}/images/${encodeURIComponent(key)}`);
@@ -81,10 +85,10 @@ export async function handleWhatsAppRequest(request, env, ctx) {
       }
     }
 
-    console.log('Incoming message', { from, body, mediaUrls, r2Urls });
+    console.log('Incoming message', { from: phone, body, mediaUrls, r2Urls });
 
     const now = Math.floor(Date.now() / 1000);
-    const sessionKey = chatHistoryKey('whatsapp', from);
+    const sessionKey = chatHistoryKey('whatsapp', phone);
     // Safely read session data from KV and provide defaults to prevent missing data errors
     const stored = await env.CHAT_HISTORY.get(sessionKey, { type: 'json' });
     const sessionData = stored || {};
@@ -118,7 +122,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
     const incoming = body.trim().toLowerCase();
     const resetTriggers = ['reset', 'clear', 'start over', 'new consultation'];
     if (resetTriggers.includes(incoming)) {
-      const { objects } = await env.MEDIA_BUCKET.list({ prefix: mediaPrefix('whatsapp', from) });
+      const { objects } = await env.MEDIA_BUCKET.list({ prefix: mediaPrefix('whatsapp', phone) });
       const keys = (objects || []).map(obj => obj.key);
       await deleteR2Objects(env, keys);
       await env.CHAT_HISTORY.delete(sessionKey);
@@ -136,10 +140,10 @@ export async function handleWhatsAppRequest(request, env, ctx) {
           headers: { 'Content-Type': 'text/xml; charset=UTF-8', 'Access-Control-Allow-Origin': '*' },
         });
       }
-      const summary = await generateOrFetchSummary({ env, session, phone: from, baseUrl });
-      const { objects } = await env.MEDIA_BUCKET.list({ prefix: mediaPrefix('whatsapp', from) });
+      const summary = await generateOrFetchSummary({ env, session, phone, baseUrl });
+      const { objects } = await env.MEDIA_BUCKET.list({ prefix: mediaPrefix('whatsapp', phone) });
       const photoUrls = (objects || []).map(obj => `${baseUrl}/images/${encodeURIComponent(obj.key)}`);
-      await sendConsultationEmail({ env, phone: from, summary, history: session.history, r2Urls: photoUrls });
+      await sendConsultationEmail({ env, phone, summary, history: session.history, r2Urls: photoUrls });
       session.summary = summary;
       session.summary_email_sent = true;
       await env.CHAT_HISTORY.put(sessionKey, JSON.stringify(session), { expirationTtl: 86400 });
@@ -151,7 +155,17 @@ export async function handleWhatsAppRequest(request, env, ctx) {
 
 
     // Construct messages payload for OpenAI
-    const messages = [{ role: 'system', content: SYSTEM_PROMPT }, ...session.history];
+    let prompt = SYSTEM_PROMPT;
+    if (SYSTEM_PROMPT.includes('{{USER_PHONE}}')) {
+      if (hasValidPhone) {
+        prompt = SYSTEM_PROMPT.replaceAll('{{USER_PHONE}}', phone);
+      } else {
+        console.warn('Skipping phone injection due to invalid number');
+      }
+    } else {
+      console.warn('SYSTEM_PROMPT missing {{USER_PHONE}}');
+    }
+    const messages = [{ role: 'system', content: prompt }, ...session.history];
     if (r2Urls.length > 0) {
       const contentArray = r2Urls.map(url => ({ type: 'image_url', image_url: { url } }));
       if (body) contentArray.push({ type: 'text', text: body });
@@ -172,20 +186,20 @@ export async function handleWhatsAppRequest(request, env, ctx) {
       session.history.push({ role: 'user', content: body });
     }
     const summaryHandoffLinkRegex = /https?:\/\/wa\.me\/\d+\?text=/;
-    if (summaryHandoffLinkRegex.test(assistantReply)) {
-      assistantReply = await generateOrFetchSummary({ env, session, phone: from, baseUrl });
+    if (hasValidPhone && summaryHandoffLinkRegex.test(assistantReply)) {
+      assistantReply = await generateOrFetchSummary({ env, session, phone, baseUrl });
       session.summary = assistantReply;
       session.progress_status = 'summary-ready';
-      const { objects } = await env.MEDIA_BUCKET.list({ prefix: mediaPrefix('whatsapp', from) });
+      const { objects } = await env.MEDIA_BUCKET.list({ prefix: mediaPrefix('whatsapp', phone) });
       const photoUrls = (objects || []).map(obj => `${baseUrl}/images/${encodeURIComponent(obj.key)}`);
       ctx.waitUntil(
-        sendConsultationEmail({ env, phone: from, summary: assistantReply, history: [...session.history, { role: 'assistant', content: assistantReply }], r2Urls: photoUrls })
+        sendConsultationEmail({ env, phone, summary: assistantReply, history: [...session.history, { role: 'assistant', content: assistantReply }], r2Urls: photoUrls })
       );
       ctx.waitUntil(
         upsertShopifyCustomer({
           env,
           firstName: session.name,
-          phone: from,
+          phone,
           email: session.email,
           tags: 'whatsapp,consultation-lead,summary-complete',
           note: 'Consultation summary generated',

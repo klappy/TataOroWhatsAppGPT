@@ -83,6 +83,7 @@ export default {
 ```text
 https://wa.me/16895292934?text=<encoded summary>
 ```
+  - [x] Summary and handoff links include the client's phone number
 
 ---
 

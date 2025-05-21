@@ -105,6 +105,7 @@ The assistant uses a system prompt extracted into the `shared/systemPrompt.js` m
 - Responds one question at a time
 - Detects unrealistic expectations (e.g., instant curl restoration)
 - Produces a WhatsApp-handoff summary when the consultation concludes
+- User phone number is injected into the prompt using `{{USER_PHONE}}` at runtime
 
 ---
 

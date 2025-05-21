@@ -23,6 +23,8 @@ For detailed prompt configuration, see [VIBE_PROMPT.md](docs/issues/05-closed/VI
 - Short-term memory with KV storage (`CHAT_HISTORY`)
 - KV keys use a concise format like `whatsapp:+14155551234/history.json`
 - Phone numbers are normalized (strip `whatsapp:` prefix, enforce `+` E.164)
+- User phone numbers are inserted into the system prompt at runtime for
+  personalized summary and WhatsApp handoff links
 - Reset conversation via keywords ("reset", "clear", "start over", "new consultation") which also removes any uploaded photos from R2
 - System prompt & chat history injection for GPT-4o-mini
 - GPT-4o-mini vision support for understanding images
