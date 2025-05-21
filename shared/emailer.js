@@ -12,6 +12,9 @@
  * @param {Array} [options.history] - Chat history messages array
  * @param {Array<string>} [options.r2Urls] - List of R2-hosted image URLs
  */
+import { renderSummaryHTML } from './summary.js';
+import { r2KeyFromUrl } from './r2.js';
+
 export async function sendConsultationEmail({ env, phone, summary, history = [], r2Urls = [] }) {
   const enabled = String(env.EMAIL_ENABLED).toLowerCase() === 'true';
   if (!enabled) {
@@ -32,48 +35,21 @@ export async function sendConsultationEmail({ env, phone, summary, history = [],
 
   const subject = `New Curl Consultation – ${phone}`;
 
-  const escapeHtml = text =>
-    String(text)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+  const sessionData = {
+    history,
+    summary,
+    progress_status: 'summary-ready',
+    last_active: Math.floor(Date.now() / 1000),
+  };
 
-  let html = `<h1>${escapeHtml(subject)}</h1>`;
-  html += `<h2>Summary</h2><pre>${escapeHtml(summary)}</pre>`;
+  const mediaObjects = r2Urls.map((u) => ({ key: r2KeyFromUrl(u) || u }));
 
-  if (r2Urls.length > 0) {
-    html += '<h2>Images</h2><ul>';
-    for (const url of r2Urls) {
-      html += `<li><a href="${escapeHtml(url)}">${escapeHtml(url)}</a></li>`;
-    }
-    html += '</ul>';
-  }
-
-  if (history.length > 0) {
-    html += '<h2>Transcript</h2>';
-    for (const msg of history) {
-      if (msg.role === 'user') {
-        if (typeof msg.content === 'string') {
-          html += `<p><strong>User:</strong> ${escapeHtml(msg.content)}</p>`;
-        } else if (Array.isArray(msg.content)) {
-          const parts = msg.content.map(entry => {
-            if (entry.type === 'text' && entry.text) {
-              return escapeHtml(entry.text);
-            }
-            if (entry.type === 'image_url' && entry.image_url?.url) {
-              return `<a href="${escapeHtml(entry.image_url.url)}">${escapeHtml(entry.image_url.url)}</a>`;
-            }
-            return '';
-          });
-          html += `<p><strong>User:</strong> ${parts.join(' ')}</p>`;
-        }
-      } else if (msg.role === 'assistant') {
-        html += `<p><strong>Assistant:</strong> ${escapeHtml(msg.content)}</p>`;
-      }
-    }
-  }
+  const html = renderSummaryHTML({
+    session: sessionData,
+    mediaObjects,
+    phone,
+    baseUrl: env.WHATSAPP_BASE_URL,
+  });
 
   const payload = {
     from: env.EMAIL_FROM,

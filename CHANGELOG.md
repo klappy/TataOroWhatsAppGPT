@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.4.8 - Shared Summary Renderer
+
+- Extracted `renderSummaryHTML` for consistent email and page layout
+- Summary worker and emailer now reuse the same renderer
+- Email tests updated for HTML output
+
 ## v1.4.7 - Summary Detection Fix
 
 - Detect assistant-generated summary output and mark session `summary-ready`

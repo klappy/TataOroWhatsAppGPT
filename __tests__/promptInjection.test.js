@@ -35,7 +35,7 @@ describe('phone injection into system prompt', () => {
     };
     const ctx = { waitUntil() {} };
     await handleWhatsAppRequest(makeRequest(), env, ctx);
-    assert.ok(captured[0].content.includes('whatsapp:+1234567890'));
+    assert.ok(captured[0].content.includes('whatsapp:%2B1234567890'));
     assert.ok(!captured[0].content.includes('{{USER_PHONE}}'));
   });
 

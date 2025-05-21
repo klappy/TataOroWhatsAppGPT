@@ -34,10 +34,20 @@ describe('sendConsultationEmail', () => {
       EMAIL_PROVIDER: 'resend',
       RESEND_API_KEY: 'k',
       EMAIL_FROM: 'a@a.com',
-      EMAIL_TO: 'b@b.com'
+      EMAIL_TO: 'b@b.com',
+      WHATSAPP_BASE_URL: 'http://x'
     };
-    await sendConsultationEmail({ env, phone: '1', summary: 's' });
+    await sendConsultationEmail({
+      env,
+      phone: '1',
+      summary: 's',
+      history: [{ role: 'user', content: 'hi' }],
+      r2Urls: ['http://x/images/a.jpg']
+    });
     assert.strictEqual(fetchCalls.length, 1);
     assert.strictEqual(fetchCalls[0][0], 'https://api.resend.com/emails');
+    const body = JSON.parse(fetchCalls[0][1].body);
+    assert.ok(/hi/.test(body.html));
+    assert.ok(/http:\/\/x\/images\/a.jpg/.test(body.html));
   });
 });
