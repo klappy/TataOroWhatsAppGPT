@@ -33,6 +33,7 @@ For detailed prompt configuration, see [VIBE_PROMPT.md](docs/issues/05-closed/VI
 - Email consultation summary, transcript, and image links to configured recipients via Resend
 - Track consultation progress status (photo received, midway, summary ready, complete)
 - Automatically upsert Shopify customer on key milestones (photo, name, summary)
+- Live product search via Shopify Storefront API for tailored recommendations
 - Manual "send email" command to forward summary to Tata via email
 - Scheduled timeout-based email summary for incomplete consultations
 - Scheduled WhatsApp nudges for stalled consultations
