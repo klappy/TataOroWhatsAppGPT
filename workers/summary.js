@@ -32,7 +32,7 @@ export async function handleSummaryRequest(request, env) {
         session.progress_status
       )}</p><p>Last active: ${escapeXml(
         new Date(session.last_active * 1000).toLocaleString()
-      )}</p>${session.summary ? `<p class="summary">${escapeXml(session.summary)}</p>` : ""}</div>`
+      )}</p>${session.summary ? `<p class="summary">${session.summary}</p>` : ""}</div>`
     );
     htmlParts.push('<div class="messages">');
     for (const msg of session.history || []) {
