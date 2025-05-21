@@ -49,3 +49,20 @@ export async function generateOrFetchSummary({ env, session, phone, baseUrl }) {
   }
   return finalSummary;
 }
+
+/**
+ * Detect an assistant-generated summary and update the session in place.
+ *
+ * @param {string} assistantReply - Raw GPT response
+ * @param {object} session - Mutable session object
+ * @returns {boolean} True if a summary was detected
+ */
+export function extractSummaryFromReply(assistantReply, session) {
+  const summaryHeader = 'Client Curl Discovery Summary for Tata Oro';
+  if (assistantReply && assistantReply.includes(summaryHeader)) {
+    session.summary = assistantReply;
+    session.progress_status = 'summary-ready';
+    return true;
+  }
+  return false;
+}

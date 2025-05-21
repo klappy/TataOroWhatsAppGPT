@@ -16,7 +16,7 @@ import { chatHistoryKey, mediaObjectKey, mediaPrefix, normalizePhoneNumber } fro
 import { chatCompletion } from '../shared/gpt.js';
 import { SYSTEM_PROMPT } from '../shared/systemPrompt.js';
 import { sendConsultationEmail } from '../shared/emailer.js';
-import { generateOrFetchSummary } from '../shared/summary.js';
+import { generateOrFetchSummary, extractSummaryFromReply } from '../shared/summary.js';
 import { deleteR2Objects, r2KeyFromUrl } from '../shared/r2.js';
 
 export async function handleWhatsAppRequest(request, env, ctx) {
@@ -198,6 +198,9 @@ export async function handleWhatsAppRequest(request, env, ctx) {
     }
 
     session.history.push({ role: 'assistant', content: assistantReply });
+
+    // Detect if GPT produced the final summary
+    extractSummaryFromReply(assistantReply, session);
 
     // Save session state with TTL
     await env.CHAT_HISTORY.put(sessionKey, JSON.stringify(session), { expirationTtl: 86400 });
