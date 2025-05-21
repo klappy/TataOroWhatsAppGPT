@@ -9,12 +9,12 @@ export async function handleSummaryRequest(request, env) {
         const decoded = atob(rawId);
         if (decoded.startsWith('whatsapp:+')) phone = decoded;
       } catch {}
-      const { chatHistoryKey, mediaPrefix } = await import('../shared/storageKeys.js');
-      const sessionKey = chatHistoryKey('whatsapp', phone);
+      const { chatHistoryKey, mediaPrefix, normalizePhoneNumber } = await import('../shared/storageKeys.js');
+      const sessionKey = chatHistoryKey('whatsapp', normalizePhoneNumber(phone));
       const stored = await env.CHAT_HISTORY.get(sessionKey, { type: 'json' });
       if (!stored) return new Response('Not found', { status: 404, headers: { 'Content-Type': 'text/plain;charset=UTF-8' } });
       const session = stored;
-      const { objects: objs } = await env.MEDIA_BUCKET.list({ prefix: mediaPrefix('whatsapp', phone) });
+      const { objects: objs } = await env.MEDIA_BUCKET.list({ prefix: mediaPrefix('whatsapp', normalizePhoneNumber(phone)) });
       const htmlParts = [];
       htmlParts.push('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Consultation Summary</title><style>body{font-family:sans-serif;max-width:600px;margin:auto;padding:1em}.message{margin-bottom:1em}.user{color:#0066cc}.assistant{color:#008000}.metadata{font-size:.9em;color:#666}img{max-width:100%;display:block;margin:0.5em 0}</style></head><body><h1>Consultation Summary</h1>');
       htmlParts.push(`<div class="metadata"><p>Progress status: ${escapeXml(session.progress_status)}</p><p>Last active: ${escapeXml(new Date(session.last_active * 1000).toLocaleString())}</p>${session.summary ? `<p>Summary: ${escapeXml(session.summary)}</p>` : ''}</div>`);

@@ -12,7 +12,7 @@
  * R2 Bucket Bindings:
  *   MEDIA_BUCKET       - Cloudflare R2 bucket for media storage
  */
-import { chatHistoryKey, mediaObjectKey, mediaPrefix } from "../shared/storageKeys.js";
+import { chatHistoryKey, mediaObjectKey, mediaPrefix, normalizePhoneNumber } from "../shared/storageKeys.js";
 import { chatCompletion } from '../shared/gpt.js';
 import { SYSTEM_PROMPT } from '../shared/systemPrompt.js';
 import { sendConsultationEmail } from '../shared/emailer.js';
@@ -48,7 +48,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
       return new Response('Unsupported Media Type', { status: 415 });
     }
 
-    const from = formParams.get('From') || '';
+    const from = normalizePhoneNumber(formParams.get('From') || '');
     const body = formParams.get('Body') || '';
     const numMedia = parseInt(formParams.get('NumMedia') || '0');
     const mediaUrls = [];

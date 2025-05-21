@@ -12,6 +12,7 @@ Public utilities like summaries remain platform agnostic:
 - `/summary/:conversationId`
 
 Storage keys are scoped by channel and identifier, without extra prefixes.
+Phone numbers must be normalized to E.164 format without the `whatsapp:` prefix.
 
 Examples:
 
