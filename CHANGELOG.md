@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.4.6 - Assistant-Led Summary Handoff
+
+- Inject session summary and link into GPT context instead of overriding replies
+- Removed regex-based summary detection
+- Updated scheduler and email triggers to set `summary-ready` status
+- Documentation updates for new flow
+
 ## v1.4.5 - Session Key Normalization
 
 - Added `normalizePhoneNumber` helper and hardened `chatHistoryKey`.

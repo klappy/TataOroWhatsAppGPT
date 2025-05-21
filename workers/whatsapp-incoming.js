@@ -16,7 +16,6 @@ import { chatHistoryKey, mediaObjectKey, mediaPrefix, normalizePhoneNumber } fro
 import { chatCompletion } from '../shared/gpt.js';
 import { SYSTEM_PROMPT } from '../shared/systemPrompt.js';
 import { sendConsultationEmail } from '../shared/emailer.js';
-import { upsertShopifyCustomer } from '../shared/shopify.js';
 import { generateOrFetchSummary } from '../shared/summary.js';
 import { deleteR2Objects, r2KeyFromUrl } from '../shared/r2.js';
 
@@ -146,6 +145,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
       await sendConsultationEmail({ env, phone, summary, history: session.history, r2Urls: photoUrls });
       session.summary = summary;
       session.summary_email_sent = true;
+      session.progress_status = 'summary-ready';
       await env.CHAT_HISTORY.put(sessionKey, JSON.stringify(session), { expirationTtl: 86400 });
       const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>Done! 💌 I’ve sent your consultation summary to Tata by email.</Message></Response>`;
       return new Response(twiml, {
@@ -165,7 +165,18 @@ export async function handleWhatsAppRequest(request, env, ctx) {
     } else {
       console.warn('SYSTEM_PROMPT missing {{USER_PHONE}}');
     }
-    const messages = [{ role: 'system', content: prompt }, ...session.history];
+    const messages = [{ role: 'system', content: prompt }];
+    if (session.summary) {
+      messages.push({ role: 'assistant', content: session.summary });
+    }
+    if (session.progress_status === 'summary-ready') {
+      const summaryUrl = `${baseUrl}/summary/whatsapp:${phone}`;
+      messages.push({
+        role: 'assistant',
+        content: `You can now send your consultation summary to Tata \ud83d\udc8c:\n${summaryUrl}`,
+      });
+    }
+    messages.push(...session.history);
     if (r2Urls.length > 0) {
       const contentArray = r2Urls.map(url => ({ type: 'image_url', image_url: { url } }));
       if (body) contentArray.push({ type: 'text', text: body });
@@ -184,27 +195,6 @@ export async function handleWhatsAppRequest(request, env, ctx) {
       session.history.push({ role: 'user', content: contentArray });
     } else {
       session.history.push({ role: 'user', content: body });
-    }
-    const summaryHandoffLinkRegex = /https?:\/\/wa\.me\/\d+\?text=/;
-    if (hasValidPhone && summaryHandoffLinkRegex.test(assistantReply)) {
-      assistantReply = await generateOrFetchSummary({ env, session, phone, baseUrl });
-      session.summary = assistantReply;
-      session.progress_status = 'summary-ready';
-      const { objects } = await env.MEDIA_BUCKET.list({ prefix: mediaPrefix('whatsapp', phone) });
-      const photoUrls = (objects || []).map(obj => `${baseUrl}/images/${encodeURIComponent(obj.key)}`);
-      ctx.waitUntil(
-        sendConsultationEmail({ env, phone, summary: assistantReply, history: [...session.history, { role: 'assistant', content: assistantReply }], r2Urls: photoUrls })
-      );
-      ctx.waitUntil(
-        upsertShopifyCustomer({
-          env,
-          firstName: session.name,
-          phone,
-          email: session.email,
-          tags: 'whatsapp,consultation-lead,summary-complete',
-          note: 'Consultation summary generated',
-        })
-      );
     }
 
     session.history.push({ role: 'assistant', content: assistantReply });

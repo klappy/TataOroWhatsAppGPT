@@ -38,4 +38,22 @@ describe('phone injection into system prompt', () => {
     assert.ok(captured[0].content.includes('whatsapp:+1234567890'));
     assert.ok(!captured[0].content.includes('{{USER_PHONE}}'));
   });
+
+  it('injects stored summary and link into GPT context', async () => {
+    const env = {
+      OPENAI_API_KEY: 'k',
+      TWILIO_ACCOUNT_SID: 'id',
+      TWILIO_AUTH_TOKEN: 'tok',
+      CHAT_HISTORY: {
+        get: async () => ({ history: [], summary: 'past summary', progress_status: 'summary-ready' }),
+        put: async () => {},
+      },
+      MEDIA_BUCKET: { put: async () => {}, list: async () => ({ objects: [] }) },
+    };
+    const ctx = { waitUntil() {} };
+    await handleWhatsAppRequest(makeRequest(), env, ctx);
+    assert.strictEqual(captured[1].role, 'assistant');
+    assert.strictEqual(captured[1].content, 'past summary');
+    assert.ok(captured[2].content.includes('/summary/whatsapp:+1234567890'));
+  });
 });

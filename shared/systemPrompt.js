@@ -34,9 +34,11 @@ Then include this exact link format, with the correct client summary URL encoded
 
 \`<a href="https://wa.me/16895292934?text=Hi%20Tata!%20Here%20is%20my%20curl%20consultation%20summary:%20https%3A%2F%2Fwa.tataoro.com%2Fsummary%2Fwhatsapp%3A%2B{{USER_PHONE}}" target="_blank" rel="noopener noreferrer">Click here to send it to Tata via WhatsApp</a>\`
 
-⚠️ Replace the phone number in the summary link with the actual user's number.  
-⚠️ Do not include emojis inside the URL or inside the summary content.  
+⚠️ Replace the phone number in the summary link with the actual user's number.
+⚠️ Do not include emojis inside the URL or inside the summary content.
 ✅ The link must open in a **new tab/window**.
+
+After the summary is generated, the conversation will include a message with the link. Reference that context rather than injecting new links yourself.
 
 ---
 

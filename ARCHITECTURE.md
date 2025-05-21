@@ -94,6 +94,12 @@ User sends message via WhatsApp/SMS → Twilio Webhook → Cloudflare Worker
 → User receives updated message in WhatsApp or SMS
 ```
 
+Simple diagram:
+
+```
+System prompt → [session summary + link] → history → GPT → reply to user
+```
+
 ---
 
 ## 🧠 System Prompt Logic
@@ -106,6 +112,7 @@ The assistant uses a system prompt extracted into the `shared/systemPrompt.js` m
 - Detects unrealistic expectations (e.g., instant curl restoration)
 - Produces a WhatsApp-handoff summary when the consultation concludes
 - User phone number is injected into the prompt using `{{USER_PHONE}}` at runtime
+- The worker injects any saved summary and summary link back into the GPT context so the assistant can reference them naturally
 
 ---
 
