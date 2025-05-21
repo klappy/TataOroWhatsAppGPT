@@ -18,6 +18,7 @@ For detailed prompt configuration, see [VIBE_PROMPT.md](docs/issues/05-closed/VI
 
 - Accept incoming WhatsApp messages (text & images) from Twilio
 - Short-term memory with KV storage (`CHAT_HISTORY`)
+- KV keys use a concise format like `whatsapp:+14155551234/history.json`
 - Reset conversation via keywords ("reset", "clear", "start over", "new consultation") which also removes any uploaded photos from R2
 - System prompt & chat history injection for GPT-4o-mini
 - GPT-4o-mini vision support for understanding images

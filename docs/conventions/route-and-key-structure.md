@@ -11,10 +11,10 @@ Public utilities like summaries remain platform agnostic:
 
 - `/summary/:conversationId`
 
-Storage keys follow a `datastore/namespace/platform:identifier/...` pattern to enable prefix queries across multiple channels.
+Storage keys are scoped by channel and identifier, without extra prefixes.
 
 Examples:
 
-- `kv/chat/whatsapp:+14155551234/history`
+- `whatsapp:+14155551234/history.json`
 - `kv/docs/github:klappy/docs/file.md/chunk3`
-- `r2/media/whatsapp:+14155551234/1700000000000-0.jpeg`
+- `whatsapp:+14155551234/1700000000000-0.jpeg`

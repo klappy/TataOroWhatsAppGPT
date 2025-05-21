@@ -1,12 +1,11 @@
-export const CHAT_PREFIX = 'kv/chat/';
 export function chatHistoryKey(platform, id) {
-  return `${CHAT_PREFIX}${platform}:${id}/history`;
+  return `${platform}:${id}/history.json`;
 }
 export function chatHistoryPrefix(platform) {
-  return `${CHAT_PREFIX}${platform}:`;
+  return `${platform}:`;
 }
 export function mediaPrefix(platform, id) {
-  return `r2/media/${platform}:${id}/`;
+  return `${platform}:${id}/`;
 }
 export function mediaObjectKey(platform, id, name) {
   return `${mediaPrefix(platform, id)}${name}`;
