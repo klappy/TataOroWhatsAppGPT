@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.4.7 - Summary Detection Fix
+
+- Detect assistant-generated summary output and mark session `summary-ready`
+- Persist summary in KV before replying
+
 ## v1.4.6 - Assistant-Led Summary Handoff
 
 - Inject session summary and link into GPT context instead of overriding replies

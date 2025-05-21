@@ -36,6 +36,7 @@ For detailed prompt configuration, see [VIBE_PROMPT.md](docs/issues/05-closed/VI
 - Manual "send email" command to forward summary to Tata via email
 - Scheduled timeout-based email summary for incomplete consultations
 - Scheduled WhatsApp nudges for stalled consultations
+- Automatically detects when GPT sends the final summary and marks the session as `summary-ready`
 - Stateless GET `/summary/:conversationId` endpoint for dynamic, read-only HTML consultation summaries (chat messages, metadata, images) without separate storage.
 - Dedicated `/images/*` route serves public R2-hosted media
 - Scheduler worker (`workers/scheduler.js`) with hourly cron checks
