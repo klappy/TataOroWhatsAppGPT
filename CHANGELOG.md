@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.4.9 - Shopify Storefront Search
+
+- Added `searchShopifyProducts` helper for live product queries
+- Reused `SHOPIFY_API_TOKEN` for storefront requests
+- Documentation and tests updated
+
 ## v1.4.8 - Shared Summary Renderer
 
 - Extracted `renderSummaryHTML` for consistent email and page layout

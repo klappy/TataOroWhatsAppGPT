@@ -130,10 +130,10 @@ The assistant uses a system prompt extracted into the `shared/systemPrompt.js` m
 | `EMAIL_TO`                | Recipient address for summary emails                   |
 | `RESEND_API_KEY`          | API key for Resend email service                       |
 | `SHOPIFY_STORE_DOMAIN`    | Domain for the Shopify store (e.g., `tataoro.com`)     |
-| `SHOPIFY_API_TOKEN`       | API token for Shopify Admin API                        |
+| `SHOPIFY_API_TOKEN`       | API token for Shopify Admin API and Storefront search |
 | `WHATSAPP_BASE_URL`       | Base URL for WhatsApp handler (e.g., `https://wa.tataoro.com`)|
-
 Sensitive values (`OPENAI_API_KEY`, `TWILIO_AUTH_TOKEN`, `TWILIO_ACCOUNT_SID`, `RESEND_API_KEY`, `SHOPIFY_API_TOKEN`) should be set via `wrangler secret put`. Other configuration vars belong in the `[vars]` section of `wrangler.toml`.
+
 
 ---
 
