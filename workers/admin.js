@@ -1,3 +1,5 @@
+import { chatHistoryPrefix, chatHistoryKey, mediaPrefix } from '../shared/storageKeys.js';
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -15,10 +17,10 @@ export default {
       const rows = [];
       let cursor;
       do {
-        const list = await env.CHAT_HISTORY.list({ prefix: 'chat_history:', cursor, limit: 100 });
+        const list = await env.CHAT_HISTORY.list({ prefix: chatHistoryPrefix('whatsapp'), cursor, limit: 100 });
         cursor = list.cursor;
         for (const key of list.keys) {
-          const phone = key.name.slice('chat_history:'.length);
+          const phone = key.name.slice(chatHistoryPrefix('whatsapp').length);
           const session = await env.CHAT_HISTORY.get(key.name, { type: 'json' });
           if (!session) continue;
           rows.push(`<tr><td>${phone}</td><td>${session.progress_status || ''}</td><td>${new Date((session.last_active||0)*1000).toLocaleString()}</td><td><a href="/admin/sessions/${encodeURIComponent(phone)}">view</a></td></tr>`);
@@ -30,10 +32,10 @@ export default {
 
     if (sub.startsWith('/sessions/') && request.method === 'GET') {
       const phone = decodeURIComponent(sub.slice('/sessions/'.length));
-      const key = `chat_history:${phone}`;
+      const key = chatHistoryKey('whatsapp', phone);
       const session = await env.CHAT_HISTORY.get(key, { type: 'json' });
       if (!session) return new Response('Not Found', { status: 404 });
-      const { objects } = await env.MEDIA_BUCKET.list({ prefix: `${phone}/` });
+      const { objects } = await env.MEDIA_BUCKET.list({ prefix: mediaPrefix('whatsapp', phone) });
       const photos = (objects||[]).map(o => `<img src="${base}/images/${encodeURIComponent(o.key)}" style="max-width:100%">`).join('');
       const messages = (session.history||[]).map(m => `<div><strong>${m.role}:</strong> ${typeof m.content==='string'?m.content:m.content.map(e=>e.type==='text'?e.text:`<img src='${e.image_url.url}' style='max-width:100%'>`).join(' ')}</div>`).join('');
       const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${phone}</title></head><body><h1>${phone}</h1><p>Status: ${session.progress_status}</p><form method="post" action="/admin/sessions/${encodeURIComponent(phone)}/reset"><button type="submit">Reset Session</button></form><div>${messages}</div><div>${photos}</div></body></html>`;
@@ -42,8 +44,8 @@ export default {
 
     if (sub.startsWith('/sessions/') && sub.endsWith('/reset') && request.method === 'POST') {
       const phone = decodeURIComponent(sub.slice('/sessions/'.length, -('/reset'.length)));
-      const key = `chat_history:${phone}`;
-      const { objects } = await env.MEDIA_BUCKET.list({ prefix: `${phone}/` });
+      const key = chatHistoryKey('whatsapp', phone);
+      const { objects } = await env.MEDIA_BUCKET.list({ prefix: mediaPrefix('whatsapp', phone) });
       for (const obj of objects || []) {
         await env.MEDIA_BUCKET.delete(obj.key);
       }
@@ -53,7 +55,7 @@ export default {
 
     if (sub.startsWith('/summary/') && request.method === 'GET') {
       const phone = decodeURIComponent(sub.slice('/summary/'.length));
-      const key = `chat_history:${phone}`;
+      const key = chatHistoryKey('whatsapp', phone);
       const session = await env.CHAT_HISTORY.get(key, { type: 'json' });
       if (!session) return new Response('Not Found', { status: 404 });
       const summary = await (await import('../shared/summary.js')).generateOrFetchSummary({ env, session, phone, baseUrl: base });

@@ -1,5 +1,6 @@
 import { embedText } from '../shared/embeddings.js';
 import { chunkText } from '../shared/chunker.js';
+import { docChunkKey } from '../shared/storageKeys.js';
 
 export default {
   async fetch(request, env) {
@@ -17,7 +18,7 @@ export default {
       const chunks = chunkText(content);
       const embeddings = await embedText(chunks, env.OPENAI_API_KEY);
       for (let i = 0; i < embeddings.length; i++) {
-        const key = `${owner}/${repo}/${path}/chunk${i}`;
+        const key = docChunkKey(owner, repo, path, i);
         await env.DOC_KNOWLEDGE.put(key, JSON.stringify({ chunk: chunks[i], embedding: embeddings[i] }));
       }
       return new Response('Document synced', { status: 200 });
