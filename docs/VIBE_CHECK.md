@@ -84,6 +84,7 @@ export default {
 https://wa.me/16895292934?text=<encoded summary>
 ```
   - [x] Summary and handoff links include the client's phone number
+  - [x] Worker passes stored summary and link back to GPT context instead of overriding GPT output with a regex
 
 ---
 

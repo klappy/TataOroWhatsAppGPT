@@ -32,14 +32,12 @@ const messages = [
 
 ---
 
-## 🧾 Summary Detection
+## 🧾 Summary Flow
 
 - Assistant is instructed to produce a structured Markdown summary
-- Worker detects summary handoff link in the assistant reply using
-  `summaryHandoffLinkRegex` (e.g., a wa.me link). When detected, the worker calls
-  `generateOrFetchSummary` to regenerate the summary with real R2 image URLs so
-  the inline message matches the emailed summary. It then sends the summary
-  email and upserts the Shopify customer record.
+- When a summary is generated (manually or via timeout email), it is stored in the session along with a shareable URL.
+- On each GPT request the worker injects this summary and link back into the messages array as `assistant` role entries.
+- This allows GPT to reference the summary naturally without any regex-based overrides.
 
 ---
 

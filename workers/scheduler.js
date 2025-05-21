@@ -59,6 +59,7 @@ export default {
               })
             );
             session.summary_email_sent = true;
+            session.progress_status = 'summary-ready';
             await env.CHAT_HISTORY.put(key.name, JSON.stringify(session), { expirationTtl: 86400 });
           }
           if (!session.nudge_sent && now - lastActive > 7200) {
