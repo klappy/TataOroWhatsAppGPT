@@ -1,5 +1,4 @@
-export default {
-  async fetch(request, env) {
+export async function handleSummaryRequest(request, env) {
     const url = new URL(request.url);
     const baseUrl = url.origin;
     // Do not handle /images/* here — served by dedicated images worker
@@ -52,5 +51,4 @@ export default {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&apos;');
     }
-  },
-};
+}

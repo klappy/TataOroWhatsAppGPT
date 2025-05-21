@@ -1,7 +1,6 @@
 // Public images worker
 // Do not handle /images/* elsewhere
-export default {
-  async fetch(request, env) {
+export async function handleImagesRequest(request, env) {
     if (request.method !== 'GET') {
       return new Response('Method Not Allowed', { status: 405 });
     }
@@ -15,5 +14,4 @@ export default {
       headers['Content-Type'] = object.httpMetadata.contentType;
     }
     return new Response(object.body, { headers });
-  },
-};
+}

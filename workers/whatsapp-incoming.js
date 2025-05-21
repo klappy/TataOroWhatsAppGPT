@@ -20,8 +20,7 @@ import { upsertShopifyCustomer } from '../shared/shopify.js';
 import { generateOrFetchSummary } from '../shared/summary.js';
 import { deleteR2Objects, r2KeyFromUrl } from '../shared/r2.js';
 
-export default {
-  async fetch(request, env, ctx) {
+export async function handleWhatsAppRequest(request, env, ctx) {
     const url = new URL(request.url);
     const baseUrl = url.origin;
     // Handle CORS preflight requests
@@ -214,5 +213,4 @@ export default {
     return new Response(twiml, {
       headers: { 'Content-Type': 'text/xml; charset=UTF-8', 'Access-Control-Allow-Origin': '*' },
     });
-  },
-};
+}

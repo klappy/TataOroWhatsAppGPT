@@ -2,8 +2,7 @@ import { embedText } from '../shared/embeddings.js';
 import { chunkText } from '../shared/chunker.js';
 import { docChunkKey } from '../shared/storageKeys.js';
 
-export default {
-  async fetch(request, env) {
+export async function handleDocSyncRequest(request, env) {
     if (request.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405 });
     }
@@ -26,5 +25,4 @@ export default {
       console.error('Doc-sync error', err);
       return new Response('Internal Error', { status: 500 });
     }
-  },
-};
+}

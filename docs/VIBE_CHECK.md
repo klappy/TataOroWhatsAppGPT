@@ -6,12 +6,12 @@ This checklist verifies that the generated Cloudflare Worker correctly implement
 
 ## ✅ Core File Structure
 
-- [x] `workers/whatsapp-incoming.js` exists and uses the Cloudflare `fetch` handler pattern
-- [x] `workers/summary.js` exists for `/summary/:conversationId`
-- [x] `workers/images.js` exists for `/images/*`
-- [x] `workers/doc-sync.js` exists
-- [x] `workers/upload-hook.js` exists
-- [x] Implements shareable summary endpoint GET `/summary/:conversationId` in `workers/whatsapp.js`
+- [x] `workers/router.js` dispatches requests based on path
+- [x] `workers/whatsapp-incoming.js` exports `handleWhatsAppRequest`
+- [x] `workers/summary.js` exports `handleSummaryRequest`
+- [x] `workers/images.js` exports `handleImagesRequest`
+- [x] `workers/doc-sync.js` exports `handleDocSyncRequest`
+- [x] `workers/upload-hook.js` exports `handleUploadHookRequest`
 - [x] Uses key names like `whatsapp:+14155551234/history.json` and `whatsapp:+14155551234/1700000000000-0.jpeg`
 
 ```js
