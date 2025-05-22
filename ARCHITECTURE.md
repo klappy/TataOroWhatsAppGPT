@@ -61,7 +61,7 @@ This document describes the architecture of the AI-powered WhatsApp consultation
 ### 4. **Cloudflare KV (Binding: `CHAT_HISTORY`)**
 
 - Stores per-user session history to preserve multi-turn context
-- Retention: 24-hour TTL
+- Retention: one-month TTL
  - KV key: `whatsapp:+<phoneNumber>/history.json`
 - Supports resetting conversation when users send reset keywords ("reset", "clear", "start over", "new consultation")
   - Uploaded R2 images are deleted during reset to avoid orphaned media

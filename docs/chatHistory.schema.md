@@ -33,7 +33,7 @@ interface ChatHistorySession {
 2. **Mutation** – Incoming messages append to `history`, media URLs are collected in `r2Urls`, and `last_active` is refreshed.
 3. **Email Trigger** – When the user sends `"send email"` or the scheduler detects inactivity, `generateOrFetchSummary` builds the summary and `sendConsultationEmail` dispatches it, setting `summary_email_sent` and `progress_status` accordingly.
 4. **Summary Detection** – If GPT replies with a message starting with `"Client Curl Discovery Summary for Tata Oro"`, that reply becomes the `summary` and the session is marked `summary-ready`.
-5. **Storage** – After each update, the object is persisted back to KV with a TTL of 24 hours.
+5. **Storage** – After each update, the object is persisted back to KV with a TTL of one month (30 days).
 
 ## Example (Summary Ready)
 ```json
