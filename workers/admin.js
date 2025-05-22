@@ -84,7 +84,8 @@ export async function handleAdminRequest(request, env) {
       const summary = await generateOrFetchSummary({ env, session, phone, baseUrl: base });
       session.summary = summary;
       session.progress_status = 'summary-ready';
-      await env.CHAT_HISTORY.put(sessionKey, JSON.stringify(session), { expirationTtl: 86400 });
+      // Extend session retention to one month
+      await env.CHAT_HISTORY.put(sessionKey, JSON.stringify(session), { expirationTtl: 2592000 });
       return new Response(`<pre>${summary}</pre>`, { headers:{'Content-Type':'text/html;charset=UTF-8'} });
     }
 
