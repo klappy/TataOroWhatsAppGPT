@@ -27,3 +27,18 @@ Welcome to the Tata Oro Assistant project. This guide provides Codex CLI with th
 
 - Write unit tests for all new functions.
 - Use Jest as the testing framework.
+
+## Developer Docs
+
+The Codex CLI relies on up-to-date developer documentation in the `docs/` directory. Please refer to:
+
+- `docs/architecture/` – Architectural guidelines and patterns
+- `docs/decisions/` – Architectural decision records
+- `docs/conventions/` – Coding and file naming conventions
+- `docs/chatHistory.schema.md` – Chat history schema
+- `docs/issues/` – Issue lifecycle and templates
+- `docs/VIBE_CHECK.md` – Vibe check and release verification
+
+## Aliases
+
+- `codex sync-issues` – Read `./docs/issues/codex.md`, detect new issues in the sub-folders, and process them through the issue workflow automatically.
