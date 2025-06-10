@@ -87,8 +87,8 @@ export async function handleWhatsAppRequest(request, env, ctx) {
       await env.MEDIA_BUCKET.put(key, buffer, { httpMetadata: { contentType } });
       if (mainType === "audio") {
         r2Urls.push({
-          type: "audio_url",
-          audio_url: { url: `${baseUrl}/images/${encodeURIComponent(key)}` },
+          type: "input_audio",
+          input_audio: { url: `${baseUrl}/images/${encodeURIComponent(key)}` },
         });
       } else {
         r2Urls.push({
@@ -204,8 +204,8 @@ export async function handleWhatsAppRequest(request, env, ctx) {
   messages.push(...session.history);
   if (r2Urls.length > 0) {
     const contentArray = r2Urls.map((item) => {
-      if (item.type === "audio_url") {
-        return { type: "audio_url", audio_url: item.audio_url };
+      if (item.type === "input_audio") {
+        return { type: "input_audio", input_audio: item.input_audio };
       } else {
         return { type: "image_url", image_url: item.image_url };
       }
@@ -229,8 +229,8 @@ export async function handleWhatsAppRequest(request, env, ctx) {
   // Store messages in session history
   if (r2Urls.length > 0) {
     const contentArray = r2Urls.map((item) => {
-      if (item.type === "audio_url") {
-        return { type: "audio_url", audio_url: item.audio_url };
+      if (item.type === "input_audio") {
+        return { type: "input_audio", input_audio: item.input_audio };
       } else {
         return { type: "image_url", image_url: item.image_url };
       }

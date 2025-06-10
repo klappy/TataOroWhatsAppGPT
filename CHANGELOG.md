@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.0.3 - Audio Clip Support with Correct Content Type for OpenAI API
+
+- Updated content type for audio inputs from 'audio_url' to 'input_audio' to match OpenAI API requirements
+- Ensured audio media is processed and stored in Cloudflare R2 with the correct format
+- Updated test descriptions to reflect the change in content type for consistency
+
 ## v1.0.2 - Audio Clip Support for WhatsApp Assistant
 
 - Added support for audio clips as inputs in WhatsApp conversations 🎤
