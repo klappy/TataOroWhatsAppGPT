@@ -79,11 +79,23 @@ export async function handleWhatsAppRequest(request, env, ctx) {
         continue;
       }
       const contentType = twilioResponse.headers.get("content-type") || "application/octet-stream";
-      const extension = contentType.split("/")[1] || "bin";
+      const typeParts = contentType.split("/");
+      const mainType = typeParts[0];
+      const extension = typeParts[1] || "bin";
       const key = mediaObjectKey("whatsapp", phone, `${Date.now()}-${i}.${extension}`);
       const buffer = await twilioResponse.arrayBuffer();
       await env.MEDIA_BUCKET.put(key, buffer, { httpMetadata: { contentType } });
-      r2Urls.push(`${baseUrl}/images/${encodeURIComponent(key)}`);
+      if (mainType === "audio") {
+        r2Urls.push({
+          type: "audio_url",
+          audio_url: { url: `${baseUrl}/images/${encodeURIComponent(key)}` },
+        });
+      } else {
+        r2Urls.push({
+          type: "image_url",
+          image_url: { url: `${baseUrl}/images/${encodeURIComponent(key)}` },
+        });
+      }
     } catch (err) {
       console.error("Error processing media", err);
     }
@@ -191,7 +203,13 @@ export async function handleWhatsAppRequest(request, env, ctx) {
   }
   messages.push(...session.history);
   if (r2Urls.length > 0) {
-    const contentArray = r2Urls.map((url) => ({ type: "image_url", image_url: { url } }));
+    const contentArray = r2Urls.map((item) => {
+      if (item.type === "audio_url") {
+        return { type: "audio_url", audio_url: item.audio_url };
+      } else {
+        return { type: "image_url", image_url: item.image_url };
+      }
+    });
     if (body) contentArray.push({ type: "text", text: body });
     messages.push({ role: "user", content: contentArray });
   } else {
@@ -210,7 +228,13 @@ export async function handleWhatsAppRequest(request, env, ctx) {
 
   // Store messages in session history
   if (r2Urls.length > 0) {
-    const contentArray = r2Urls.map((url) => ({ type: "image_url", image_url: { url } }));
+    const contentArray = r2Urls.map((item) => {
+      if (item.type === "audio_url") {
+        return { type: "audio_url", audio_url: item.audio_url };
+      } else {
+        return { type: "image_url", image_url: item.image_url };
+      }
+    });
     if (body) contentArray.push({ type: "text", text: body });
     session.history.push({ role: "user", content: contentArray });
   } else {

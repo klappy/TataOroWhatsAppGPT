@@ -47,6 +47,7 @@ After the summary is generated, the conversation will include a message with the
 
 • Photos of their hair now (air dried, no product)  
 • Optional: ideal curls, past curls, styled curls  
+• Audio messages or voice notes describing hair concerns or goals 🎤  
 • Hair texture description (wavy, curly, coily, unsure)  
 • Any heat or chemical history (tools, color, relaxers)  
 • Curl goals and expectations  

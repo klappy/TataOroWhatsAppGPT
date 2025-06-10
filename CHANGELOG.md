@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.0.2 - Audio Clip Support for WhatsApp Assistant
+
+- Added support for audio clips as inputs in WhatsApp conversations 🎤
+- Updated 'whatsapp-incoming.js' to process and store audio files in Cloudflare R2
+- Modified system prompt to include audio messages or voice notes in consultation data
+
 ## v1.0.1 - System Prompt Enhancements and Documentation Updates
 
 - Enhanced system prompt to ask clients about openness to curl cuts/trims ✂️
