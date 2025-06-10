@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.0.6 - Fix Audio Format Compatibility for OpenAI API
+
+- Updated 'whatsapp-incoming.js' to ensure audio format is set to a supported value ('mp3' instead of 'ogg') for compatibility with the OpenAI API
+
 ## v1.0.5 - Fix Audio Processing Error
 
 - Updated 'whatsapp-incoming.js' to read audio data only once, using it for both Cloudflare R2 storage and base64 conversion for OpenAI API, resolving the "Body has already been used" error

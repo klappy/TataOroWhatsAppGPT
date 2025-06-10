@@ -88,9 +88,11 @@ export async function handleWhatsAppRequest(request, env, ctx) {
       if (mainType === "audio") {
         // Use the already fetched buffer to create base64 data for OpenAI API
         const base64Audio = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+        // Ensure the format is supported by OpenAI API (only 'wav' and 'mp3' are supported)
+        const supportedFormat = extension === "ogg" ? "mp3" : extension;
         r2Urls.push({
           type: "input_audio",
-          input_audio: { data: base64Audio, format: extension },
+          input_audio: { data: base64Audio, format: supportedFormat },
         });
       } else {
         r2Urls.push({
