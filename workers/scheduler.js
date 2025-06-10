@@ -61,12 +61,14 @@ export default {
             );
             session.summary_email_sent = true;
             session.progress_status = 'summary-ready';
-            await env.CHAT_HISTORY.put(key.name, JSON.stringify(session), { expirationTtl: 86400 });
+            // Extend session retention to one month
+            await env.CHAT_HISTORY.put(key.name, JSON.stringify(session), { expirationTtl: 2592000 });
           }
           if (!session.nudge_sent && now - lastActive > 7200) {
             ctx.waitUntil(sendWhatsAppNudge(env, normalizePhoneNumber(key.name.slice(chatHistoryPrefix('whatsapp').length))));
             session.nudge_sent = true;
-            await env.CHAT_HISTORY.put(key.name, JSON.stringify(session), { expirationTtl: 86400 });
+            // Extend session retention to one month
+            await env.CHAT_HISTORY.put(key.name, JSON.stringify(session), { expirationTtl: 2592000 });
           }
         }
       }

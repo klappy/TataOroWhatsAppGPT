@@ -159,7 +159,8 @@ export async function handleWhatsAppRequest(request, env, ctx) {
     session.summary = summary;
     session.summary_email_sent = true;
     session.progress_status = "summary-ready";
-    await env.CHAT_HISTORY.put(sessionKey, JSON.stringify(session), { expirationTtl: 86400 });
+    // Extend session retention to one month
+    await env.CHAT_HISTORY.put(sessionKey, JSON.stringify(session), { expirationTtl: 2592000 });
     const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>Done! 💌 I’ve sent your consultation summary to Tata by email.</Message></Response>`;
     return new Response(twiml, {
       headers: { "Content-Type": "text/xml; charset=UTF-8", "Access-Control-Allow-Origin": "*" },
@@ -218,8 +219,8 @@ export async function handleWhatsAppRequest(request, env, ctx) {
 
   session.history.push({ role: "assistant", content: assistantReply });
 
-  // Save session state with TTL
-  await env.CHAT_HISTORY.put(sessionKey, JSON.stringify(session), { expirationTtl: 86400 });
+  // Save session state with TTL of one month to retain conversations longer
+  await env.CHAT_HISTORY.put(sessionKey, JSON.stringify(session), { expirationTtl: 2592000 });
 
   console.log("Assistant reply", assistantReply);
 
