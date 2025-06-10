@@ -1,3 +1,5 @@
+Resolved: true
+
 # System Prompt Appointment Enhancements
 
 ## Description
