@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.0.4 - Audio Clip Support with Base64 Data for OpenAI API
+
+- Updated 'whatsapp-incoming.js' to include base64-encoded audio data in the 'input_audio' object as required by the OpenAI API
+- Ensured audio media is processed and stored in Cloudflare R2 with the correct format
+- Updated test file 'whatsapp-audio.test.js' to reflect the correct handling of audio data
+
 ## v1.0.3 - Audio Clip Support with Correct Content Type for OpenAI API
 
 - Updated content type for audio inputs from 'audio_url' to 'input_audio' to match OpenAI API requirements

@@ -107,7 +107,7 @@ test("WhatsApp Incoming Handler - Audio Support", async (t) => {
 
     assert.ok(env.OPENAI_API_KEY !== undefined);
     // Assuming chatCompletion is called internally, mock its behavior if needed
-    // This test checks if the audio URL is formatted correctly in the messages array with type 'input_audio'
+    // This test checks if the audio data is formatted correctly in the messages array with type 'input_audio' and includes base64 data
     // Due to complexity, we might need to mock chatCompletion to verify the payload
   });
 });
