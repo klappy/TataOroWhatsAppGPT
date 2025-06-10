@@ -86,9 +86,8 @@ export async function handleWhatsAppRequest(request, env, ctx) {
       const buffer = await twilioResponse.arrayBuffer();
       await env.MEDIA_BUCKET.put(key, buffer, { httpMetadata: { contentType } });
       if (mainType === "audio") {
-        // Fetch the audio data to include it directly as base64
-        const audioData = await twilioResponse.arrayBuffer();
-        const base64Audio = btoa(String.fromCharCode(...new Uint8Array(audioData)));
+        // Use the already fetched buffer to create base64 data for OpenAI API
+        const base64Audio = btoa(String.fromCharCode(...new Uint8Array(buffer)));
         r2Urls.push({
           type: "input_audio",
           input_audio: { data: base64Audio, format: extension },

@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.0.5 - Fix Audio Processing Error
+
+- Updated 'whatsapp-incoming.js' to read audio data only once, using it for both Cloudflare R2 storage and base64 conversion for OpenAI API, resolving the "Body has already been used" error
+
 ## v1.0.4 - Audio Clip Support with Base64 Data for OpenAI API
 
 - Updated 'whatsapp-incoming.js' to include base64-encoded audio data in the 'input_audio' object as required by the OpenAI API
