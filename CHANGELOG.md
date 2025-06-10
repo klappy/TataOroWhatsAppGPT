@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.1.0 - Audio Clip Support for WhatsApp Assistant
+
+- Added support for audio clips as inputs in WhatsApp conversations 🎤
+- Updated 'whatsapp-incoming.js' to process and store audio files in Cloudflare R2 with base64 encoding for OpenAI API
+- Ensured audio format compatibility with OpenAI API by setting supported formats ('mp3' instead of 'ogg')
+- Fixed audio processing to read data only once for both storage and API usage
+- Modified system prompt to include audio messages or voice notes in consultation data
+- Updated test file 'whatsapp-audio.test.js' to reflect correct handling of audio data
+
 ## v1.0.6 - Fix Audio Format Compatibility for OpenAI API
 
 - Updated 'whatsapp-incoming.js' to ensure audio format is set to a supported value ('mp3' instead of 'ogg') for compatibility with the OpenAI API

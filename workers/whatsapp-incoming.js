@@ -1,6 +1,6 @@
 /**
  * Cloudflare Worker webhook handler for Twilio WhatsApp integration.
- * Accepts incoming POST requests from Twilio, relays messages to OpenAI GPT-4o-mini,
+ * Accepts incoming POST requests from Twilio, relays messages to OpenAI GPT-4o,
  * and responds with TwiML XML back to WhatsApp.
  *
  * Environment Variables:
