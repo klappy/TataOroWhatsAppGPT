@@ -1,44 +1,26 @@
-# 🔄 Async Flow & Message Lifecycle
+## 🧭 Project Structure
 
-## 🧭 Overview
-This document outlines the flow of messages from WhatsApp users through the Cloudflare Worker, and how external integrations and background tasks are triggered.
+- `docs/issues/open/`: Markdown files describing open development issues
 
----
+## 🚧 Issue Resolution Workflow
 
-## 💬 Message Lifecycle
+Outstanding development issues are stored as Markdown files under:
 
-1. **Incoming Message via Twilio Webhook**
-   - Worker receives incoming message via webhook endpoint (e.g., `POST https://wa.tataoro.com/`)
-   - User identified by phone number
+```
+docs/issues/open/
+```
 
-2. **Pre-Processing**
-   - Normalize message
-   - Detect commands (e.g., `reset`, `send email`, `email summary`)
-     - `reset`, `clear`, `start over`: clear conversation and start fresh (session reset)
-     - `send email`, `email summary`: immediately generate or fetch the current summary and send it via email (marks `summary_email_sent`)
-       - Only supported when there is conversation history; if none yet, the user is prompted to chat more before emailing.
-   - Update `last_active` timestamp in KV
+Each file describes a single issue using standard headings like `## Description`, `## Acceptance Criteria`, etc.
 
-3. **Photo Analysis (if any)**
-   - Store image reference in R2
-   - Optionally call OpenAI vision model for notes (TBD)
+Codex CLI should:
 
-4. **OpenAI GPT Call**
-   - Uses current chat history + prompt
-   - Response added to KV
-   - Summary constructed if conditions are met
-
-5. **Post-Processing**
-   - If summary generated:
-     - Email is triggered (if not already sent)
-     - Shopify customer created
-     - WhatsApp handoff link offered
-   - Progress status updated
-
----
-
-## ⏱ Deferred Actions (via Cron or Timers)
-- Detect stale `midway` sessions
-- Retry failed integrations
-- Send gentle nudges
-
+1. Read all open issues from `docs/issues/open/`
+2. For each issue:
+   - Review related documentation in `docs/`
+   - Locate and update relevant code files (typically under `src/`)
+   - Implement the requested behavior (e.g., `twlService.js`)
+   - Update documentation as described (e.g., `TWL_Integration_Documentation.md`)
+   - Increment the version number in `package.json`
+   - Prepend a new entry to `CHANGELOG.md`
+   - Commit the changes with a meaningful commit message (e.g., `feat: migrate TW integration to TWL`)
+   - Move the issue file to `docs/issues/closed/` and add `Resolved: true` metadata to the top

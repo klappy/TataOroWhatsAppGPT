@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.0.1 - System Prompt Enhancements and Documentation Updates
+
+- Enhanced system prompt to ask clients about openness to curl cuts/trims ✂️
+- Added appointment scheduling questions to gather preferred dates/times 📅
+- Restructured async-flow.md documentation to describe issue resolution workflow
+- Updated documentation to guide Codex CLI on handling development issues
+
 ## v1.4.9 - Shopify Storefront Search
 
 - Added `searchShopifyProducts` helper for live product queries
