@@ -1,11 +1,11 @@
 /**
- * Unit tests for WhatsApp incoming message handler with audio support.
+ * Unit tests for WhatsApp incoming message handler with audio support (Whisper transcription flow).
  */
 
 import { handleWhatsAppRequest } from "../workers/whatsapp-incoming.js";
 import { mockEnv } from "./mockEnv.js";
 
-// Mock fetch for Twilio media download and OpenAI API calls
+// Mock fetch for Twilio media download and OpenAI Whisper API calls
 global.fetch = async (url, options) => {
   if (url.includes("twilio")) {
     return {
@@ -13,15 +13,15 @@ global.fetch = async (url, options) => {
       headers: new Map([["content-type", "audio/mpeg"]]),
       arrayBuffer: async () => new ArrayBuffer(8),
     };
-  } else if (url.includes("openai")) {
+  } else if (url.includes("openai.com/v1/audio/transcriptions")) {
     return {
       ok: true,
       json: async () => ({
-        choices: [{ message: { content: "Mocked response for audio input" } }],
+        text: "This is a transcribed audio message.",
       }),
       text: async () =>
         JSON.stringify({
-          choices: [{ message: { content: "Mocked response for audio input" } }],
+          text: "This is a transcribed audio message.",
         }),
     };
   }
@@ -44,14 +44,14 @@ const testHandleWhatsAppRequest = async (request, env, ctx) => {
 import { test } from "node:test";
 import assert from "node:assert";
 
-test("WhatsApp Incoming Handler - Audio Support", async (t) => {
+test("WhatsApp Incoming Handler - Audio Support (Whisper transcription)", async (t) => {
   let env;
 
   t.beforeEach(() => {
     env = mockEnv();
   });
 
-  await t.test("should process audio media and store in R2", async () => {
+  await t.test("should process audio media, transcribe, and store in R2", async () => {
     const formData = new URLSearchParams({
       From: "+1234567890",
       Body: "Check out my hair concerns",
@@ -71,7 +71,6 @@ test("WhatsApp Incoming Handler - Audio Support", async (t) => {
     assert.strictEqual(response.status, 200);
     assert.ok(env.MEDIA_BUCKET.putCalled, "put method was not called on MEDIA_BUCKET");
     if (env.MEDIA_BUCKET.putCalled) {
-      console.log("Actual lastKey:", env.MEDIA_BUCKET.lastKey);
       assert.ok(
         env.MEDIA_BUCKET.lastKey && env.MEDIA_BUCKET.lastKey.includes("whatsapp:+1234567890/"),
         "lastKey does not include expected prefix"
@@ -84,11 +83,27 @@ test("WhatsApp Incoming Handler - Audio Support", async (t) => {
       );
     }
 
-    const twiml = await response.text();
-    assert.ok(twiml.includes("<Response><Message>"));
+    // Check that the session history contains the transcribed text
+    const session = await env.CHAT_HISTORY.get("whatsapp:+1234567890", { type: "json" });
+    assert.ok(session, "Session not found in CHAT_HISTORY");
+    const lastUserMsg = session.history.find(
+      (msg) =>
+        msg.role === "user" &&
+        Array.isArray(msg.content) &&
+        msg.content.some(
+          (c) =>
+            c.type === "text" &&
+            typeof c.text === "string" &&
+            c.text.includes("Transcribed Audio: This is a transcribed audio message.")
+        )
+    );
+    assert.ok(
+      lastUserMsg,
+      "Session history does not contain the transcribed audio text in user message"
+    );
   });
 
-  await t.test("should format audio content for OpenAI API", async () => {
+  await t.test("should include transcribed audio in TwiML response", async () => {
     const formData = new URLSearchParams({
       From: "+1234567890",
       Body: "Listen to this",
@@ -103,11 +118,13 @@ test("WhatsApp Incoming Handler - Audio Support", async (t) => {
       text: async () => formData.toString(),
     };
 
-    await testHandleWhatsAppRequest(request, env, {});
-
-    assert.ok(env.OPENAI_API_KEY !== undefined);
-    // Assuming chatCompletion is called internally, mock its behavior if needed
-    // This test checks if the audio data is formatted correctly in the messages array with type 'input_audio' and includes base64 data
-    // Due to complexity, we might need to mock chatCompletion to verify the payload
+    const response = await testHandleWhatsAppRequest(request, env, {});
+    const twiml = await response.text();
+    assert.ok(
+      twiml.includes("<Response><Message>"),
+      "TwiML response does not include expected Message tag"
+    );
+    // Optionally, check for the transcribed text in the response if the handler echoes it
+    // assert.ok(twiml.includes("This is a transcribed audio message."), "TwiML does not include transcription");
   });
 });

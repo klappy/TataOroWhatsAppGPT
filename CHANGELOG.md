@@ -2,7 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.5.0 - Audio Clip Support Migrated to Whisper Transcription
+
+- Migrated WhatsApp audio clip support to use OpenAI Whisper API for transcription.
+- Audio clips are now transcribed to text before being sent to GPT-4o, replacing the previous base64 `input_audio` message format.
+- Updated `workers/whatsapp-incoming.js` to handle Whisper transcription and new message structure.
+- Updated test suite (`__tests__/whatsapp-audio.test.js`) to assert transcription-based flow and session history.
+- Updated documentation (`docs/features/implemented/FEATURE_7_AUDIO_CLIP_SUPPORT.md`) to reflect the new architecture and flow.
+- This is a breaking change for any consumers expecting the old audio message format.
+
 ## v1.1.0 - Audio Clip Support for WhatsApp Assistant
+
+> > > > > > > REPLACE
 
 - Added support for audio clips as inputs in WhatsApp conversations 🎤
 - Updated 'whatsapp-incoming.js' to process and store audio files in Cloudflare R2 with base64 encoding for OpenAI API

@@ -86,13 +86,13 @@ export async function handleWhatsAppRequest(request, env, ctx) {
       const buffer = await twilioResponse.arrayBuffer();
       await env.MEDIA_BUCKET.put(key, buffer, { httpMetadata: { contentType } });
       if (mainType === "audio") {
-        // Use the already fetched buffer to create base64 data for OpenAI API
-        const base64Audio = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-        // Ensure the format is supported by OpenAI API (only 'wav' and 'mp3' are supported)
+        // Send audio to OpenAI Whisper API for transcription
         const supportedFormat = extension === "ogg" ? "mp3" : extension;
+        const transcription = await transcribeAudio(buffer, supportedFormat, env.OPENAI_API_KEY);
         r2Urls.push({
-          type: "input_audio",
-          input_audio: { data: base64Audio, format: supportedFormat },
+          type: "audio_transcription",
+          transcription: transcription,
+          original_key: key,
         });
       } else {
         r2Urls.push({
@@ -207,11 +207,12 @@ export async function handleWhatsAppRequest(request, env, ctx) {
   }
   messages.push(...session.history);
   if (r2Urls.length > 0) {
-    const contentArray = r2Urls.map((item) => {
-      if (item.type === "input_audio") {
-        return { type: "input_audio", input_audio: item.input_audio };
-      } else {
-        return { type: "image_url", image_url: item.image_url };
+    const contentArray = [];
+    r2Urls.forEach((item) => {
+      if (item.type === "audio_transcription") {
+        contentArray.push({ type: "text", text: `Transcribed Audio: ${item.transcription}` });
+      } else if (item.type === "image_url") {
+        contentArray.push({ type: "image_url", image_url: item.image_url });
       }
     });
     if (body) contentArray.push({ type: "text", text: body });
@@ -232,11 +233,13 @@ export async function handleWhatsAppRequest(request, env, ctx) {
 
   // Store messages in session history
   if (r2Urls.length > 0) {
-    const contentArray = r2Urls.map((item) => {
-      if (item.type === "input_audio") {
-        return { type: "input_audio", input_audio: item.input_audio };
-      } else {
-        return { type: "image_url", image_url: item.image_url };
+    const contentArray = [];
+    r2Urls.forEach((item) => {
+      if (item.type === "audio_transcription") {
+        contentArray.push({ type: "text", text: `Transcribed Audio: ${item.transcription}` });
+        contentArray.push({ type: "audio_reference", original_key: item.original_key });
+      } else if (item.type === "image_url") {
+        contentArray.push({ type: "image_url", image_url: item.image_url });
       }
     });
     if (body) contentArray.push({ type: "text", text: body });
@@ -266,4 +269,42 @@ export async function handleWhatsAppRequest(request, env, ctx) {
   return new Response(twiml, {
     headers: { "Content-Type": "text/xml; charset=UTF-8", "Access-Control-Allow-Origin": "*" },
   });
+}
+
+/**
+ * Function to transcribe audio using OpenAI Whisper API
+ * @param {ArrayBuffer} audioBuffer - The audio data buffer
+ * @param {string} format - The format of the audio file
+ * @param {string} apiKey - OpenAI API key
+ * @returns {Promise<string>} - The transcribed text
+ */
+async function transcribeAudio(audioBuffer, format, apiKey) {
+  try {
+    const formData = new FormData();
+    formData.append(
+      "file",
+      new Blob([audioBuffer], { type: `audio/${format}` }),
+      `audio.${format}`
+    );
+    formData.append("model", "whisper-1");
+
+    const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      console.error("Failed to transcribe audio", await response.text());
+      return "Unable to transcribe audio due to an API error.";
+    }
+
+    const result = await response.json();
+    return result.text || "Audio transcribed but no text was detected.";
+  } catch (error) {
+    console.error("Error transcribing audio", error);
+    return "Error occurred while transcribing audio.";
+  }
 }
