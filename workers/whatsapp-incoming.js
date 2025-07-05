@@ -183,6 +183,146 @@ export async function handleWhatsAppRequest(request, env, ctx) {
     });
   }
 
+  // Check for booking-related keywords
+  const bookingKeywords = [
+    "services",
+    "prices",
+    "pricing",
+    "book",
+    "booking",
+    "appointment",
+    "schedule",
+    "cost",
+    "how much",
+    "what services",
+    "service list",
+    "available",
+    "treatments",
+    "curly cut",
+    "color",
+    "consultation",
+    "free",
+    "diagnostic",
+  ];
+  const hasBookingKeyword = bookingKeywords.some((keyword) =>
+    incoming.includes(keyword.toLowerCase())
+  );
+
+  if (hasBookingKeyword) {
+    try {
+      let booksyResponse = "";
+
+      // Helper function for escaping XML
+      function escapeXml(unsafe) {
+        return unsafe
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&apos;");
+      }
+
+      // Determine what type of booking info to provide
+      if (incoming.includes("first time") || incoming.includes("new client")) {
+        // Get recommendations for first-time clients
+        const response = await fetch(`${baseUrl}/booksy/recommendations?clientType=first-time`);
+        const data = await response.json();
+        if (data.recommendations) {
+          booksyResponse = `🌟 Perfect! Here are my recommendations for first-time clients:\n\n`;
+          booksyResponse += `${data.explanation}\n\n`;
+          data.recommendations.forEach((service) => {
+            booksyResponse += `• ${service.name}\n`;
+            booksyResponse += `  ${service.price === 0 ? "FREE" : "$" + service.price} | ${
+              service.duration
+            } min\n`;
+            booksyResponse += `  ${service.description}\n\n`;
+          });
+          booksyResponse += `📅 Ready to book? Here's the link:\nhttps://booksy.com/en-us/155582_akro-beauty-by-la-morocha-makeup_hair-salon_134763_orlando/staffer/880999#ba_s=dl_1\n\n`;
+          booksyResponse += `💡 I recommend starting with the FREE consultation to understand your hair type!`;
+        }
+      } else if (incoming.includes("color") || incoming.includes("colour")) {
+        // Search for color services
+        const response = await fetch(`${baseUrl}/booksy/search?q=color`);
+        const data = await response.json();
+        if (data.services) {
+          booksyResponse = `🎨 Here are my color services:\n\n`;
+          data.services.forEach((service) => {
+            booksyResponse += `• ${service.name}\n`;
+            booksyResponse += `  $${service.price} | ${service.duration} min\n`;
+            booksyResponse += `  ${service.description}\n\n`;
+          });
+          booksyResponse += `📅 Book your color service:\nhttps://booksy.com/en-us/155582_akro-beauty-by-la-morocha-makeup_hair-salon_134763_orlando/staffer/880999#ba_s=dl_1`;
+        }
+      } else if (incoming.includes("cut") || incoming.includes("curly cut")) {
+        // Search for curly cut services
+        const response = await fetch(`${baseUrl}/booksy/search?q=cut`);
+        const data = await response.json();
+        if (data.services) {
+          booksyResponse = `✂️ Here are my curly cut services:\n\n`;
+          data.services.forEach((service) => {
+            booksyResponse += `• ${service.name}\n`;
+            booksyResponse += `  $${service.price} | ${service.duration} min\n`;
+            booksyResponse += `  ${service.description}\n\n`;
+          });
+          booksyResponse += `📅 Book your cut:\nhttps://booksy.com/en-us/155582_akro-beauty-by-la-morocha-makeup_hair-salon_134763_orlando/staffer/880999#ba_s=dl_1`;
+        }
+      } else {
+        // Show all services
+        const response = await fetch(`${baseUrl}/booksy/services`);
+        const data = await response.json();
+        if (data.services) {
+          booksyResponse = `💇‍♀️ Here are all my services:\n\n`;
+
+          // Group by category
+          const categories = {
+            consultation: "🆓 Free Consultation",
+            curly: "💫 Curly Hair Services",
+            color: "🎨 Color Services",
+            treatment: "🌿 Treatments & Therapy",
+            special: "✨ Special Services",
+          };
+
+          Object.entries(categories).forEach(([category, title]) => {
+            const categoryServices = data.services.filter((s) => s.category === category);
+            if (categoryServices.length > 0) {
+              booksyResponse += `${title}\n`;
+              categoryServices.forEach((service) => {
+                booksyResponse += `• ${service.name} - ${
+                  service.price === 0 ? "FREE" : "$" + service.price
+                }\n`;
+              });
+              booksyResponse += `\n`;
+            }
+          });
+
+          booksyResponse += `📅 Book online:\nhttps://booksy.com/en-us/155582_akro-beauty-by-la-morocha-makeup_hair-salon_134763_orlando/staffer/880999#ba_s=dl_1\n\n`;
+          booksyResponse += `📍 Location: 8865 Commodity Circle, Suite 7A, Orlando, 32819\n\n`;
+          booksyResponse += `💡 New to curly hair care? Start with the FREE consultation!`;
+        }
+      }
+
+      if (booksyResponse) {
+        // Store the interaction in session history
+        session.history.push({ role: "user", content: body });
+        session.history.push({ role: "assistant", content: booksyResponse });
+        await env.CHAT_HISTORY.put(sessionKey, JSON.stringify(session), { expirationTtl: 2592000 });
+
+        const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${escapeXml(
+          booksyResponse
+        )}</Message></Response>`;
+        return new Response(twiml, {
+          headers: {
+            "Content-Type": "text/xml; charset=UTF-8",
+            "Access-Control-Allow-Origin": "*",
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching Booksy data:", error);
+      // Fall through to normal GPT processing if Booksy fails
+    }
+  }
+
   // Construct messages payload for OpenAI
   let prompt = SYSTEM_PROMPT;
   if (SYSTEM_PROMPT.includes("{{USER_PHONE}}")) {
