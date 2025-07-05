@@ -5,7 +5,7 @@
 import { handleWhatsAppRequest } from "../workers/whatsapp-incoming.js";
 import { mockEnv } from "./mockEnv.js";
 
-// Mock fetch for Twilio media download and OpenAI Whisper API calls
+// Mock fetch for Twilio media download and OpenAI API calls
 global.fetch = async (url, options) => {
   if (url.includes("twilio")) {
     return {
@@ -22,6 +22,29 @@ global.fetch = async (url, options) => {
       text: async () =>
         JSON.stringify({
           text: "This is a transcribed audio message.",
+        }),
+    };
+  } else if (url.includes("openai.com/v1/chat/completions")) {
+    return {
+      ok: true,
+      json: async () => ({
+        choices: [
+          {
+            message: {
+              content: "Mocked GPT response for audio input",
+            },
+          },
+        ],
+      }),
+      text: async () =>
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: "Mocked GPT response for audio input",
+              },
+            },
+          ],
         }),
     };
   }
@@ -49,6 +72,23 @@ test("WhatsApp Incoming Handler - Audio Support (Whisper transcription)", async 
 
   t.beforeEach(() => {
     env = mockEnv();
+    // Override the KV mock to actually store data
+    const kvStorage = new Map();
+    env.CHAT_HISTORY = {
+      get: async (key, options) => {
+        const value = kvStorage.get(key);
+        if (options?.type === "json" && value) {
+          return JSON.parse(value);
+        }
+        return value || null;
+      },
+      put: async (key, value) => {
+        kvStorage.set(key, typeof value === "string" ? value : JSON.stringify(value));
+      },
+      delete: async (key) => {
+        kvStorage.delete(key);
+      },
+    };
   });
 
   await t.test("should process audio media, transcribe, and store in R2", async () => {
@@ -84,7 +124,9 @@ test("WhatsApp Incoming Handler - Audio Support (Whisper transcription)", async 
     }
 
     // Check that the session history contains the transcribed text
-    const session = await env.CHAT_HISTORY.get("whatsapp:+1234567890", { type: "json" });
+    const session = await env.CHAT_HISTORY.get("whatsapp:+1234567890/history.json", {
+      type: "json",
+    });
     assert.ok(session, "Session not found in CHAT_HISTORY");
     const lastUserMsg = session.history.find(
       (msg) =>

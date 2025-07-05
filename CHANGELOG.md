@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.6.0 - Booksy MCP Integration (2024-12-19)
+
+### Added
+
+- **Booksy MCP Integration**: Complete Model Context Protocol server for Tata Oro's Booksy booking system
+  - Service discovery with prices and durations for all of Tata's curly hair services
+  - Direct booking link generation with step-by-step client instructions
+  - Service search functionality by keyword
+  - Personalized service recommendations based on client type (first-time, regular, color-interested, treatment-focused)
+  - Business information including location, specialties, and ratings
+  - Comprehensive test suite with 17 passing tests
+  - Feature documentation in `docs/features/implemented/FEATURE_8_BOOKSY_MCP_INTEGRATION.md`
+
+### Technical Details
+
+- New worker: `workers/booksy-mcp.js` - Full MCP server implementation
+- Service catalog with 14 services across 5 categories (consultation, curly, color, treatment, special)
+- Integration points designed for WhatsApp bot enhancement
+- Error handling and input validation for all MCP tools
+- Business ID: 155582, Staffer ID: 880999 for Tata Oro at Akro Beauty
+
+### Integration Benefits
+
+- 24/7 service discovery through WhatsApp
+- Reduced manual coordination for booking inquiries
+- Consistent pricing and service information
+- Direct booking links with clear instructions
+- Personalized recommendations for different client types
+
 ## v1.5.0 - Audio Clip Support Migrated to Whisper Transcription
 
 - Migrated WhatsApp audio clip support to use OpenAI Whisper API for transcription.
@@ -12,8 +41,6 @@ All notable changes to this project will be documented in this file.
 - This is a breaking change for any consumers expecting the old audio message format.
 
 ## v1.1.0 - Audio Clip Support for WhatsApp Assistant
-
-> > > > > > > REPLACE
 
 - Added support for audio clips as inputs in WhatsApp conversations 🎤
 - Updated 'whatsapp-incoming.js' to process and store audio files in Cloudflare R2 with base64 encoding for OpenAI API

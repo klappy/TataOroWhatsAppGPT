@@ -1,0 +1,105 @@
+# Cursor AI Rules for TataOroWhatsAppGPT
+
+## 🚨 MANDATORY FIRST STEP
+
+Before making ANY suggestions or code changes, you MUST read:
+
+1. **docs/AGENTS.md** - Complete AI agent instructions (MANDATORY)
+2. **docs/ARCHIVE.md** - Failed approaches that must NOT be repeated
+3. **README.md** - Documentation structure and current philosophy
+
+## Critical Rules
+
+### ❌ NEVER Suggest These (They're in the Archive)
+
+- localStorage-only persistence
+- Multiple storage backend options
+- Manual version updates
+- Separate chat and tools endpoints
+- Tightly coupled voice/chat components
+- Generic system prompts
+- Root-level documentation files
+- Alternative cloud providers for core logic (Cloudflare Workers is required)
+- Alternative WhatsApp integrations (Twilio is required)
+
+### ✅ Current Stack (Do NOT suggest alternatives)
+
+- Cloudflare Workers (backend/serverless)
+- Twilio WhatsApp (primary chat integration)
+- OpenAI GPT-4o/4o-mini (AI)
+- Cloudflare KV and R2 (storage)
+- Resend (email delivery)
+- Shopify Storefront API (product/customer integration)
+
+### 📋 Before ANY Code Suggestion
+
+1. Check docs/ARCHIVE.md - Is this approach already failed?
+2. Review current documentation for existing solutions
+3. Understand why current implementation was chosen
+4. Consider maintenance burden of proposed changes
+
+### 📝 Documentation Requirements
+
+- Update docs immediately when changing code
+- Archive old approaches when replacing functionality
+- Maintain current-only documentation (no deprecated sections)
+- Follow single-source-of-truth principle
+
+### 🎯 Acceptable Contributions
+
+- Bug fixes in current implementation
+- Performance optimizations (no architecture changes)
+- New AI tools or endpoints following existing patterns
+- UI/UX improvements within current framework (including admin portal)
+- Documentation updates following standards
+- Testing improvements for existing features
+
+### 🚫 Unacceptable Suggestions
+
+- Alternative storage solutions (tried, failed, archived)
+- Different backend/serverless providers (Cloudflare Workers is required)
+- Different chat/voice integration providers (Twilio WhatsApp is required)
+- Complex authentication (current system sufficient)
+- Multiple implementation options (violates single truth)
+- Breaking changes without compelling business reason
+- Approaches documented in ARCHIVE.md
+
+## Change Proposal Format
+
+When suggesting changes, use this format:
+
+```markdown
+## Proposed Change: [Brief Description]
+
+**Problem**: [What specific issue does this solve?]
+**Current Approach**: [What does the codebase do now?]
+**Archive Check**: ✅ Confirmed this approach is not in ARCHIVE.md
+**Documentation Impact**: [What docs need updating?]
+**Testing Plan**: [How will this be verified?]
+```
+
+## Emergency Stops
+
+Stop immediately if you:
+
+- Suggest an approach from ARCHIVE.md
+- Recommend multiple ways to do the same thing
+- Create conflicting documentation
+- Ignore established patterns
+- Propose major architectural changes
+
+## Success Indicators
+
+You're following the rules if:
+
+- ✅ You checked ARCHIVE.md before suggesting changes
+- ✅ Your suggestions work with current architecture
+- ✅ You update docs to reflect changes
+- ✅ You maintain single-source-of-truth
+- ✅ You follow established patterns
+
+## Remember
+
+This codebase has been through multiple iterations. The current implementation exists because previous approaches failed. Trust the process, read the archive, follow current patterns.
+
+**When in doubt, read docs/AGENTS.md again.**

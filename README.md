@@ -1,6 +1,124 @@
 # TataOroWhatsAppGPT
 
-Cloudflare Worker webhook handler for Twilio WhatsApp messages, powered by OpenAI's GPT-4o-mini (including Vision support).
+**Cloudflare Worker webhook handler for Twilio WhatsApp messages, powered by OpenAI's GPT-4o-mini (including Vision and Audio support).**
+
+## Features
+
+- **WhatsApp Integration**: Complete Twilio WhatsApp webhook handling
+- **AI-Powered Responses**: OpenAI GPT-4o-mini with vision and audio support
+- **Image Processing**: Automatic image upload and analysis for hair consultations
+- **Audio Support**: Whisper transcription for voice messages
+- **Email Automation**: Consultation summaries sent via Resend
+- **Shopify Integration**: Automatic customer creation and product search
+- **Session Management**: Cloudflare KV-based conversation state
+- **Media Storage**: R2-based image and audio storage with public access
+- **Admin Interface**: Web dashboard for session management and monitoring
+- **Summary Sharing**: Public consultation summary links
+- **Scheduled Tasks**: Automated email delivery and WhatsApp nudges
+- **🆕 Booksy Integration**: MCP server for service discovery and booking assistance
+
+## Architecture
+
+This system uses Cloudflare Workers with:
+
+- **Router Worker**: Main entry point and request routing
+- **WhatsApp Handler**: Processes incoming messages and media
+- **Image Worker**: Handles media upload and delivery
+- **Admin Worker**: Provides management interface
+- **Summary Worker**: Generates shareable consultation summaries
+- **Scheduler Worker**: Handles timeout-based automations
+- **🆕 Booksy MCP Worker**: Service discovery and booking assistance
+
+## Quick Start
+
+### Prerequisites
+
+- Cloudflare account with Workers, KV, and R2 access
+- Twilio account with WhatsApp Business API
+- OpenAI API key
+- Resend account for email delivery
+- Shopify store (optional)
+
+### Setup
+
+1. **Clone and install**:
+
+   ```bash
+   git clone <repository-url>
+   cd TataOroWhatsAppGPT
+   npm install
+   ```
+
+2. **Configure environment**:
+
+   ```bash
+   cp .env.example .env
+   # Edit .env with your API keys and configuration
+   ```
+
+3. **Deploy**:
+
+   ```bash
+   wrangler deploy
+   ```
+
+4. **Configure Twilio webhook**:
+   - Set webhook URL to: `https://your-worker.your-domain.workers.dev/whatsapp/incoming`
+
+## New: Booksy Integration
+
+The system now includes a Model Context Protocol (MCP) server for Tata Oro's booking system:
+
+### Features
+
+- **Service Discovery**: Complete catalog with prices and durations
+- **Booking Links**: Direct links to Tata's Booksy page with instructions
+- **Smart Recommendations**: Personalized suggestions based on client type
+- **Search Functionality**: Find services by keyword
+- **Business Information**: Location, specialties, and contact details
+
+### Usage Examples
+
+```
+User: "What services does Tata offer?"
+Bot: Lists all services with prices and durations
+
+User: "I want to book a curly cut"
+Bot: Provides direct booking link with step-by-step instructions
+
+User: "I'm a first-time client"
+Bot: Recommends FREE consultation and transformation services
+```
+
+### Integration
+
+- **Automatic Detection**: Recognizes booking-related keywords
+- **24/7 Availability**: Service information available anytime
+- **Consistent Information**: Always up-to-date pricing and details
+- **Direct Booking**: Links straight to Tata's Booksy page
+
+## Documentation
+
+- [Development Guide](docs/DEVELOPMENT.md) - Local setup and deployment
+- [API Reference](docs/API.md) - Complete endpoint documentation
+- [Architecture Overview](docs/ARCHITECTURE.md) - System design and data flows
+- [Testing Guide](docs/TESTING.md) - Testing procedures and best practices
+- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
+- [Feature: Booksy Integration](docs/features/implemented/FEATURE_8_BOOKSY_MCP_INTEGRATION.md) - Complete integration guide
+
+## Contributing
+
+Please read the [AI Agent Instructions](docs/AGENTS.md) before contributing. This document contains important guidelines for maintaining code quality and avoiding deprecated approaches.
+
+## License
+
+ISC License - see LICENSE file for details.
+
+## Version
+
+Current version: 1.6.0
+
+For detailed changes, see [CHANGELOG.md](CHANGELOG.md).
 
 ## Overview
 
@@ -16,90 +134,6 @@ This repository now exposes a **single Cloudflare Worker** with a modular router
 - Shared utilities live under `shared/` for GPT, embeddings, chunking and more.
 
 For detailed prompt configuration, see [VIBE_PROMPT.md](docs/issues/05-closed/VIBE_PROMPT.md).
-
-## Features
-
-- Accept incoming WhatsApp messages (text & images) from Twilio
-- Short-term memory with KV storage (`CHAT_HISTORY`)
-- KV keys use a concise format like `whatsapp:+14155551234/history.json`
-- Phone numbers are normalized (strip `whatsapp:` prefix, enforce `+` E.164)
-- User phone numbers are inserted into the system prompt at runtime for
-  personalized summary and WhatsApp handoff links
-- Reset conversation via keywords ("reset", "clear", "start over", "new consultation") which also removes any uploaded photos from R2
-- System prompt & chat history injection for GPT-4o-mini
-- GPT-4o-mini vision support for understanding images
-- Generates TwiML responses for Twilio webhook
-- Basic logging and CORS handling
-- Email consultation summary, transcript, and image links to configured recipients via Resend
-- Track consultation progress status (photo received, midway, summary ready, complete)
-- Automatically upsert Shopify customer on key milestones (photo, name, summary)
-- Live product search via Shopify Storefront API for tailored recommendations
-- Manual "send email" command to forward summary to Tata via email
-- Scheduled timeout-based email summary for incomplete consultations
-- Scheduled WhatsApp nudges for stalled consultations
-- Automatically detects when GPT sends the final summary and marks the session as `summary-ready`
-- Stateless GET `/summary/:conversationId` endpoint for dynamic, read-only HTML consultation summaries (chat messages, metadata, images) without separate storage.
-- Shared HTML renderer ensures email summaries match the public summary layout.
-- Dedicated `/images/*` route serves public R2-hosted media
-- Scheduler worker (`workers/scheduler.js`) with hourly cron checks
-- Lightweight admin portal (`workers/admin.js`) to browse sessions and reset them (available at `/admin` under the WhatsApp domain)
-
-### Public Media Delivery
-
-Images uploaded via WhatsApp are stored in R2. The `images` route exposes them at
-`https://wa.tataoro.com/images/{encodedKey}`. Example:
-
-```js
-const url = `${WHATSAPP_BASE_URL}/images/${encodeURIComponent(key)}`;
-```
-
-## Setup
-
-Ensure your `wrangler.toml` points to the router Worker:
-
-```toml
-main = "workers/router.js"
-route = "https://wa.tataoro.com/*"
-```
-
-Configure your `wrangler.toml` with top-level KV namespaces and R2 bucket bindings:
-
-```toml
-[[kv_namespaces]]
-binding = "CHAT_HISTORY"
-id = "<your-chat-history-kv-id>"
-
-[[kv_namespaces]]
-binding = "DOC_KNOWLEDGE"
-id = "<your-doc-knowledge-kv-id>"
-
-[[r2_buckets]]
-binding = "MEDIA_BUCKET"
-bucket_name = "<your-r2-bucket-name>"
-preview_bucket_name = "<your-r2-bucket-name>"
-```
-
-Set required environment variables:
-
-```bash
-export OPENAI_API_KEY="<your-openai-api-key>"
-export TWILIO_ACCOUNT_SID="<your-twilio-account-sid>"
-export TWILIO_AUTH_TOKEN="<your-twilio-auth-token>"
-
-# Email settings
-export EMAIL_ENABLED=true
-export EMAIL_PROVIDER="resend"
-export EMAIL_FROM="consultations@tataoro.com"
-export EMAIL_TO="tata@tataoro.com"
-export RESEND_API_KEY="<your-resend-api-key>"
-
-# Shopify settings
-export SHOPIFY_STORE_DOMAIN="<your-shopify-store-domain>"
-export SHOPIFY_API_TOKEN="<your-shopify-api-token>"
-
-# Twilio WhatsApp number for sending nudges
-export TWILIO_WHATSAPP_NUMBER="whatsapp:<your-twilio-whatsapp-number>"
-```
 
 ## Development & Deployment
 

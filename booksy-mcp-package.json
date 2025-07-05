@@ -1,0 +1,36 @@
+{
+  "name": "booksy-tata-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Tata Oro's Booksy integration",
+  "type": "module",
+  "main": "booksy-mcp-server-draft.js",
+  "scripts": {
+    "start": "node booksy-mcp-server-draft.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "playwright": "^1.40.0"
+  },
+  "mcp": {
+    "name": "Booksy - Tata Oro",
+    "description": "Access Tata Oro's services and booking information from Booksy",
+    "tools": [
+      {
+        "name": "get_services",
+        "description": "Get list of Tata's curly hair services"
+      },
+      {
+        "name": "get_booking_link",
+        "description": "Get booking link for a specific service"
+      },
+      {
+        "name": "search_services",
+        "description": "Search services by keyword"
+      },
+      {
+        "name": "get_business_info",
+        "description": "Get business location and contact info"
+      }
+    ]
+  }
+}
