@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## v1.6.0 - Booksy MCP Integration (2024-12-19)
+## v1.6.0 - Booksy MCP Integration (2025-01-02)
 
 ### Added
 
