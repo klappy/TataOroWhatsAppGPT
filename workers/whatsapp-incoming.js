@@ -23,6 +23,7 @@ import { SYSTEM_PROMPT } from "../shared/systemPrompt.js";
 import { sendConsultationEmail } from "../shared/emailer.js";
 import { generateOrFetchSummary } from "../shared/summary.js";
 import { deleteR2Objects, r2KeyFromUrl } from "../shared/r2.js";
+import { getServices, getServiceRecommendations, searchServices } from "./booksy-mcp.js";
 
 export async function handleWhatsAppRequest(request, env, ctx) {
   const url = new URL(request.url);
@@ -225,8 +226,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
       // Determine what type of booking info to provide
       if (incoming.includes("first time") || incoming.includes("new client")) {
         // Get recommendations for first-time clients
-        const response = await fetch(`${baseUrl}/booksy/recommendations?clientType=first-time`);
-        const data = await response.json();
+        const data = getServiceRecommendations("first-time");
         if (data.recommendations) {
           booksyResponse = `🌟 Perfect! Here are my recommendations for first-time clients:\n\n`;
           booksyResponse += `${data.explanation}\n\n`;
@@ -242,8 +242,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
         }
       } else if (incoming.includes("color") || incoming.includes("colour")) {
         // Search for color services
-        const response = await fetch(`${baseUrl}/booksy/search?q=color`);
-        const data = await response.json();
+        const data = searchServices("color");
         if (data.services) {
           booksyResponse = `🎨 Here are my color services:\n\n`;
           data.services.forEach((service) => {
@@ -255,8 +254,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
         }
       } else if (incoming.includes("cut") || incoming.includes("curly cut")) {
         // Search for curly cut services
-        const response = await fetch(`${baseUrl}/booksy/search?q=cut`);
-        const data = await response.json();
+        const data = searchServices("cut");
         if (data.services) {
           booksyResponse = `✂️ Here are my curly cut services:\n\n`;
           data.services.forEach((service) => {
@@ -268,8 +266,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
         }
       } else {
         // Show all services
-        const response = await fetch(`${baseUrl}/booksy/services`);
-        const data = await response.json();
+        const data = getServices("all");
         if (data.services) {
           booksyResponse = `💇‍♀️ Here are all my services:\n\n`;
 

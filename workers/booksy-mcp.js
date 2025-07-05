@@ -143,7 +143,7 @@ const SERVICES = {
   },
 };
 
-function getServices(category = "all") {
+export function getServices(category = "all") {
   const services = Object.values(SERVICES);
   const filtered = category === "all" ? services : services.filter((s) => s.category === category);
 
@@ -160,7 +160,7 @@ function getServices(category = "all") {
   };
 }
 
-function getBookingLink(serviceId) {
+export function getBookingLink(serviceId) {
   if (!serviceId) {
     return {
       error:
@@ -194,7 +194,7 @@ function getBookingLink(serviceId) {
   };
 }
 
-function searchServices(keyword) {
+export function searchServices(keyword) {
   if (!keyword) {
     return {
       error: "Please provide a keyword to search for.",
@@ -222,7 +222,7 @@ function searchServices(keyword) {
   };
 }
 
-function getBusinessInfo() {
+export function getBusinessInfo() {
   return {
     business: TATA_BOOKSY_CONFIG.businessName,
     specialist: TATA_BOOKSY_CONFIG.stafferName,
@@ -236,7 +236,7 @@ function getBusinessInfo() {
   };
 }
 
-function getServiceRecommendations(clientType) {
+export function getServiceRecommendations(clientType) {
   if (!clientType) {
     return {
       error:
