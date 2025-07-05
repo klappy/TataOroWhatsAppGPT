@@ -1,6 +1,6 @@
 {
   "name": "tataorowhatsappgpt",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Cloudflare Worker webhook handler for Twilio WhatsApp messages, powered by OpenAI's GPT-4o-mini (including Vision and Audio support).",
   "main": "index.js",
   "directories": {

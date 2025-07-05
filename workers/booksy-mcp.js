@@ -25,6 +25,8 @@ const TATA_BOOKSY_CONFIG = {
 };
 
 // Service catalog extracted from Booksy page
+// IMPORTANT: All prices are STARTING prices for short hair
+// Longer or denser hair may cost up to 2x more due to additional time required
 const SERVICES = {
   diagnostic: {
     id: "diagnostic",
@@ -34,6 +36,7 @@ const SERVICES = {
     category: "consultation",
     description:
       "Free curly hair consultation and diagnosis - perfect for new clients to understand their hair type and needs",
+    priceNote: "Always free - no additional charges",
   },
   curlyAdventureFirst: {
     id: "curly-adventure-first",
@@ -43,6 +46,8 @@ const SERVICES = {
     category: "curly",
     description:
       "Complete curly hair transformation for new clients - includes consultation, cut, and styling",
+    priceNote:
+      "Starting at $200 for short hair. Longer/denser hair may cost up to $400 due to additional time required.",
   },
   curlyCutDefinition: {
     id: "curly-cut-definition",
@@ -52,6 +57,8 @@ const SERVICES = {
     category: "curly",
     description:
       "Professional curly haircut with styling and definition - great for regular maintenance",
+    priceNote:
+      "Starting at $150 for short hair. Longer/denser hair may cost up to $300 due to additional time required.",
   },
   curlyAdventureRegular: {
     id: "curly-adventure-regular",
@@ -60,6 +67,8 @@ const SERVICES = {
     duration: 150,
     category: "curly",
     description: "Comprehensive curly hair service for returning clients",
+    priceNote:
+      "Starting at $180 for short hair. Longer/denser hair may cost up to $360 due to additional time required.",
   },
   fullRizos: {
     id: "full-rizos",
@@ -68,6 +77,8 @@ const SERVICES = {
     duration: 150,
     category: "curly",
     description: "Complete curly hair service for new Spanish-speaking clients",
+    priceNote:
+      "Starting at $200 for short hair. Longer/denser hair may cost up to $400 due to additional time required.",
   },
   deepWashStyle: {
     id: "deep-wash-style",
@@ -76,6 +87,8 @@ const SERVICES = {
     duration: 90,
     category: "curly",
     description: "Deep cleansing wash and styling without cut - refresh your curls",
+    priceNote:
+      "Starting at $150 for short hair. Longer/denser hair may cost up to $300 due to additional time required.",
   },
   curlyColor: {
     id: "curly-color",
@@ -84,6 +97,8 @@ const SERVICES = {
     duration: 150,
     category: "color",
     description: "Professional color treatment specifically designed for curly hair",
+    priceNote:
+      "Starting at $250 for short hair. Longer/denser hair may cost up to $500 due to additional time required.",
   },
   hairColor: {
     id: "hair-color",
@@ -92,6 +107,8 @@ const SERVICES = {
     duration: 150,
     category: "color",
     description: "Complete hair color change service",
+    priceNote:
+      "Starting at $200 for short hair. Longer/denser hair may cost up to $400 due to additional time required.",
   },
   scalpTreatment: {
     id: "scalp-treatment",
@@ -100,6 +117,8 @@ const SERVICES = {
     duration: 90,
     category: "treatment",
     description: "Chinese scalp massage and treatment specifically for curly hair health",
+    priceNote:
+      "Starting at $140 for short hair. Longer/denser hair may cost up to $280 due to additional time required.",
   },
   scalpTreatmentMen: {
     id: "scalp-treatment-men",
@@ -108,6 +127,7 @@ const SERVICES = {
     duration: 45,
     category: "treatment",
     description: "Chinese scalp massage treatment designed for men",
+    priceNote: "Fixed price $80 - no additional charges for hair length",
   },
   curlySpa: {
     id: "curly-spa",
@@ -116,6 +136,8 @@ const SERVICES = {
     duration: 210,
     category: "treatment",
     description: "Intensive spa treatment focused on promoting healthy hair growth for curly hair",
+    priceNote:
+      "Starting at $180 for short hair. Longer/denser hair may cost up to $360 due to additional time required.",
   },
   photonTherapy: {
     id: "photon-therapy",
@@ -124,6 +146,8 @@ const SERVICES = {
     duration: 120,
     category: "treatment",
     description: "Advanced photon therapy treatment for curly hair growth and health",
+    priceNote:
+      "Starting at $150 for short hair. Longer/denser hair may cost up to $300 due to additional time required.",
   },
   curlyRestructuring: {
     id: "curly-restructuring",
@@ -132,6 +156,8 @@ const SERVICES = {
     duration: 150,
     category: "curly",
     description: "Intensive restructuring treatment to restore curl pattern and definition",
+    priceNote:
+      "Starting at $180 for short hair. Longer/denser hair may cost up to $360 due to additional time required.",
   },
   bridalService: {
     id: "bridal-service",
@@ -140,6 +166,8 @@ const SERVICES = {
     duration: 120,
     category: "special",
     description: "Complete bridal package with professional airbrush makeup and hair styling",
+    priceNote:
+      "Starting at $300 for short hair. Longer/denser hair may cost up to $600 due to additional time required.",
   },
 };
 
@@ -176,21 +204,36 @@ export function getBookingLink(serviceId) {
     };
   }
 
-  // Generate booking URL with fragment to help users navigate
+  // Generate service-specific booking URL with fragment to help users navigate
   const bookingUrl = `${TATA_BOOKSY_CONFIG.baseUrl}#ba_s=dl_1`;
 
   return {
-    service,
+    service: {
+      ...service,
+      priceNote: service.priceNote || "Price may vary based on hair length and density",
+    },
     bookingUrl,
     instructions: [
-      "Click the booking link to open Tata's booking page",
-      `Look for "${service.name}" in the services list`,
-      "Select your preferred date and time",
-      "Fill out the booking form with your details",
-      "Confirm your appointment",
+      "🔗 Click the booking link to open Tata's booking page",
+      `🎯 Look for "${service.name}" in the services list`,
+      "📅 Select your preferred date and time",
+      "📝 Fill out the booking form with your details",
+      "✅ Confirm your appointment",
     ],
+    priceDisclaimer:
+      service.priceNote ||
+      "Price may vary based on hair length and density - please discuss with Tata during booking",
     location: TATA_BOOKSY_CONFIG.location,
-    tip: "If you're a first-time client, consider starting with the free consultation!",
+    tip:
+      service.category === "consultation"
+        ? "This is a free consultation - perfect to start your curly hair journey!"
+        : "💡 Consider booking the free consultation first if you're new to curly hair care!",
+    nextSteps: [
+      "After booking, you'll receive a confirmation email",
+      "Tata will contact you before your appointment if needed",
+      "Come with clean, dry hair (unless specified otherwise)",
+      "Bring reference photos if you have specific style goals",
+    ],
   };
 }
 

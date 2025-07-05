@@ -2,6 +2,52 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.7.0 - Guided Booking Flow with Transparent Pricing (2025-07-05)
+
+### Major Enhancements
+
+- **Guided Booking Flow**: Completely redesigned customer booking experience
+  - Customers now see service categories and pricing first, then get specific booking links after service selection
+  - Eliminated direct links to generic Booksy page in favor of guided service discovery
+  - Smart service matching recognizes specific service names and provides targeted booking assistance
+
+### Transparent Pricing Structure
+
+- **Starting Price Disclaimers**: All services now clearly marked as "starting at" prices for short hair
+- **Length/Density Warnings**: Automatic disclaimer that longer or denser hair may cost up to 2x more due to additional time required
+- **Service-Specific Pricing Notes**: Each service includes detailed pricing guidance (e.g., "Starting at $150 for short hair. Longer/denser hair may cost up to $300")
+- **Free Service Clarity**: Free consultation clearly marked as "Always free - no additional charges"
+
+### Enhanced Service Discovery
+
+- **Category-Based Responses**: Different responses for first-time clients, color services, cuts, and general inquiries
+- **Keyword Detection**: Recognizes specific service names (consultation, curly cut, color, etc.) and provides targeted information
+- **Personalized Recommendations**: Tailored suggestions with appropriate pricing disclaimers
+
+### Comprehensive Booking Information
+
+When customers request a specific service, they now receive:
+
+- ✅ Detailed service information (duration, description, pricing notes)
+- ✅ Step-by-step booking instructions with emojis for clarity
+- ✅ Location and business information
+- ✅ Preparation tips and next steps
+- ✅ Personalized tips (different for consultation vs. paid services)
+
+### Technical Improvements
+
+- Updated `workers/booksy-mcp.js` with comprehensive pricing notes for all 14 services
+- Enhanced `workers/whatsapp-incoming.js` with intelligent service matching and guided responses
+- Improved booking link function with detailed instructions and disclaimers
+- Updated feature documentation to reflect new guided booking flow
+
+### Business Impact
+
+- **Customer Transparency**: Eliminates pricing surprises by setting clear expectations upfront
+- **Reduced Confusion**: Guided flow prevents customers from being overwhelmed by generic booking page
+- **Professional Presentation**: Comprehensive service information builds trust and credibility
+- **Better Qualified Leads**: Customers understand pricing structure before booking
+
 ## v1.6.0 - Booksy MCP Integration (2025-07-05)
 
 ### Added

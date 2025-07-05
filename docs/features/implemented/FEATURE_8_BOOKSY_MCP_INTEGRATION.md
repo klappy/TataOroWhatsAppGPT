@@ -1,19 +1,40 @@
 # Feature 8: Booksy MCP Integration
 
-**Purpose**: Enable WhatsApp clients to discover Tata Oro's services and get booking links through MCP integration  
+**Purpose**: Enable WhatsApp clients to discover Tata Oro's services and get guided booking assistance with transparent pricing  
 **Audience**: Developers, system administrators  
-**Last Updated**: Version 1.0.0  
+**Last Updated**: Version 1.7.0  
 **Status**: CURRENT - IMPLEMENTED
 
 ## Overview
 
-This feature provides a Model Context Protocol (MCP) server that integrates Tata Oro's Booksy booking system with the WhatsApp GPT bot. Since Booksy doesn't provide a public API, this implementation uses a service catalog approach with direct booking links.
+This feature provides a comprehensive service discovery and booking assistance system that integrates Tata Oro's Booksy booking system with the WhatsApp GPT bot. The implementation guides customers through service selection with transparent pricing information and provides specific booking links only after service selection. Since Booksy doesn't provide a public API, this uses a curated service catalog approach with guided booking flows.
 
 ## Business Context
 
-- **Problem**: Clients frequently ask about services, prices, and availability through WhatsApp
-- **Solution**: MCP server provides structured access to service information and booking links
-- **Value**: Reduces manual coordination and provides 24/7 service discovery
+- **Problem**: Clients frequently ask about services, prices, and availability through WhatsApp, but need transparency about pricing for different hair lengths/densities
+- **Solution**: Guided booking system that educates customers about pricing structure before providing booking links
+- **Value**: Reduces manual coordination, provides 24/7 service discovery, and sets proper pricing expectations upfront
+
+## Key Features
+
+### Transparent Pricing Structure
+
+- **Starting Prices**: All prices clearly marked as "starting at" for short hair
+- **Length/Density Disclaimer**: Automatic warning that longer/denser hair may cost up to 2x more
+- **Service-Specific Notes**: Each service includes specific pricing guidance
+
+### Guided Booking Flow
+
+1. **Service Discovery**: Show categorized services with transparent pricing
+2. **Service Selection**: Customer indicates interest in specific service
+3. **Detailed Information**: Provide comprehensive service details and pricing notes
+4. **Direct Booking Link**: Only then provide the specific booking URL with instructions
+
+### Smart Service Matching
+
+- **Keyword Detection**: Recognizes specific service names and booking intent
+- **Category Filtering**: Automatically shows relevant services (first-time, color, cuts, etc.)
+- **Personalized Recommendations**: Tailored suggestions based on client type
 
 ## Technical Implementation
 
@@ -72,59 +93,105 @@ Added booking-related context to system prompts when conversations mention:
 ```
 User: What curly hair services does Tata offer?
 
-Bot: Tata specializes in curly hair! Here are her main services:
+Bot: 💇‍♀️ Here are all my services:
 
-FIRST TIME CLIENTS:
-• Curly Adventure (First Time) - $200+ (2.5 hrs)
-• Diagnóstico capilar - FREE (30 min)
+🆓 Free Consultation
+• Diagnóstico capilar : curly hair - FREE
 
-REGULAR SERVICES:
-• Curly Cut + Definition - $150 (1.5 hrs)
-• Deep Wash and Style - $150 (1.5 hrs)
-• Curly Color Experience - $250 (2.5 hrs)
+💫 Curly Hair Services
+• Curly Adventure (First Time) - Starting at $200
+• Curly Cut + Simple Definition - Starting at $150
+• Deep Wash and Style Only - Starting at $150
 
-Would you like to check availability for any of these?
+🎨 Color Services
+• Curly Color Experience - Starting at $250
+• Hair color (cambio de color) - Starting at $200
+
+⚠️ IMPORTANT: All prices are starting prices for short hair. Longer or denser hair may cost up to 2x more due to additional time required.
+
+📅 Tell me which service interests you and I'll provide the specific booking link!
+
+💡 New to curly hair care? Start with the FREE consultation!
 ```
 
-### Booking Assistance
+### Specific Service Booking
 
 ```
-User: I want to book a curly cut with Tata
+User: I want to book a curly cut
 
-Bot: Perfect! Here's the booking link for Curly Cut + Definition:
+Bot: ✨ Perfect! Here's everything you need to book "Curly Cut + Simple Definition":
 
-https://booksy.com/en-us/155582_akro-beauty-by-la-morocha-makeup_hair-salon_134763_orlando/staffer/880999
-
-Instructions:
-1. Click the link above
-2. Select "Curly Cut + Simple Definition"
-3. Choose your preferred date and time
-4. Complete the booking form
-
-Service details:
-• Price: $150
+📋 Service Details:
 • Duration: 90 minutes
+• Price: Starting at $150
+• Professional curly haircut with styling and definition - great for regular maintenance
+
+💰 Pricing: Starting at $150 for short hair. Longer/denser hair may cost up to $300 due to additional time required.
+
+🔗 BOOK NOW: https://booksy.com/en-us/155582_akro-beauty-by-la-morocha-makeup_hair-salon_134763_orlando/staffer/880999#ba_s=dl_1
+
+📍 Location: 8865 Commodity Circle, Suite 7A, Orlando, 32819
+
+📝 Booking Steps:
+1. 🔗 Click the booking link to open Tata's booking page
+2. 🎯 Look for "Curly Cut + Simple Definition" in the services list
+3. 📅 Select your preferred date and time
+4. 📝 Fill out the booking form with your details
+5. ✅ Confirm your appointment
+
+💡 Consider booking the free consultation first if you're new to curly hair care!
+
+💡 Next Steps:
+• After booking, you'll receive a confirmation email
+• Tata will contact you before your appointment if needed
+• Come with clean, dry hair (unless specified otherwise)
+• Bring reference photos if you have specific style goals
 ```
 
 ## Service Catalog
 
-### Curly Hair Services
+### Complete Service Catalog with Transparent Pricing
 
-| Service                      | Price | Duration | Description                             |
-| ---------------------------- | ----- | -------- | --------------------------------------- |
-| Diagnóstico capilar          | FREE  | 30 min   | Free curly hair consultation            |
-| Curly Adventure (First Time) | $200+ | 2.5 hrs  | Complete transformation for new clients |
-| Curly Cut + Definition       | $150  | 1.5 hrs  | Curly haircut with styling              |
-| Deep Wash and Style          | $150  | 1.5 hrs  | Deep cleansing and styling              |
-| Curly Color Experience       | $250  | 2.5 hrs  | Color treatment for curly hair          |
+#### Consultation Services
 
-### Treatment Services
+| Service             | Price | Duration | Pricing Notes                       |
+| ------------------- | ----- | -------- | ----------------------------------- |
+| Diagnóstico capilar | FREE  | 30 min   | Always free - no additional charges |
 
-| Service               | Price | Duration | Description                          |
-| --------------------- | ----- | -------- | ------------------------------------ |
-| Scalp Treatment       | $140  | 1.5 hrs  | Chinese scalp massage for curly hair |
-| Scalp Treatment (Men) | $80   | 45 min   | Scalp massage for men                |
-| Curly Spa Service     | $180  | 3.5 hrs  | Hair growth treatment                |
+#### Curly Hair Services
+
+| Service                      | Price         | Duration | Pricing Notes                     |
+| ---------------------------- | ------------- | -------- | --------------------------------- |
+| Curly Adventure (First Time) | Starting $200 | 2.5 hrs  | Up to $400 for longer/denser hair |
+| Curly Cut + Definition       | Starting $150 | 1.5 hrs  | Up to $300 for longer/denser hair |
+| Curly Adventure (Regular)    | Starting $180 | 2.5 hrs  | Up to $360 for longer/denser hair |
+| Full Rizos (Cliente Nuevo)   | Starting $200 | 2.5 hrs  | Up to $400 for longer/denser hair |
+| Deep Wash and Style          | Starting $150 | 1.5 hrs  | Up to $300 for longer/denser hair |
+| Curly Hair Restructuring     | Starting $180 | 2.5 hrs  | Up to $360 for longer/denser hair |
+
+#### Color Services
+
+| Service                      | Price         | Duration | Pricing Notes                     |
+| ---------------------------- | ------------- | -------- | --------------------------------- |
+| Curly Color Experience       | Starting $250 | 2.5 hrs  | Up to $500 for longer/denser hair |
+| Hair color (cambio de color) | Starting $200 | 2.5 hrs  | Up to $400 for longer/denser hair |
+
+#### Treatment Services
+
+| Service               | Price         | Duration | Pricing Notes                       |
+| --------------------- | ------------- | -------- | ----------------------------------- |
+| Scalp Treatment       | Starting $140 | 1.5 hrs  | Up to $280 for longer/denser hair   |
+| Scalp Treatment (Men) | $80           | 45 min   | Fixed price - no additional charges |
+| Curly Spa Service     | Starting $180 | 3.5 hrs  | Up to $360 for longer/denser hair   |
+| Photon Therapy        | Starting $150 | 2 hrs    | Up to $300 for longer/denser hair   |
+
+#### Special Services
+
+| Service              | Price         | Duration | Pricing Notes                     |
+| -------------------- | ------------- | -------- | --------------------------------- |
+| Bridal Makeup & Hair | Starting $300 | 2 hrs    | Up to $600 for longer/denser hair |
+
+> **Important**: All prices are starting prices for short hair. Longer or denser hair may require up to twice the time and cost due to additional complexity and time required.
 
 ## Configuration
 

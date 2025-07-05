@@ -23,7 +23,12 @@ import { SYSTEM_PROMPT } from "../shared/systemPrompt.js";
 import { sendConsultationEmail } from "../shared/emailer.js";
 import { generateOrFetchSummary } from "../shared/summary.js";
 import { deleteR2Objects, r2KeyFromUrl } from "../shared/r2.js";
-import { getServices, getServiceRecommendations, searchServices } from "./booksy-mcp.js";
+import {
+  getServices,
+  getServiceRecommendations,
+  searchServices,
+  getBookingLink,
+} from "./booksy-mcp.js";
 
 export async function handleWhatsAppRequest(request, env, ctx) {
   const url = new URL(request.url);
@@ -223,78 +228,163 @@ export async function handleWhatsAppRequest(request, env, ctx) {
           .replace(/'/g, "&apos;");
       }
 
-      // Determine what type of booking info to provide
-      if (incoming.includes("first time") || incoming.includes("new client")) {
-        // Get recommendations for first-time clients
-        const data = getServiceRecommendations("first-time");
-        if (data.recommendations) {
-          booksyResponse = `🌟 Perfect! Here are my recommendations for first-time clients:\n\n`;
-          booksyResponse += `${data.explanation}\n\n`;
-          data.recommendations.forEach((service) => {
-            booksyResponse += `• ${service.name}\n`;
-            booksyResponse += `  ${service.price === 0 ? "FREE" : "$" + service.price} | ${
-              service.duration
-            } min\n`;
-            booksyResponse += `  ${service.description}\n\n`;
+      // Check if user is asking for a specific service by name or wants to book a specific service
+      const serviceMatches = [
+        { keywords: ["diagnostic", "consultation", "diagnóstico"], serviceId: "diagnostic" },
+        {
+          keywords: ["curly adventure first", "first time adventure"],
+          serviceId: "curlyAdventureFirst",
+        },
+        {
+          keywords: ["curly cut", "cut definition", "simple definition"],
+          serviceId: "curlyCutDefinition",
+        },
+        {
+          keywords: ["curly adventure regular", "regular adventure"],
+          serviceId: "curlyAdventureRegular",
+        },
+        { keywords: ["full rizos", "cliente nuevo"], serviceId: "fullRizos" },
+        { keywords: ["deep wash", "wash style", "wash only"], serviceId: "deepWashStyle" },
+        { keywords: ["curly color experience", "curly color"], serviceId: "curlyColor" },
+        { keywords: ["hair color", "cambio de color", "color change"], serviceId: "hairColor" },
+        {
+          keywords: ["scalp treatment", "masaje chino", "chinese massage"],
+          serviceId: "scalpTreatment",
+        },
+        {
+          keywords: ["scalp treatment men", "masaje chino hombre"],
+          serviceId: "scalpTreatmentMen",
+        },
+        { keywords: ["curly spa", "hair growth treatment", "spa service"], serviceId: "curlySpa" },
+        { keywords: ["photon therapy", "terapia photon"], serviceId: "photonTherapy" },
+        { keywords: ["curly restructuring", "restructuring"], serviceId: "curlyRestructuring" },
+        {
+          keywords: ["bridal", "bride", "airbrush makeup", "wedding"],
+          serviceId: "bridalService",
+        },
+      ];
+
+      const specificService = serviceMatches.find((match) =>
+        match.keywords.some((keyword) => incoming.includes(keyword.toLowerCase()))
+      );
+
+      if (specificService) {
+        // User asked for a specific service - provide direct booking link
+        const bookingData = getBookingLink(specificService.serviceId);
+        if (bookingData && !bookingData.error) {
+          const service = bookingData.service;
+          booksyResponse = `✨ Perfect! Here's everything you need to book "${service.name}":\n\n`;
+          booksyResponse += `📋 Service Details:\n`;
+          booksyResponse += `• Duration: ${service.duration} minutes\n`;
+          booksyResponse += `• Price: ${
+            service.price === 0 ? "FREE" : "Starting at $" + service.price
+          }\n`;
+          booksyResponse += `• ${service.description}\n\n`;
+          if (service.priceNote) {
+            booksyResponse += `💰 Pricing: ${service.priceNote}\n\n`;
+          }
+          booksyResponse += `🔗 BOOK NOW: ${bookingData.bookingUrl}\n\n`;
+          booksyResponse += `📍 Location: ${bookingData.location}\n\n`;
+          booksyResponse += `📝 Booking Steps:\n`;
+          bookingData.instructions.forEach((step, index) => {
+            booksyResponse += `${index + 1}. ${step}\n`;
           });
-          booksyResponse += `📅 Ready to book? Here's the link:\nhttps://booksy.com/en-us/155582_akro-beauty-by-la-morocha-makeup_hair-salon_134763_orlando/staffer/880999#ba_s=dl_1\n\n`;
-          booksyResponse += `💡 I recommend starting with the FREE consultation to understand your hair type!`;
-        }
-      } else if (incoming.includes("color") || incoming.includes("colour")) {
-        // Search for color services
-        const data = searchServices("color");
-        if (data.services) {
-          booksyResponse = `🎨 Here are my color services:\n\n`;
-          data.services.forEach((service) => {
-            booksyResponse += `• ${service.name}\n`;
-            booksyResponse += `  $${service.price} | ${service.duration} min\n`;
-            booksyResponse += `  ${service.description}\n\n`;
+          booksyResponse += `\n${bookingData.tip}\n\n`;
+          booksyResponse += `💡 Next Steps:\n`;
+          bookingData.nextSteps.forEach((step, index) => {
+            booksyResponse += `• ${step}\n`;
           });
-          booksyResponse += `📅 Book your color service:\nhttps://booksy.com/en-us/155582_akro-beauty-by-la-morocha-makeup_hair-salon_134763_orlando/staffer/880999#ba_s=dl_1`;
-        }
-      } else if (incoming.includes("cut") || incoming.includes("curly cut")) {
-        // Search for curly cut services
-        const data = searchServices("cut");
-        if (data.services) {
-          booksyResponse = `✂️ Here are my curly cut services:\n\n`;
-          data.services.forEach((service) => {
-            booksyResponse += `• ${service.name}\n`;
-            booksyResponse += `  $${service.price} | ${service.duration} min\n`;
-            booksyResponse += `  ${service.description}\n\n`;
-          });
-          booksyResponse += `📅 Book your cut:\nhttps://booksy.com/en-us/155582_akro-beauty-by-la-morocha-makeup_hair-salon_134763_orlando/staffer/880999#ba_s=dl_1`;
         }
       } else {
-        // Show all services
-        const data = getServices("all");
-        if (data.services) {
-          booksyResponse = `💇‍♀️ Here are all my services:\n\n`;
-
-          // Group by category
-          const categories = {
-            consultation: "🆓 Free Consultation",
-            curly: "💫 Curly Hair Services",
-            color: "🎨 Color Services",
-            treatment: "🌿 Treatments & Therapy",
-            special: "✨ Special Services",
-          };
-
-          Object.entries(categories).forEach(([category, title]) => {
-            const categoryServices = data.services.filter((s) => s.category === category);
-            if (categoryServices.length > 0) {
-              booksyResponse += `${title}\n`;
-              categoryServices.forEach((service) => {
-                booksyResponse += `• ${service.name} - ${
-                  service.price === 0 ? "FREE" : "$" + service.price
-                }\n`;
-              });
+        // Determine what type of booking info to provide
+        if (incoming.includes("first time") || incoming.includes("new client")) {
+          // Get recommendations for first-time clients
+          const data = getServiceRecommendations("first-time");
+          if (data.recommendations) {
+            booksyResponse = `🌟 Perfect! Here are my recommendations for first-time clients:\n\n`;
+            booksyResponse += `${data.explanation}\n\n`;
+            data.recommendations.forEach((service) => {
+              booksyResponse += `• ${service.name}\n`;
+              booksyResponse += `  ${
+                service.price === 0 ? "FREE" : "Starting at $" + service.price
+              } | ${service.duration} min\n`;
+              booksyResponse += `  ${service.description}\n`;
+              if (service.priceNote) {
+                booksyResponse += `  💰 ${service.priceNote}\n`;
+              }
               booksyResponse += `\n`;
-            }
-          });
+            });
+            booksyResponse += `⚠️ IMPORTANT: All prices are starting prices for short hair. Longer or denser hair may cost up to 2x more due to additional time required.\n\n`;
+            booksyResponse += `📅 Ready to book? Tell me which service interests you and I'll give you the direct booking link!\n\n`;
+            booksyResponse += `💡 I recommend starting with the FREE consultation to understand your hair type!`;
+          }
+        } else if (incoming.includes("color") || incoming.includes("colour")) {
+          // Search for color services
+          const data = searchServices("color");
+          if (data.services) {
+            booksyResponse = `🎨 Here are my color services:\n\n`;
+            data.services.forEach((service) => {
+              booksyResponse += `• ${service.name}\n`;
+              booksyResponse += `  Starting at $${service.price} | ${service.duration} min\n`;
+              booksyResponse += `  ${service.description}\n`;
+              if (service.priceNote) {
+                booksyResponse += `  💰 ${service.priceNote}\n`;
+              }
+              booksyResponse += `\n`;
+            });
+            booksyResponse += `⚠️ IMPORTANT: All prices are starting prices for short hair. Longer or denser hair may cost up to 2x more due to additional time required.\n\n`;
+            booksyResponse += `📅 Tell me which color service interests you and I'll provide the direct booking link!`;
+          }
+        } else if (incoming.includes("cut") || incoming.includes("curly cut")) {
+          // Search for curly cut services
+          const data = searchServices("cut");
+          if (data.services) {
+            booksyResponse = `✂️ Here are my curly cut services:\n\n`;
+            data.services.forEach((service) => {
+              booksyResponse += `• ${service.name}\n`;
+              booksyResponse += `  Starting at $${service.price} | ${service.duration} min\n`;
+              booksyResponse += `  ${service.description}\n`;
+              if (service.priceNote) {
+                booksyResponse += `  💰 ${service.priceNote}\n`;
+              }
+              booksyResponse += `\n`;
+            });
+            booksyResponse += `⚠️ IMPORTANT: All prices are starting prices for short hair. Longer or denser hair may cost up to 2x more due to additional time required.\n\n`;
+            booksyResponse += `📅 Tell me which cut service interests you and I'll provide the direct booking link!`;
+          }
+        } else {
+          // Show all services
+          const data = getServices("all");
+          if (data.services) {
+            booksyResponse = `💇‍♀️ Here are all my services:\n\n`;
 
-          booksyResponse += `📅 Book online:\nhttps://booksy.com/en-us/155582_akro-beauty-by-la-morocha-makeup_hair-salon_134763_orlando/staffer/880999#ba_s=dl_1\n\n`;
-          booksyResponse += `📍 Location: 8865 Commodity Circle, Suite 7A, Orlando, 32819\n\n`;
-          booksyResponse += `💡 New to curly hair care? Start with the FREE consultation!`;
+            // Group by category
+            const categories = {
+              consultation: "🆓 Free Consultation",
+              curly: "💫 Curly Hair Services",
+              color: "🎨 Color Services",
+              treatment: "🌿 Treatments & Therapy",
+              special: "✨ Special Services",
+            };
+
+            Object.entries(categories).forEach(([category, title]) => {
+              const categoryServices = data.services.filter((s) => s.category === category);
+              if (categoryServices.length > 0) {
+                booksyResponse += `${title}\n`;
+                categoryServices.forEach((service) => {
+                  booksyResponse += `• ${service.name} - ${
+                    service.price === 0 ? "FREE" : "Starting at $" + service.price
+                  }\n`;
+                });
+                booksyResponse += `\n`;
+              }
+            });
+
+            booksyResponse += `⚠️ IMPORTANT: All prices are starting prices for short hair. Longer or denser hair may cost up to 2x more due to additional time required.\n\n`;
+            booksyResponse += `📍 Location: 8865 Commodity Circle, Suite 7A, Orlando, 32819\n\n`;
+            booksyResponse += `📅 Tell me which service interests you and I'll provide the specific booking link!\n\n`;
+            booksyResponse += `💡 New to curly hair care? Start with the FREE consultation!`;
+          }
         }
       }
 
