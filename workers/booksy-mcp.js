@@ -1,13 +1,10 @@
 /**
- * Booksy MCP Server for Tata Oro
+ * Booksy Service Discovery for Tata Oro
  *
  * Provides service discovery and booking assistance for Tata Oro's Booksy integration
  * Since Booksy doesn't provide a public API, this uses a service catalog approach
  * with direct booking links to Tata's specific Booksy page.
  */
-
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
 // Tata's Booksy configuration
 const TATA_BOOKSY_CONFIG = {
@@ -146,392 +143,282 @@ const SERVICES = {
   },
 };
 
-class BooksyMCPServer {
-  constructor() {
-    this.server = new Server(
-      {
-        name: "booksy-tata",
-        version: "1.0.0",
-        description:
-          "MCP server for Tata Oro's Booksy integration - service discovery and booking assistance",
-      },
-      {
-        capabilities: {
-          tools: {},
-        },
-      }
-    );
+function getServices(category = "all") {
+  const services = Object.values(SERVICES);
+  const filtered = category === "all" ? services : services.filter((s) => s.category === category);
 
-    this.setupHandlers();
+  if (filtered.length === 0) {
+    return {
+      error: `No services found in category "${category}". Available categories: consultation, curly, color, treatment, special, all`,
+    };
   }
 
-  setupHandlers() {
-    // List available tools
-    this.server.setRequestHandler("tools/list", async () => ({
-      tools: [
-        {
-          name: "get_services",
-          description:
-            "Get list of Tata's services with prices and durations, optionally filtered by category",
-          inputSchema: {
-            type: "object",
-            properties: {
-              category: {
-                type: "string",
-                description:
-                  "Filter by category: consultation, curly, color, treatment, special, or all",
-                enum: ["consultation", "curly", "color", "treatment", "special", "all"],
+  return {
+    services: filtered.sort((a, b) => a.price - b.price),
+    total: filtered.length,
+    category: category,
+  };
+}
+
+function getBookingLink(serviceId) {
+  if (!serviceId) {
+    return {
+      error:
+        "Please provide a service ID. Use /booksy/services to see available services and their IDs.",
+    };
+  }
+
+  const service = SERVICES[serviceId];
+  if (!service) {
+    const availableIds = Object.keys(SERVICES).join(", ");
+    return {
+      error: `Service ID "${serviceId}" not found. Available service IDs: ${availableIds}`,
+    };
+  }
+
+  // Generate booking URL with fragment to help users navigate
+  const bookingUrl = `${TATA_BOOKSY_CONFIG.baseUrl}#ba_s=dl_1`;
+
+  return {
+    service,
+    bookingUrl,
+    instructions: [
+      "Click the booking link to open Tata's booking page",
+      `Look for "${service.name}" in the services list`,
+      "Select your preferred date and time",
+      "Fill out the booking form with your details",
+      "Confirm your appointment",
+    ],
+    location: TATA_BOOKSY_CONFIG.location,
+    tip: "If you're a first-time client, consider starting with the free consultation!",
+  };
+}
+
+function searchServices(keyword) {
+  if (!keyword) {
+    return {
+      error: "Please provide a keyword to search for.",
+    };
+  }
+
+  const lowerKeyword = keyword.toLowerCase();
+  const matches = Object.values(SERVICES).filter(
+    (s) =>
+      s.name.toLowerCase().includes(lowerKeyword) ||
+      s.description.toLowerCase().includes(lowerKeyword) ||
+      s.category.includes(lowerKeyword)
+  );
+
+  if (matches.length === 0) {
+    return {
+      error: `No services found matching "${keyword}". Try searching for: curly, cut, color, treatment, spa, massage, or consultation.`,
+    };
+  }
+
+  return {
+    services: matches.sort((a, b) => a.price - b.price),
+    total: matches.length,
+    keyword,
+  };
+}
+
+function getBusinessInfo() {
+  return {
+    business: TATA_BOOKSY_CONFIG.businessName,
+    specialist: TATA_BOOKSY_CONFIG.stafferName,
+    location: TATA_BOOKSY_CONFIG.location,
+    phone: TATA_BOOKSY_CONFIG.phone,
+    specialties: TATA_BOOKSY_CONFIG.specialties,
+    rating: "5.0 stars (255 reviews)",
+    bookingUrl: TATA_BOOKSY_CONFIG.baseUrl,
+    about:
+      "Tata specializes in curly hair and understands the unique needs of textured hair. She offers personalized consultations and treatments designed specifically for curly, coily, and wavy hair types.",
+  };
+}
+
+function getServiceRecommendations(clientType) {
+  if (!clientType) {
+    return {
+      error:
+        "Please specify client type: first-time, regular, color-interested, or treatment-focused",
+    };
+  }
+
+  let recommendations = [];
+  let explanation = "";
+
+  switch (clientType) {
+    case "first-time":
+      recommendations = ["diagnostic", "curlyAdventureFirst", "fullRizos"];
+      explanation =
+        "For first-time clients, I recommend starting with a consultation to understand your hair, then considering a complete transformation service.";
+      break;
+
+    case "regular":
+      recommendations = ["curlyCutDefinition", "deepWashStyle", "curlyAdventureRegular"];
+      explanation =
+        "For regular clients, these services help maintain and enhance your curls between major treatments.";
+      break;
+
+    case "color-interested":
+      recommendations = ["curlyColor", "hairColor", "diagnostic"];
+      explanation =
+        "For color services, Tata specializes in color treatments designed specifically for curly hair to maintain curl pattern and health.";
+      break;
+
+    case "treatment-focused":
+      recommendations = ["curlySpa", "scalpTreatment", "photonTherapy", "curlyRestructuring"];
+      explanation =
+        "For hair health and growth, these treatments focus on scalp health, curl restoration, and overall hair wellness.";
+      break;
+
+    default:
+      return {
+        error:
+          "Invalid client type. Please use: first-time, regular, color-interested, or treatment-focused",
+      };
+  }
+
+  const recommendedServices = recommendations.map((id) => SERVICES[id]).filter(Boolean);
+
+  return {
+    clientType,
+    explanation,
+    recommendations: recommendedServices,
+    total: recommendedServices.length,
+  };
+}
+
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    const path = url.pathname;
+
+    // Enable CORS
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    };
+
+    if (request.method === "OPTIONS") {
+      return new Response(null, { headers: corsHeaders });
+    }
+
+    try {
+      // REST API endpoints
+      if (path === "/booksy/services" && request.method === "GET") {
+        const category = url.searchParams.get("category") || "all";
+        const result = getServices(category);
+        return new Response(JSON.stringify(result), {
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      if (path === "/booksy/booking" && request.method === "GET") {
+        const serviceId = url.searchParams.get("serviceId");
+        const result = getBookingLink(serviceId);
+        return new Response(JSON.stringify(result), {
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      if (path === "/booksy/search" && request.method === "GET") {
+        const keyword = url.searchParams.get("q");
+        const result = searchServices(keyword);
+        return new Response(JSON.stringify(result), {
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      if (path === "/booksy/business" && request.method === "GET") {
+        const result = getBusinessInfo();
+        return new Response(JSON.stringify(result), {
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      if (path === "/booksy/recommendations" && request.method === "GET") {
+        const clientType = url.searchParams.get("clientType");
+        const result = getServiceRecommendations(clientType);
+        return new Response(JSON.stringify(result), {
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      // Legacy MCP endpoint for compatibility
+      if (path === "/booksy/mcp" && request.method === "POST") {
+        const body = await request.json();
+
+        if (body.method === "tools/list") {
+          return new Response(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              id: body.id,
+              result: {
+                tools: [
+                  { name: "get_services", description: "Get list of services" },
+                  { name: "get_booking_link", description: "Get booking link for service" },
+                  { name: "search_services", description: "Search services by keyword" },
+                  { name: "get_business_info", description: "Get business information" },
+                  {
+                    name: "get_service_recommendations",
+                    description: "Get service recommendations",
+                  },
+                ],
               },
-            },
-          },
-        },
-        {
-          name: "get_booking_link",
-          description: "Get a direct booking link for a specific service with instructions",
-          inputSchema: {
-            type: "object",
-            properties: {
-              serviceId: {
-                type: "string",
-                description:
-                  "Service ID from get_services (e.g., curly-cut-definition, diagnostic)",
-              },
-            },
-            required: ["serviceId"],
-          },
-        },
-        {
-          name: "search_services",
-          description: "Search services by keyword in name or description",
-          inputSchema: {
-            type: "object",
-            properties: {
-              keyword: {
-                type: "string",
-                description: "Keyword to search for (e.g., cut, color, treatment, first time)",
-              },
-            },
-            required: ["keyword"],
-          },
-        },
-        {
-          name: "get_business_info",
-          description: "Get Tata's business information, location, and specialties",
-          inputSchema: {
-            type: "object",
-            properties: {},
-          },
-        },
-        {
-          name: "get_service_recommendations",
-          description: "Get service recommendations based on client type or needs",
-          inputSchema: {
-            type: "object",
-            properties: {
-              clientType: {
-                type: "string",
-                description:
-                  "Type of client: first-time, regular, color-interested, treatment-focused",
-                enum: ["first-time", "regular", "color-interested", "treatment-focused"],
-              },
-            },
-            required: ["clientType"],
-          },
-        },
-      ],
-    }));
-
-    // Handle tool calls
-    this.server.setRequestHandler("tools/call", async (request) => {
-      const { name, arguments: args } = request.params;
-
-      try {
-        switch (name) {
-          case "get_services":
-            return this.getServices(args?.category || "all");
-
-          case "get_booking_link":
-            return this.getBookingLink(args?.serviceId);
-
-          case "search_services":
-            return this.searchServices(args?.keyword);
-
-          case "get_business_info":
-            return this.getBusinessInfo();
-
-          case "get_service_recommendations":
-            return this.getServiceRecommendations(args?.clientType);
-
-          default:
-            throw new Error(`Unknown tool: ${name}`);
+            }),
+            {
+              headers: { "Content-Type": "application/json", ...corsHeaders },
+            }
+          );
         }
-      } catch (error) {
-        return {
-          content: [
+
+        if (body.method === "tools/call") {
+          const { name, arguments: args } = body.params;
+          let result;
+
+          switch (name) {
+            case "get_services":
+              result = getServices(args?.category);
+              break;
+            case "get_booking_link":
+              result = getBookingLink(args?.serviceId);
+              break;
+            case "search_services":
+              result = searchServices(args?.keyword);
+              break;
+            case "get_business_info":
+              result = getBusinessInfo();
+              break;
+            case "get_service_recommendations":
+              result = getServiceRecommendations(args?.clientType);
+              break;
+            default:
+              result = { error: `Unknown tool: ${name}` };
+          }
+
+          return new Response(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              id: body.id,
+              result: {
+                content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+              },
+            }),
             {
-              type: "text",
-              text: `Error: ${error.message}`,
-            },
-          ],
-          isError: true,
-        };
+              headers: { "Content-Type": "application/json", ...corsHeaders },
+            }
+          );
+        }
       }
-    });
-  }
 
-  async getServices(category) {
-    const services = Object.values(SERVICES);
-    const filtered =
-      category === "all" ? services : services.filter((s) => s.category === category);
-
-    if (filtered.length === 0) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: `No services found in category "${category}". Available categories: consultation, curly, color, treatment, special, all`,
-          },
-        ],
-      };
+      return new Response("Not Found", { status: 404, headers: corsHeaders });
+    } catch (error) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
     }
-
-    const serviceList = filtered
-      .sort((a, b) => a.price - b.price) // Sort by price
-      .map(
-        (s) =>
-          `• **${s.name}**\n  Price: ${s.price === 0 ? "FREE" : `$${s.price}`} | Duration: ${
-            s.duration
-          } minutes\n  ${s.description}`
-      )
-      .join("\n\n");
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Found ${filtered.length} service${filtered.length !== 1 ? "s" : ""}${
-            category !== "all" ? ` in category "${category}"` : ""
-          }:\n\n${serviceList}`,
-        },
-      ],
-    };
-  }
-
-  async getBookingLink(serviceId) {
-    if (!serviceId) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: "Please provide a service ID. Use get_services to see available services and their IDs.",
-          },
-        ],
-        isError: true,
-      };
-    }
-
-    const service = SERVICES[serviceId];
-    if (!service) {
-      const availableIds = Object.keys(SERVICES).join(", ");
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Service ID "${serviceId}" not found. Available service IDs: ${availableIds}`,
-          },
-        ],
-        isError: true,
-      };
-    }
-
-    // Generate booking URL with fragment to help users navigate
-    const bookingUrl = `${TATA_BOOKSY_CONFIG.baseUrl}#ba_s=dl_1`;
-
-    return {
-      content: [
-        {
-          type: "text",
-          text:
-            `**Booking Information for "${service.name}"**\n\n` +
-            `🔗 **Direct Booking Link:** ${bookingUrl}\n\n` +
-            `📋 **Instructions for Client:**\n` +
-            `1. Click the link above to open Tata's booking page\n` +
-            `2. Look for "${service.name}" in the services list\n` +
-            `3. Select your preferred date and time\n` +
-            `4. Fill out the booking form with your details\n` +
-            `5. Confirm your appointment\n\n` +
-            `💰 **Service Details:**\n` +
-            `• Price: ${service.price === 0 ? "FREE" : `$${service.price}`}\n` +
-            `• Duration: ${service.duration} minutes\n` +
-            `• Category: ${service.category}\n\n` +
-            `📍 **Location:** ${TATA_BOOKSY_CONFIG.location}\n\n` +
-            `💡 **Tip:** If you're a first-time client, consider starting with the free consultation!`,
-        },
-      ],
-    };
-  }
-
-  async searchServices(keyword) {
-    if (!keyword) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: "Please provide a keyword to search for.",
-          },
-        ],
-        isError: true,
-      };
-    }
-
-    const lowerKeyword = keyword.toLowerCase();
-    const matches = Object.values(SERVICES).filter(
-      (s) =>
-        s.name.toLowerCase().includes(lowerKeyword) ||
-        s.description.toLowerCase().includes(lowerKeyword) ||
-        s.category.includes(lowerKeyword)
-    );
-
-    if (matches.length === 0) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: `No services found matching "${keyword}". Try searching for: curly, cut, color, treatment, spa, massage, or consultation.`,
-          },
-        ],
-      };
-    }
-
-    const matchList = matches
-      .sort((a, b) => a.price - b.price)
-      .map(
-        (s) =>
-          `• **${s.name}**\n  Price: ${s.price === 0 ? "FREE" : `$${s.price}`} | Duration: ${
-            s.duration
-          } minutes\n  ${s.description}`
-      )
-      .join("\n\n");
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Found ${matches.length} service${
-            matches.length !== 1 ? "s" : ""
-          } matching "${keyword}":\n\n${matchList}`,
-        },
-      ],
-    };
-  }
-
-  async getBusinessInfo() {
-    return {
-      content: [
-        {
-          type: "text",
-          text:
-            `**Tata Oro - Curly Hair Specialist**\n\n` +
-            `👩‍🦱 **Specialist:** ${TATA_BOOKSY_CONFIG.stafferName}\n` +
-            `🏢 **Business:** ${TATA_BOOKSY_CONFIG.businessName}\n` +
-            `📍 **Location:** ${TATA_BOOKSY_CONFIG.location}\n\n` +
-            `🎯 **Specialties:**\n` +
-            TATA_BOOKSY_CONFIG.specialties.map((s) => `• ${s}`).join("\n") +
-            "\n\n" +
-            `⭐ **Rating:** 5.0 stars (255 reviews)\n\n` +
-            `🔗 **Book Online:** ${TATA_BOOKSY_CONFIG.baseUrl}\n\n` +
-            `💡 **About Tata:** Tata specializes in curly hair and understands the unique needs of textured hair. ` +
-            `She offers personalized consultations and treatments designed specifically for curly, coily, and wavy hair types.`,
-        },
-      ],
-    };
-  }
-
-  async getServiceRecommendations(clientType) {
-    if (!clientType) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: "Please specify client type: first-time, regular, color-interested, or treatment-focused",
-          },
-        ],
-        isError: true,
-      };
-    }
-
-    let recommendations = [];
-    let explanation = "";
-
-    switch (clientType) {
-      case "first-time":
-        recommendations = ["diagnostic", "curlyAdventureFirst", "fullRizos"];
-        explanation =
-          "For first-time clients, I recommend starting with a consultation to understand your hair, then considering a complete transformation service.";
-        break;
-
-      case "regular":
-        recommendations = ["curlyCutDefinition", "deepWashStyle", "curlyAdventureRegular"];
-        explanation =
-          "For regular clients, these services help maintain and enhance your curls between major treatments.";
-        break;
-
-      case "color-interested":
-        recommendations = ["curlyColor", "hairColor", "diagnostic"];
-        explanation =
-          "For color services, Tata specializes in color treatments designed specifically for curly hair to maintain curl pattern and health.";
-        break;
-
-      case "treatment-focused":
-        recommendations = ["curlySpa", "scalpTreatment", "photonTherapy", "curlyRestructuring"];
-        explanation =
-          "For hair health and growth, these treatments focus on scalp health, curl restoration, and overall hair wellness.";
-        break;
-
-      default:
-        return {
-          content: [
-            {
-              type: "text",
-              text: "Invalid client type. Please use: first-time, regular, color-interested, or treatment-focused",
-            },
-          ],
-          isError: true,
-        };
-    }
-
-    const recommendedServices = recommendations
-      .map((id) => SERVICES[id])
-      .filter(Boolean)
-      .map(
-        (s) =>
-          `• **${s.name}**\n  Price: ${s.price === 0 ? "FREE" : `$${s.price}`} | Duration: ${
-            s.duration
-          } minutes\n  ${s.description}`
-      )
-      .join("\n\n");
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: `**Recommendations for ${clientType} clients:**\n\n${explanation}\n\n${recommendedServices}`,
-        },
-      ],
-    };
-  }
-
-  async start() {
-    const transport = new StdioServerTransport();
-    await this.server.connect(transport);
-    console.error("Booksy MCP Server for Tata Oro started successfully");
-  }
-}
-
-// Start the server if this file is run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const server = new BooksyMCPServer();
-  server.start().catch(console.error);
-}
-
-export default BooksyMCPServer;
+  },
+};
