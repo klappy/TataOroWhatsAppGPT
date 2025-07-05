@@ -4,6 +4,7 @@ import { handleAdminRequest } from "./admin.js";
 import { handleSummaryRequest } from "./summary.js";
 import { handleUploadHookRequest } from "./upload-hook.js";
 import { handleDocSyncRequest } from "./doc-sync.js";
+import booksyMcpWorker from "./booksy-mcp.js";
 
 export function selectHandler(request) {
   const url = new URL(request.url);
@@ -12,6 +13,7 @@ export function selectHandler(request) {
   if (path.startsWith("/images/")) return handleImagesRequest;
   if (path.startsWith("/admin")) return handleAdminRequest;
   if (path.startsWith("/summary")) return handleSummaryRequest;
+  if (path.startsWith("/booksy")) return (req, env, ctx) => booksyMcpWorker.fetch(req, env, ctx);
   if (path === "/uploadhook" && request.method === "POST") return handleUploadHookRequest;
   if (path === "/internal/doc-sync" && request.method === "POST") return handleDocSyncRequest;
   return null;

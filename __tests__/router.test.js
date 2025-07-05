@@ -43,6 +43,11 @@ describe("router selectHandler", () => {
     assert.strictEqual(h, handleDocSyncRequest);
   });
 
+  it("routes /booksy/* to booksy MCP handler", () => {
+    const h = selectHandler(makeRequest("/booksy/mcp", "POST"));
+    assert.ok(typeof h === "function", "Should return a function for Booksy routes");
+  });
+
   it("returns null for unknown routes", () => {
     const h = selectHandler(makeRequest("/nope"));
     assert.strictEqual(h, null);
