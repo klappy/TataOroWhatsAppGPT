@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.4] - 2025-01-27
+
+- **🎯 Service Book Button Targeting**: Successfully implemented precise service-specific Book button clicking
+- **📋 Booking Modal Detection**: Confirmed Book button clicks now open booking modals (hasModal: true)
+- **🔍 Comprehensive Time Slot Detection**: 4-strategy approach with booking interface analysis
+- **⚡ Enhanced Debug Capabilities**: Debug endpoint provides detailed booking flow analysis
+- **🕐 Appointment Flow Progress**: Service selection working, investigating modal time slot patterns
+
 ## [1.9.3] - 2025-01-27
 
 - **🎭 Stealth Mode Success**: Successfully bypassed Booksy's 403 Forbidden bot detection
