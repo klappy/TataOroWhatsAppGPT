@@ -99,31 +99,42 @@ async function scrapeBooksyServices(env) {
 
   try {
     console.log("🌐 Attempting browser scraping...");
-    const browser = await launch(env.BROWSER);
-    const page = await browser.newPage();
 
-    // 🥷 STEALTH MODE: Make browser look like a real human
-    await page.setUserAgent(
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    );
-
-    await page.setViewportSize({ width: 1366, height: 768 }); // Common laptop resolution
-
-    // Set realistic headers
-    await page.setExtraHTTPHeaders({
-      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.5",
-      "Accept-Encoding": "gzip, deflate, br",
-      DNT: "1",
-      Connection: "keep-alive",
-      "Cache-Control": "max-age=0",
+    // 🥷 STEALTH MODE: Launch browser with human-like configuration
+    const browser = await launch(env.BROWSER, {
+      args: [
+        "--disable-blink-features=AutomationControlled",
+        "--no-first-run",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+        "--disable-features=TranslateUI",
+        "--disable-ipc-flooding-protection",
+      ],
     });
 
-    // Randomize timezone to look more human
-    await page.emulateTimezone("America/New_York");
+    // Create context with realistic human-like settings
+    const context = await browser.newContext({
+      userAgent:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      viewport: { width: 1366, height: 768 },
+      extraHTTPHeaders: {
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate, br",
+        DNT: "1",
+        Connection: "keep-alive",
+        "Cache-Control": "max-age=0",
+      },
+      timezoneId: "America/New_York",
+      locale: "en-US",
+      colorScheme: "light",
+    });
+
+    const page = await context.newPage();
 
     // 🎭 NINJA MODE: Hide automation detection
-    await page.evaluateOnNewDocument(() => {
+    await page.addInitScript(() => {
       // Remove webdriver property
       delete navigator.__proto__.webdriver;
 
@@ -140,6 +151,11 @@ async function scrapeBooksyServices(env) {
       // Override the hardwareConcurrency to look like real device
       Object.defineProperty(navigator, "hardwareConcurrency", {
         get: () => 4,
+      });
+
+      // Hide automation indicators
+      Object.defineProperty(navigator, "webdriver", {
+        get: () => undefined,
       });
     });
 
@@ -516,26 +532,44 @@ function getServiceRecommendations(clientType = "unknown") {
  */
 async function getAvailableAppointments(env, serviceName, preferredDates = null) {
   try {
-    const browser = await launch(env.BROWSER);
-    const page = await browser.newPage();
-
-    // 🥷 STEALTH MODE: Make browser look like a real human
-    await page.setUserAgent(
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    );
-
-    await page.setViewportSize({ width: 1366, height: 768 });
-
-    await page.setExtraHTTPHeaders({
-      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.5",
-      "Accept-Encoding": "gzip, deflate, br",
-      DNT: "1",
-      Connection: "keep-alive",
-      "Cache-Control": "max-age=0",
+    const browser = await launch(env.BROWSER, {
+      args: [
+        "--disable-blink-features=AutomationControlled",
+        "--no-first-run",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+        "--disable-features=TranslateUI",
+        "--disable-ipc-flooding-protection",
+      ],
     });
 
-    await page.emulateTimezone("America/New_York");
+    const context = await browser.newContext({
+      userAgent:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      viewport: { width: 1366, height: 768 },
+      extraHTTPHeaders: {
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate, br",
+        DNT: "1",
+        Connection: "keep-alive",
+        "Cache-Control": "max-age=0",
+      },
+      timezoneId: "America/New_York",
+      locale: "en-US",
+      colorScheme: "light",
+    });
+
+    const page = await context.newPage();
+
+    await page.addInitScript(() => {
+      delete navigator.__proto__.webdriver;
+      Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3, 4, 5] });
+      Object.defineProperty(navigator, "languages", { get: () => ["en-US", "en"] });
+      Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 4 });
+      Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+    });
 
     console.log("🎭 Appointment scraping with stealth mode...");
 
@@ -674,26 +708,44 @@ async function getAvailableAppointments(env, serviceName, preferredDates = null)
  */
 async function debugBooksyPage(env) {
   try {
-    const browser = await launch(env.BROWSER);
-    const page = await browser.newPage();
-
-    // 🥷 STEALTH MODE: Make browser look like a real human
-    await page.setUserAgent(
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    );
-
-    await page.setViewportSize({ width: 1366, height: 768 });
-
-    await page.setExtraHTTPHeaders({
-      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.5",
-      "Accept-Encoding": "gzip, deflate, br",
-      DNT: "1",
-      Connection: "keep-alive",
-      "Cache-Control": "max-age=0",
+    const browser = await launch(env.BROWSER, {
+      args: [
+        "--disable-blink-features=AutomationControlled",
+        "--no-first-run",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+        "--disable-features=TranslateUI",
+        "--disable-ipc-flooding-protection",
+      ],
     });
 
-    await page.emulateTimezone("America/New_York");
+    const context = await browser.newContext({
+      userAgent:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      viewport: { width: 1366, height: 768 },
+      extraHTTPHeaders: {
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate, br",
+        DNT: "1",
+        Connection: "keep-alive",
+        "Cache-Control": "max-age=0",
+      },
+      timezoneId: "America/New_York",
+      locale: "en-US",
+      colorScheme: "light",
+    });
+
+    const page = await context.newPage();
+
+    await page.addInitScript(() => {
+      delete navigator.__proto__.webdriver;
+      Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3, 4, 5] });
+      Object.defineProperty(navigator, "languages", { get: () => ["en-US", "en"] });
+      Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 4 });
+      Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+    });
 
     console.log("🔍 Starting Booksy page debugging with stealth mode...");
 
@@ -924,26 +976,44 @@ async function scrapeAppointments(env, preferredDate = null) {
 
   try {
     console.log("📅 Attempting appointment scraping...");
-    const browser = await launch(env.BROWSER);
-    const page = await browser.newPage();
-
-    // 🥷 STEALTH MODE: Make browser look like a real human
-    await page.setUserAgent(
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    );
-
-    await page.setViewportSize({ width: 1366, height: 768 });
-
-    await page.setExtraHTTPHeaders({
-      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.5",
-      "Accept-Encoding": "gzip, deflate, br",
-      DNT: "1",
-      Connection: "keep-alive",
-      "Cache-Control": "max-age=0",
+    const browser = await launch(env.BROWSER, {
+      args: [
+        "--disable-blink-features=AutomationControlled",
+        "--no-first-run",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+        "--disable-features=TranslateUI",
+        "--disable-ipc-flooding-protection",
+      ],
     });
 
-    await page.emulateTimezone("America/New_York");
+    const context = await browser.newContext({
+      userAgent:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      viewport: { width: 1366, height: 768 },
+      extraHTTPHeaders: {
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate, br",
+        DNT: "1",
+        Connection: "keep-alive",
+        "Cache-Control": "max-age=0",
+      },
+      timezoneId: "America/New_York",
+      locale: "en-US",
+      colorScheme: "light",
+    });
+
+    const page = await context.newPage();
+
+    await page.addInitScript(() => {
+      delete navigator.__proto__.webdriver;
+      Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3, 4, 5] });
+      Object.defineProperty(navigator, "languages", { get: () => ["en-US", "en"] });
+      Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 4 });
+      Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+    });
 
     console.log("🎭 Quick appointment scraping with stealth mode...");
 
