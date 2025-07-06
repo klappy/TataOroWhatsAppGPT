@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.7 - Improved Initial Greeting & Readable Service Format (2025-07-06)
+
+- **Warm introduction on first contact** - Bot now introduces itself and explains Tata's service before asking new/existing client status
+- **Better readability** - Broke up long service information paragraphs into digestible chunks with emojis
+- **Enhanced formatting** - More emojis throughout (💰 for pricing, ⏰ for time, service-specific emojis like ✂️ 🌈 💆‍♀️)
+- **Improved UX flow** - From abrupt "Are you new or old?" to proper "Hi! I'm Tata's assistant..." introduction
+- **Visual service listings** - Each service now has clear structure with pricing, duration, and description separated for easy scanning
+- **CRITICAL FIX**: Existing clients now properly see the full service catalog instead of generic "browse Booksy yourself" message
+- **Moved backup service data to top** - Ensures GPT uses detailed service information when function calling is disabled
+- **Explicit existing client instructions** - Clear mandate to show complete service list with prices before booking link
+- **Fixed false availability promises** - Bot no longer says "Let me check availability" when it can't actually check - now provides honest "I can't check live availability" with helpful service info instead
+
 ## v1.8.6 - Enhanced Appointment Scraping & Correct Search Instructions (2025-07-06)
 
 - **Fixed search instructions** - Now correctly specifies "Search for service" box under Tata's name, not the main Booksy search
