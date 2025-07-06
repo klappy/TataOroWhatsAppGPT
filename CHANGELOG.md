@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.3] - 2025-01-27
+
+- **🎭 Stealth Mode Success**: Successfully bypassed Booksy's 403 Forbidden bot detection
+- **Browser Configuration**: Fixed Cloudflare Workers Playwright API usage (newContext vs page methods)
+- **Anti-Detection Measures**: Added comprehensive browser args, realistic headers, and automation hiding
+- **Service Scraping Restored**: Can now access full Booksy page with 1,100+ elements vs previous 6
+- **Foundation for Dynamic Appointments**: Stealth mode working, appointment logic needs refinement
+
 ## [1.9.2] - 2025-01-27
 
 - **Service Filtering Logic**: Fixed contradictory system prompt instructions causing service list issues
