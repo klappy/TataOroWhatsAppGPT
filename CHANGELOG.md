@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.2] - 2025-01-27
+
+- **Service Filtering Logic**: Fixed contradictory system prompt instructions causing service list issues
+- **Client Type Filtering**: New/existing clients now see properly filtered services (no "First Time" for returning clients)
+- **WhatsApp Message Compliance**: Consistent service length filtering for message delivery limits
+- **System Prompt Cleanup**: Resolved conflicting instructions between comprehensive and curated service display
+
 ## [1.9.1] - 2025-01-27
 
 - **Retry Logic**: Functions now attempt twice before fallback (12s → 15s timeouts)

@@ -619,9 +619,6 @@ export async function chatCompletion(messages, apiKey, model = "gpt-4o-mini", te
     includeFunctions: false,
   });
 
-  return {
-    content: result.content,
-    message: { content: result.content },
-    usage: result.usage,
-  };
+  // Return just the trimmed content for backward compatibility
+  return result.content.trim();
 }
