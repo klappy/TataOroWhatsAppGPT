@@ -233,8 +233,33 @@ export async function handleWhatsAppRequest(request, env, ctx) {
       includeFunctions: true, // Enable function calling for service requests
     });
 
-    assistantReply =
-      result.content?.trim() || "I'm having trouble processing that request right now.";
+    // Check for function call result for get_available_appointments
+    if (
+      result.function_call &&
+      result.function_call.name === "get_available_appointments" &&
+      result.function_call.result
+    ) {
+      const appt = result.function_call.result;
+      if (appt && appt.available && Array.isArray(appt.slots) && appt.slots.length > 0) {
+        // Format soonest available slots
+        const slotLines = appt.slots.slice(0, 5).map((slot) => `• ${slot.date} at ${slot.time}`);
+        assistantReply = `Here are the soonest available times for "${
+          appt.serviceName || "your selected service"
+        }":\n\n${slotLines.join(
+          "\n"
+        )}\n\nTo book, visit [Tata's Booksy page](https://booksy.com/en-us/155582_akro-beauty-by-la-morocha-makeup_hair-salon_134763_orlando/staffer/880999) and search for the service.`;
+      } else if (appt && appt.available === false) {
+        assistantReply =
+          appt.message ||
+          `Sorry, I couldn't find any available slots for that service in the next week. Please try again later or check Booksy directly.`;
+      } else {
+        assistantReply =
+          result.content?.trim() || "I'm having trouble processing that request right now.";
+      }
+    } else {
+      assistantReply =
+        result.content?.trim() || "I'm having trouble processing that request right now.";
+    }
   } catch (error) {
     console.error("GPT completion failed:", error);
     // Enhanced fallback response (WhatsApp-friendly)
