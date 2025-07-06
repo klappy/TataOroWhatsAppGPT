@@ -10,13 +10,16 @@ import { launch } from "@cloudflare/playwright";
 const BOOKSY_URL =
   "https://booksy.com/en-us/155582_akro-beauty-by-la-morocha-makeup_hair-salon_134763_orlando/staffer/880999";
 const CACHE_TTL = 86400; // 24 hour cache - ultra aggressive to minimize browser usage
-const CIRCUIT_BREAKER_TTL = 3600; // 1 hour circuit breaker cooldown
-const MAX_FAILURES = 3; // Trip circuit breaker after 3 consecutive failures
+const CIRCUIT_BREAKER_TTL = 120; // 2 minutes circuit breaker cooldown
+const MAX_FAILURES = 2; // Trip circuit breaker after 2 consecutive failures
 
 // Enhanced timeouts with upgraded browser capacity
 const BROWSER_TIMEOUT = 10000; // 10 seconds (up from 8) - more generous with upgraded plan
 const SELECTOR_WAIT_TIMEOUT = 8000; // 8 seconds (up from 6) - better success rate
 const EVALUATION_TIMEOUT = 12000; // 12 seconds (up from 10) - more thorough scraping
+
+const SERVICES_CACHE_TTL = 3600; // 1 hour for services (prices, descriptions)
+const APPOINTMENTS_CACHE_TTL = 300; // 5 minutes for appointment availability
 
 /**
  * Circuit breaker to prevent wasting browser time on consecutive failures
@@ -279,7 +282,7 @@ async function scrapeBooksyServices(env) {
           source: "live_scrape",
           serviceCount: services.length,
         }),
-        { expirationTtl: CACHE_TTL }
+        { expirationTtl: SERVICES_CACHE_TTL }
       );
 
       // Reset circuit breaker on success
@@ -844,6 +847,18 @@ async function getAvailableAppointments(env, serviceName, preferredDates = null)
     ]);
 
     await browser.close();
+
+    if (appointments && appointments.times && appointments.times.length > 0) {
+      await env.CHAT_HISTORY.put(
+        `booksy:appointments:${serviceName}`,
+        JSON.stringify({
+          appointments,
+          lastUpdated: new Date().toISOString(),
+          serviceName,
+        }),
+        { expirationTtl: APPOINTMENTS_CACHE_TTL }
+      );
+    }
 
     return {
       serviceName,
@@ -1965,22 +1980,15 @@ async function handleRequest(request, env) {
 /**
  * Enhanced function calling with retry logic and user communication
  */
-async function executeBooksyFunctionWithRetry(functionName, args, env, attempt = 1) {
-  const maxAttempts = 2; // Allow one retry
-
+async function executeBooksyFunctionWithRetry(functionName, args, env) {
   try {
-    console.log(`🔧 Executing ${functionName} (attempt ${attempt}/${maxAttempts})`);
-
-    // Check circuit breaker first
+    console.log(`🔧 Executing ${functionName}`);
     const circuitOpen = await isCircuitBreakerOpen(env);
     if (circuitOpen) {
       console.log("🚫 Circuit breaker OPEN - skipping browser scraping");
-
-      // Try to return cached data even if stale
       if (functionName === "get_booksy_services") {
         const cached = await getCachedServices(env);
         if (cached && cached.services.length > 4) {
-          console.log("📦 Using stale cache due to circuit breaker");
           return {
             ...cached,
             circuitBreakerActive: true,
@@ -1988,15 +1996,9 @@ async function executeBooksyFunctionWithRetry(functionName, args, env, attempt =
           };
         }
       }
-
-      // Final fallback
-      console.log("🔄 Circuit breaker + no cache = fallback services");
       return getFallbackServices();
     }
-
     const baseUrl = env.BOOKSY_MCP_URL || "https://booksy-dynamic.tataorowhatsappgpt.workers.dev";
-
-    // Route function calls to appropriate endpoints
     const endpointMap = {
       get_booksy_services: "/services",
       search_booksy_services: `/search?q=${encodeURIComponent(args.query || "")}`,
@@ -2006,76 +2008,41 @@ async function executeBooksyFunctionWithRetry(functionName, args, env, attempt =
         args.serviceName || ""
       )}${args.preferredDates ? `&dates=${args.preferredDates.join(",")}` : ""}`,
     };
-
     const endpoint = endpointMap[functionName];
     if (!endpoint) {
-      console.log(`❌ Unknown function: ${functionName}`);
       return { error: `Unknown function: ${functionName}` };
     }
-
     const url = `${baseUrl}${endpoint}`;
-    console.log(`🌐 Calling: ${url} (attempt ${attempt})`);
-
-    // Enhanced timeout with retry-aware messaging
-    const timeoutMs = attempt === 1 ? 12000 : 15000; // More time on retry
+    const timeoutMs = 12000;
     const response = await Promise.race([
       fetch(url, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "User-Agent": `TataOro-WhatsApp-GPT/1.9.0-retry-${attempt}`,
+          "User-Agent": `TataOro-WhatsApp-GPT/1.9.0-no-retry`,
         },
       }),
       new Promise((_, reject) =>
         setTimeout(
-          () =>
-            reject(
-              new Error(
-                `Function call timeout after ${timeoutMs / 1000} seconds (attempt ${attempt})`
-              )
-            ),
+          () => reject(new Error(`Function call timeout after ${timeoutMs / 1000} seconds`)),
           timeoutMs
         )
       ),
     ]);
-
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
-
     const result = await Promise.race([
       response.json(),
       new Promise((_, reject) => setTimeout(() => reject(new Error("JSON parsing timeout")), 3000)),
     ]);
-
-    console.log(`✅ Function ${functionName} executed successfully on attempt ${attempt}`);
-
-    // Add retry success metadata
-    if (attempt > 1) {
-      result.retrySuccess = true;
-      result.successfulAttempt = attempt;
-    }
-
     return result;
   } catch (error) {
-    console.error(`🚨 Function ${functionName} failed on attempt ${attempt}:`, error);
-
-    // If this was our first attempt and we can retry, try again
-    if (attempt < maxAttempts) {
-      console.log(`🔄 Retrying ${functionName} (attempt ${attempt + 1}/${maxAttempts})`);
-
-      // Don't record this as a circuit breaker failure yet - give retry a chance
-      return await executeBooksyFunctionWithRetry(functionName, args, env, attempt + 1);
-    }
-
-    // We've exhausted retries - record failure and return fallback
     await recordScrapingFailure(env);
-    console.log(`💥 Function ${functionName} failed after ${maxAttempts} attempts`);
-
-    const fallback = getFunctionFallback(functionName, args);
-    fallback.retriedAndFailed = true;
-    fallback.totalAttempts = maxAttempts;
-
-    return fallback;
+    return {
+      error: `Sorry, I couldn't get the latest info right now. Please try again in a couple minutes or visit Tata's Booksy page to check availability directly.`,
+      details: error.message,
+      fallback: true,
+    };
   }
 }
