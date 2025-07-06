@@ -1852,7 +1852,8 @@ async function handleRequest(request, env) {
 
     if (path === "/booksy/appointments") {
       const serviceName = url.searchParams.get("service");
-      const preferredDatesParam = url.searchParams.get("dates");
+      // Ignore any incoming dates parameter; always use today + next 6 days
+      const preferredDates = getNextNDates(7); // today + next 6 days
 
       if (!serviceName) {
         return new Response(
@@ -1866,11 +1867,6 @@ async function handleRequest(request, env) {
           }
         );
       }
-
-      // Always use today and the next 6 days if preferredDates is not provided
-      let preferredDates = preferredDatesParam
-        ? preferredDatesParam.split(",").map((d) => d.trim())
-        : getNextNDates(7); // today + next 6 days
 
       // Try to get actual appointment times using Playwright
       const appointmentData = await getAvailableAppointments(env, serviceName, preferredDates);
@@ -1915,7 +1911,8 @@ async function handleRequest(request, env) {
     if (path === "/appointments") {
       // Re-enabled with upgraded browser capacity!
       const serviceName = url.searchParams.get("service");
-      const preferredDates = url.searchParams.get("dates")?.split(",") || null;
+      // Ignore any incoming dates parameter; always use today + next 6 days
+      const preferredDates = getNextNDates(7); // today + next 6 days
 
       if (!serviceName) {
         return new Response(
