@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.9.6] - 2025-01-27
+
+- **Fixed Booking Availability**: Added missing BOOKSY_MCP_URL environment variable
+- **Corrected Worker URL**: Booksy dynamic worker now properly accessible at /booksy endpoints
+- **Production Fix**: Availability checks will now actually reach the booking system instead of failing silently
+
 ## [1.9.5] - 2025-07-06
 
 - **🎉 BREAKTHROUGH: Real Calendar Detection**: Successfully identified and implemented actual Booksy calendar selectors (.b-datepicker, .b-datepicker-days-row)
