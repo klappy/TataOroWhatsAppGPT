@@ -970,42 +970,159 @@ async function scrapeAppointments(env, preferredDate = null) {
       page.waitForTimeout(3000), // Max 3 seconds to find booking button
     ]);
 
-    // Very short wait for calendar
-    await Promise.race([
-      page.waitForSelector('[class*="calendar"], [class*="date"], [data-cy*="calendar"]', {
-        timeout: 4000,
-      }),
-      page.waitForTimeout(4000),
-    ]);
+    // Wait longer for the booking interface to fully load
+    console.log("⏳ Waiting for booking interface to stabilize...");
+    await page.waitForTimeout(5000);
 
-    // Quick appointment extraction with timeout
+    // Try to wait for the booking iframe with multiple attempts
+    let iframeFound = false;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      console.log(`🔍 Attempt ${attempt}: Looking for booking iframe...`);
+
+      try {
+        await page.waitForSelector('iframe[data-testid="booking-widget"]', { timeout: 3000 });
+        iframeFound = true;
+        console.log(`✅ Iframe found on attempt ${attempt}`);
+        break;
+      } catch (e) {
+        console.log(`⚠️ Attempt ${attempt} failed, trying again...`);
+        await page.waitForTimeout(2000); // Wait 2 seconds between attempts
+      }
+    }
+
+    if (!iframeFound) {
+      console.log("❌ Iframe not found after 3 attempts, checking for any iframe...");
+    }
+
+    console.log("📅 Booking iframe detected, extracting time slots...");
+
+    // Extract appointments from within the iframe
     const appointments = await Promise.race([
-      page.evaluate(() => {
-        // Quick time slot detection
-        const timeElements = document.querySelectorAll(
-          'button[class*="time"], [data-cy*="time"], .time-slot, [class*="slot"], button:contains("AM"), button:contains("PM")'
-        );
+      page.evaluate(async () => {
+        console.log("🔍 Looking for booking iframe and time slots...");
 
-        const times = [];
-        // Process max 10 time slots quickly
-        for (let i = 0; i < Math.min(timeElements.length, 10); i++) {
-          const element = timeElements[i];
-          const timeText = element.textContent?.trim();
-          if (timeText && (timeText.includes("AM") || timeText.includes("PM"))) {
-            times.push(timeText);
+        // Find the booking iframe - try specific selector first, then any iframe
+        let iframe = document.querySelector('iframe[data-testid="booking-widget"]');
+
+        if (!iframe) {
+          console.log("⚠️ Specific booking iframe not found, trying any iframe...");
+          const allIframes = document.querySelectorAll("iframe");
+          console.log(`🔍 Found ${allIframes.length} total iframes`);
+
+          for (let i = 0; i < allIframes.length; i++) {
+            const testIframe = allIframes[i];
+            const src = testIframe.getAttribute("src");
+            console.log(`📱 Iframe ${i}: src="${src}"`);
+
+            if (
+              src &&
+              (src.includes("widget") ||
+                src.includes("booking") ||
+                src.includes("booksy.com/widget"))
+            ) {
+              console.log(`🎯 Using iframe with booking-related src: ${src}`);
+              iframe = testIframe;
+              break;
+            }
+          }
+
+          if (!iframe && allIframes.length > 0) {
+            console.log("🔄 Using first available iframe as fallback");
+            iframe = allIframes[0];
           }
         }
 
-        return {
-          available: times.length > 0,
-          times: times.slice(0, 5), // Max 5 times
-          date: new Date().toLocaleDateString(),
-          quickScrape: true,
-        };
+        if (!iframe) {
+          console.log("❌ No iframe found at all");
+          return { available: false, times: [], error: "No iframe found" };
+        }
+
+        console.log("✅ Found booking iframe, waiting for it to load...");
+
+        // Wait a moment for iframe to load
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+
+        try {
+          // Access iframe content
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+          if (!iframeDoc) {
+            console.log("❌ Cannot access iframe content");
+            return { available: false, times: [], error: "Cannot access iframe content" };
+          }
+
+          console.log("✅ Accessing iframe content...");
+
+          // Look for time slots within the iframe using proven selectors from local test
+          const timeSlotSelectors = [
+            'a[data-testid^="time-slot-"]', // Proven working selector from local test
+            '[data-testid*="time-slot"]',
+            'button[data-testid*="time-slot"]',
+            ".swiper-slide a", // Time slots are in swiper carousel
+            ".swiper-wrapper a", // Alternative swiper path
+            '[class*="time"]',
+            'button[class*="time"]',
+          ];
+
+          const times = [];
+          const timeRegex = /\b\d{1,2}:\d{2}\s*(AM|PM)\b/i;
+
+          // Try each selector in the iframe
+          for (const selector of timeSlotSelectors) {
+            try {
+              const elements = iframeDoc.querySelectorAll(selector);
+              console.log(`Debug: Found ${elements.length} elements with selector: ${selector}`);
+
+              for (const element of elements) {
+                const timeText = element.textContent?.trim();
+                if (timeText && timeRegex.test(timeText) && !times.includes(timeText)) {
+                  console.log(`✅ Found time slot: ${timeText}`);
+                  times.push(timeText);
+                }
+              }
+
+              // If we found time slots with this selector, we're done
+              if (times.length > 0) {
+                console.log(`🎯 Success with selector: ${selector}`);
+                break;
+              }
+            } catch (e) {
+              console.log(`Selector failed in iframe: ${selector}`, e.message);
+            }
+          }
+
+          // Also scan all text in iframe for time patterns as backup
+          if (times.length === 0) {
+            const iframeText = iframeDoc.body?.textContent || "";
+            const allTimeMatches = iframeText.match(/\b\d{1,2}:\d{2}\s*(AM|PM)\b/gi) || [];
+
+            allTimeMatches.forEach((match) => {
+              if (!times.includes(match) && times.length < 20) {
+                times.push(match);
+              }
+            });
+          }
+
+          console.log(`🎯 Total time slots found: ${times.length}`);
+
+          return {
+            available: times.length > 0,
+            times: times.slice(0, 15), // Allow more time slots like local test
+            date: new Date().toLocaleDateString(),
+            iframeAccess: true,
+            source: "iframe_extraction",
+          };
+        } catch (iframeError) {
+          console.log("❌ Error accessing iframe:", iframeError.message);
+          return {
+            available: false,
+            times: [],
+            error: `Iframe access error: ${iframeError.message}`,
+          };
+        }
       }),
-      // 5 second timeout for evaluation
+      // 10 second timeout for iframe evaluation (more generous)
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Appointment extraction timeout")), 5000)
+        setTimeout(() => reject(new Error("Iframe extraction timeout")), 10000)
       ),
     ]);
 
@@ -1417,10 +1534,85 @@ async function debugAppointmentFlow(env, serviceName) {
 
         // 📦 Booksy-specific elements
         hasPurifyElements: document.querySelectorAll('[class*="purify"]').length > 0,
+
+        // 🎯 NEW: Iframe detection (breakthrough!)
+        hasBookingModal:
+          document.querySelectorAll("body > div.modal.-lighter-bg.-widget.-booking-widget.-clean")
+            .length > 0,
+        hasBookingIframe:
+          document.querySelectorAll('iframe[data-testid="booking-widget"]').length > 0,
       };
 
+      // 🚀 Strategy 5: NEW Iframe detection and time slot extraction
+      let iframeTimeSlots = [];
+      let iframeError = null;
+
+      if (bookingIndicators.hasBookingModal && bookingIndicators.hasBookingIframe) {
+        console.log("🎯 BREAKTHROUGH: Found booking modal with iframe!");
+
+        try {
+          const modal = document.querySelector(
+            "body > div.modal.-lighter-bg.-widget.-booking-widget.-clean"
+          );
+          const iframe = modal?.querySelector('iframe[data-testid="booking-widget"]');
+
+          if (iframe) {
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            if (iframeDoc) {
+              console.log("✅ Successfully accessing iframe content!");
+
+              // Look for time slots in iframe
+              const iframeTimeSlotSelectors = [
+                '[data-testid*="time-slot"]',
+                'button[data-testid*="time-slot"]',
+                ".swiper-slide button",
+                'button:contains("AM")',
+                'button:contains("PM")',
+                '[class*="time"]',
+              ];
+
+              for (const selector of iframeTimeSlotSelectors) {
+                try {
+                  const elements = iframeDoc.querySelectorAll(selector);
+                  console.log(`Iframe selector ${selector}: ${elements.length} elements`);
+
+                  for (const element of elements) {
+                    const timeText = element.textContent?.trim();
+                    const timeRegex = /\b\d{1,2}:\d{2}\s*(AM|PM)\b/i;
+                    if (
+                      timeText &&
+                      timeRegex.test(timeText) &&
+                      !iframeTimeSlots.includes(timeText)
+                    ) {
+                      iframeTimeSlots.push(timeText);
+                      console.log(`✅ Iframe time slot: ${timeText}`);
+                    }
+                  }
+                } catch (e) {
+                  console.log(`Iframe selector failed: ${selector}`, e.message);
+                }
+              }
+
+              // Also scan iframe text for time patterns
+              const iframeText = iframeDoc.body?.textContent || "";
+              const iframeTimeMatches = iframeText.match(/\b\d{1,2}:\d{2}\s*(AM|PM)\b/gi) || [];
+              iframeTimeMatches.forEach((match) => {
+                if (!iframeTimeSlots.includes(match) && iframeTimeSlots.length < 20) {
+                  iframeTimeSlots.push(match);
+                }
+              });
+            } else {
+              iframeError = "Cannot access iframe content (cross-origin restriction)";
+            }
+          }
+        } catch (e) {
+          iframeError = `Iframe access error: ${e.message}`;
+        }
+      }
+
       return {
-        available: times.length > 0 || bookingIndicators.hasBooksyCalendar,
+        available:
+          times.length > 0 || bookingIndicators.hasBooksyCalendar || iframeTimeSlots.length > 0,
         times: times.slice(0, 15),
 
         // 🎉 Enhanced availability detection (breakthrough update!)
@@ -1428,6 +1620,11 @@ async function debugAppointmentFlow(env, serviceName) {
         availableDays: bookingIndicators.booksyAvailableDays,
         hasTimePeriods: bookingIndicators.hasTimePeriods,
         hasContinueButton: bookingIndicators.hasContinueButton,
+
+        // 🚀 NEW: Iframe breakthrough results
+        iframeDetected: bookingIndicators.hasBookingModal && bookingIndicators.hasBookingIframe,
+        iframeTimeSlots: iframeTimeSlots,
+        iframeError: iframeError,
 
         // 📊 Debug info
         selectorResults: selectorResults,
@@ -1440,11 +1637,14 @@ async function debugAppointmentFlow(env, serviceName) {
         breakthrough: true, // Flag that we're using the new detection!
 
         // 💡 Helpful interpretation
-        interpretation: bookingIndicators.hasBooksyCalendar
-          ? "Booksy calendar interface detected! Calendar is loaded and ready for booking."
-          : times.length > 0
-          ? `Found ${times.length} time slots available for booking.`
-          : "No time slots detected. May need to select a date first or booking interface isn't fully loaded.",
+        interpretation:
+          iframeTimeSlots.length > 0
+            ? `BREAKTHROUGH! Found ${iframeTimeSlots.length} time slots in booking iframe!`
+            : bookingIndicators.hasBooksyCalendar
+            ? "Booksy calendar interface detected! Calendar is loaded and ready for booking."
+            : times.length > 0
+            ? `Found ${times.length} time slots available for booking.`
+            : "No time slots detected. May need to select a date first or booking interface isn't fully loaded.",
       };
     });
 
