@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.0 - Dynamic Booksy MCP Server (2025-07-06)
+
+- **Dynamic service scraping** - Real-time Playwright scraper replaces static hardcoded service data
+- **GPT function calling** - Intelligent service requests with get_booksy_services, search_booksy_services, get_service_recommendations, get_booking_instructions
+- **Robust fallback system** - Comprehensive backup service data when scraping fails
+- **Removed 270+ lines** of hardcoded bypass logic - GPT now handles all service requests naturally
+- **Enhanced booking experience** - Dynamic search instructions with "Ctrl+F" tips for each service
+- **Smart caching** - 1-hour TTL with graceful degradation and error handling
+- **Comprehensive testing** - All MCP endpoints verified with proper error handling
+
 ## v1.7.2 - Changelog Consolidation (2025-07-05)
 
 - **Consolidated changelog** - removed verbose descriptions, kept essential information

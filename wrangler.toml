@@ -4,13 +4,18 @@ compatibility_flags = ["nodejs_compat"]
 main = "workers/router.js"
 route = "https://wa.tataoro.com/*"
 
+[browser]
+binding = "BROWSER"
+
 [[kv_namespaces]]
 binding = "CHAT_HISTORY"
 id = "d153e5f2f8fd404e8e7778c494396215"
+preview_id = "d153e5f2f8fd404e8e7778c494396215"
 
 [[kv_namespaces]]
 binding = "DOC_KNOWLEDGE"
 id = "c4281158fd7346fdac1f9e10bc092079"
+preview_id = "c4281158fd7346fdac1f9e10bc092079"
 
 [[r2_buckets]]
 binding = "MEDIA_BUCKET"

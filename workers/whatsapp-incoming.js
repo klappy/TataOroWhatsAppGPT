@@ -18,17 +18,12 @@ import {
   mediaPrefix,
   normalizePhoneNumber,
 } from "../shared/storageKeys.js";
-import { chatCompletion } from "../shared/gpt.js";
+import { chatCompletion, executeFunctionCall, BOOKSY_FUNCTIONS } from "../shared/gpt.js";
 import { SYSTEM_PROMPT } from "../shared/systemPrompt.js";
 import { sendConsultationEmail } from "../shared/emailer.js";
 import { generateOrFetchSummary } from "../shared/summary.js";
 import { deleteR2Objects, r2KeyFromUrl } from "../shared/r2.js";
-import {
-  getServices,
-  getServiceRecommendations,
-  searchServices,
-  getBookingLink,
-} from "./booksy-mcp.js";
+// Booksy MCP functions removed - GPT now handles service requests naturally
 
 export async function handleWhatsAppRequest(request, env, ctx) {
   const url = new URL(request.url);
@@ -189,285 +184,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
     });
   }
 
-  // Check for booking-related keywords
-  const bookingKeywords = [
-    "services",
-    "prices",
-    "pricing",
-    "book",
-    "booking",
-    "appointment",
-    "schedule",
-    "cost",
-    "how much",
-    "what services",
-    "service list",
-    "available",
-    "treatments",
-    "curly cut",
-    "color",
-    "consultation",
-    "free",
-    "diagnostic",
-    "full rizos",
-    "curly adventure",
-    "curly experience",
-    "full curly",
-    "experience",
-    "rizos",
-    "adventure",
-    "scalp treatment",
-    "spa service",
-    "restructuring",
-    "bridal",
-  ];
-  const hasBookingKeyword = bookingKeywords.some((keyword) =>
-    incoming.includes(keyword.toLowerCase())
-  );
-
-  if (hasBookingKeyword) {
-    try {
-      let booksyResponse = "";
-
-      // Helper function for escaping XML
-      function escapeXml(unsafe) {
-        return unsafe
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&apos;");
-      }
-
-      // Check if user is asking for a specific service by name or wants to book a specific service
-      const serviceMatches = [
-        { keywords: ["diagnostic", "consultation", "diagnóstico"], serviceId: "diagnostic" },
-        {
-          keywords: [
-            "curly adventure first",
-            "first time adventure",
-            "adventure first",
-            "first time",
-            "new client adventure",
-          ],
-          serviceId: "curlyAdventureFirst",
-        },
-        {
-          keywords: ["curly cut", "cut definition", "simple definition", "cut + definition"],
-          serviceId: "curlyCutDefinition",
-        },
-        {
-          keywords: [
-            "curly adventure regular",
-            "regular adventure",
-            "adventure regular",
-            "regular client",
-          ],
-          serviceId: "curlyAdventureRegular",
-        },
-        {
-          keywords: [
-            "full rizos",
-            "cliente nuevo",
-            "full curly",
-            "curly experience",
-            "full experience",
-            "rizos",
-            "full curly hair experience",
-            "full curly experience",
-          ],
-          serviceId: "fullRizos",
-        },
-        {
-          keywords: ["deep wash", "wash style", "wash only", "wash and style"],
-          serviceId: "deepWashStyle",
-        },
-        {
-          keywords: ["curly color experience", "curly color", "color experience"],
-          serviceId: "curlyColor",
-        },
-        { keywords: ["hair color", "cambio de color", "color change"], serviceId: "hairColor" },
-        {
-          keywords: ["scalp treatment", "masaje chino", "chinese massage", "scalp massage"],
-          serviceId: "scalpTreatment",
-        },
-        {
-          keywords: ["scalp treatment men", "masaje chino hombre", "men scalp", "scalp men"],
-          serviceId: "scalpTreatmentMen",
-        },
-        {
-          keywords: ["curly spa", "hair growth treatment", "spa service", "spa"],
-          serviceId: "curlySpa",
-        },
-        { keywords: ["photon therapy", "terapia photon", "photon"], serviceId: "photonTherapy" },
-        {
-          keywords: ["curly restructuring", "restructuring", "restructure"],
-          serviceId: "curlyRestructuring",
-        },
-        {
-          keywords: ["bridal", "bride", "airbrush makeup", "wedding", "bridal makeup"],
-          serviceId: "bridalService",
-        },
-      ];
-
-      const specificService = serviceMatches.find((match) =>
-        match.keywords.some((keyword) => incoming.includes(keyword.toLowerCase()))
-      );
-
-      console.log("Service matching debug:", {
-        incoming: incoming,
-        foundMatch: !!specificService,
-        matchedService: specificService?.serviceId,
-        allMatches: serviceMatches.map((match) => ({
-          serviceId: match.serviceId,
-          matched: match.keywords.some((keyword) => incoming.includes(keyword.toLowerCase())),
-          matchingKeywords: match.keywords.filter((keyword) =>
-            incoming.includes(keyword.toLowerCase())
-          ),
-        })),
-      });
-
-      if (specificService) {
-        // User asked for a specific service - provide direct booking link
-        const bookingData = getBookingLink(specificService.serviceId);
-        if (bookingData && !bookingData.error) {
-          const service = bookingData.service;
-          booksyResponse = `✨ Perfect! Here's everything you need to book "${service.name}":\n\n`;
-          booksyResponse += `📋 Service Details:\n`;
-          booksyResponse += `• Duration: ${service.duration} minutes\n`;
-          booksyResponse += `• Price: ${
-            service.price === 0 ? "FREE" : "Starting at $" + service.price
-          }\n`;
-          booksyResponse += `• ${service.description}\n\n`;
-          if (service.priceNote) {
-            booksyResponse += `💰 Pricing: ${service.priceNote}\n\n`;
-          }
-          booksyResponse += `🔗 BOOK NOW: ${bookingData.bookingUrl}\n\n`;
-          booksyResponse += `📍 Location: ${bookingData.location}\n\n`;
-          booksyResponse += `📝 Booking Steps:\n`;
-          bookingData.instructions.forEach((step, index) => {
-            booksyResponse += `${index + 1}. ${step}\n`;
-          });
-          booksyResponse += `\n${bookingData.tip}\n\n`;
-          booksyResponse += `💡 Next Steps:\n`;
-          bookingData.nextSteps.forEach((step, index) => {
-            booksyResponse += `• ${step}\n`;
-          });
-        }
-      } else {
-        // Determine what type of booking info to provide
-        if (incoming.includes("first time") || incoming.includes("new client")) {
-          // Get recommendations for first-time clients
-          const data = getServiceRecommendations("first-time");
-          if (data.recommendations) {
-            booksyResponse = `🌟 Perfect! Here are my recommendations for first-time clients:\n\n`;
-            booksyResponse += `${data.explanation}\n\n`;
-            data.recommendations.forEach((service) => {
-              booksyResponse += `• ${service.name}\n`;
-              booksyResponse += `  ${
-                service.price === 0 ? "FREE" : "Starting at $" + service.price
-              } | ${service.duration} min\n`;
-              booksyResponse += `  ${service.description}\n`;
-              if (service.priceNote) {
-                booksyResponse += `  💰 ${service.priceNote}\n`;
-              }
-              booksyResponse += `\n`;
-            });
-            booksyResponse += `⚠️ IMPORTANT: All prices are starting prices for short hair. Longer or denser hair may cost up to 2x more due to additional time required.\n\n`;
-            booksyResponse += `📅 Ready to book? Tell me which service interests you and I'll give you the direct booking link!\n\n`;
-            booksyResponse += `💡 I recommend starting with the FREE consultation to understand your hair type!`;
-          }
-        } else if (incoming.includes("color") || incoming.includes("colour")) {
-          // Search for color services
-          const data = searchServices("color");
-          if (data.services) {
-            booksyResponse = `🎨 Here are my color services:\n\n`;
-            data.services.forEach((service) => {
-              booksyResponse += `• ${service.name}\n`;
-              booksyResponse += `  Starting at $${service.price} | ${service.duration} min\n`;
-              booksyResponse += `  ${service.description}\n`;
-              if (service.priceNote) {
-                booksyResponse += `  💰 ${service.priceNote}\n`;
-              }
-              booksyResponse += `\n`;
-            });
-            booksyResponse += `⚠️ IMPORTANT: All prices are starting prices for short hair. Longer or denser hair may cost up to 2x more due to additional time required.\n\n`;
-            booksyResponse += `📅 Tell me which color service interests you and I'll provide the direct booking link!`;
-          }
-        } else if (incoming.includes("cut") || incoming.includes("curly cut")) {
-          // Search for curly cut services
-          const data = searchServices("cut");
-          if (data.services) {
-            booksyResponse = `✂️ Here are my curly cut services:\n\n`;
-            data.services.forEach((service) => {
-              booksyResponse += `• ${service.name}\n`;
-              booksyResponse += `  Starting at $${service.price} | ${service.duration} min\n`;
-              booksyResponse += `  ${service.description}\n`;
-              if (service.priceNote) {
-                booksyResponse += `  💰 ${service.priceNote}\n`;
-              }
-              booksyResponse += `\n`;
-            });
-            booksyResponse += `⚠️ IMPORTANT: All prices are starting prices for short hair. Longer or denser hair may cost up to 2x more due to additional time required.\n\n`;
-            booksyResponse += `📅 Tell me which cut service interests you and I'll provide the direct booking link!`;
-          }
-        } else {
-          // Show all services
-          const data = getServices("all");
-          if (data.services) {
-            booksyResponse = `💇‍♀️ Here are all my services:\n\n`;
-
-            // Group by category
-            const categories = {
-              consultation: "🆓 Free Consultation",
-              curly: "💫 Curly Hair Services",
-              color: "🎨 Color Services",
-              treatment: "🌿 Treatments & Therapy",
-              special: "✨ Special Services",
-            };
-
-            Object.entries(categories).forEach(([category, title]) => {
-              const categoryServices = data.services.filter((s) => s.category === category);
-              if (categoryServices.length > 0) {
-                booksyResponse += `${title}\n`;
-                categoryServices.forEach((service) => {
-                  booksyResponse += `• ${service.name} - ${
-                    service.price === 0 ? "FREE" : "Starting at $" + service.price
-                  }\n`;
-                });
-                booksyResponse += `\n`;
-              }
-            });
-
-            booksyResponse += `⚠️ IMPORTANT: All prices are starting prices for short hair. Longer or denser hair may cost up to 2x more due to additional time required.\n\n`;
-            booksyResponse += `📍 Location: 8865 Commodity Circle, Suite 7A, Orlando, 32819\n\n`;
-            booksyResponse += `📅 Tell me which service interests you and I'll provide the specific booking link!\n\n`;
-            booksyResponse += `💡 New to curly hair care? Start with the FREE consultation!`;
-          }
-        }
-      }
-
-      if (booksyResponse) {
-        // Store the interaction in session history
-        session.history.push({ role: "user", content: body });
-        session.history.push({ role: "assistant", content: booksyResponse });
-        await env.CHAT_HISTORY.put(sessionKey, JSON.stringify(session), { expirationTtl: 2592000 });
-
-        const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${escapeXml(
-          booksyResponse
-        )}</Message></Response>`;
-        return new Response(twiml, {
-          headers: {
-            "Content-Type": "text/xml; charset=UTF-8",
-            "Access-Control-Allow-Origin": "*",
-          },
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching Booksy data:", error);
-      // Fall through to normal GPT processing if Booksy fails
-    }
-  }
+  // Let GPT handle all service requests naturally - no hardcoded bypass logic needed!
 
   // Construct messages payload for OpenAI
   let prompt = SYSTEM_PROMPT;
@@ -507,8 +224,55 @@ export async function handleWhatsAppRequest(request, env, ctx) {
     messages.push({ role: "user", content: body });
   }
 
-  // Call OpenAI Chat Completion API
-  let assistantReply = await chatCompletion(messages, env.OPENAI_API_KEY);
+  // Call OpenAI Chat Completion API with function calling support
+  let assistantMessage = await chatCompletion(
+    messages,
+    env.OPENAI_API_KEY,
+    "gpt-4o",
+    0.7,
+    BOOKSY_FUNCTIONS
+  );
+  let assistantReply = "";
+
+  // Handle function calls if GPT wants to use them
+  if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
+    // Execute function calls and get results
+    const functionResults = [];
+    for (const toolCall of assistantMessage.tool_calls) {
+      try {
+        const result = await executeFunctionCall(toolCall.function, baseUrl);
+        functionResults.push({
+          tool_call_id: toolCall.id,
+          content: JSON.stringify(result),
+        });
+      } catch (error) {
+        console.error("Function call failed:", error);
+        functionResults.push({
+          tool_call_id: toolCall.id,
+          content: JSON.stringify({ error: "Function call failed", details: error.message }),
+        });
+      }
+    }
+
+    // Add function call message and results to conversation
+    messages.push(assistantMessage);
+    messages.push(
+      ...functionResults.map((result) => ({
+        role: "tool",
+        tool_call_id: result.tool_call_id,
+        content: result.content,
+      }))
+    );
+
+    // Get final response from GPT after function calls
+    const finalMessage = await chatCompletion(messages, env.OPENAI_API_KEY, "gpt-4o", 0.7);
+    assistantReply =
+      finalMessage.content?.trim() || "I'm having trouble processing that request right now.";
+  } else {
+    // No function calls - just use the regular response
+    assistantReply =
+      assistantMessage.content?.trim() || "I'm having trouble understanding that request.";
+  }
 
   // Detect assistant-generated summary
   const summaryHeader = "Client Curl Discovery Summary for Tata Oro";
