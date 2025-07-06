@@ -1187,6 +1187,208 @@ function getAppointmentFallback() {
 }
 
 /**
+ * Debug the appointment booking flow to see what elements we can find
+ */
+async function debugAppointmentFlow(env, serviceName) {
+  try {
+    const browser = await launch(env.BROWSER, {
+      args: [
+        "--disable-blink-features=AutomationControlled",
+        "--no-first-run",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+        "--disable-features=TranslateUI",
+        "--disable-ipc-flooding-protection",
+      ],
+    });
+
+    const context = await browser.newContext({
+      userAgent:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      viewport: { width: 1366, height: 768 },
+      extraHTTPHeaders: {
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate, br",
+        DNT: "1",
+        Connection: "keep-alive",
+        "Cache-Control": "max-age=0",
+      },
+      timezoneId: "America/New_York",
+      locale: "en-US",
+      colorScheme: "light",
+    });
+
+    const page = await context.newPage();
+
+    // Add stealth script
+    await page.addInitScript(() => {
+      delete navigator.__proto__.webdriver;
+      Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3, 4, 5] });
+      Object.defineProperty(navigator, "languages", { get: () => ["en-US", "en"] });
+      Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 4 });
+      Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+    });
+
+    console.log(`🔍 Debugging appointment flow for: ${serviceName}`);
+
+    // Navigate to Booksy page
+    await page.goto(BOOKSY_URL, {
+      waitUntil: "domcontentloaded",
+      timeout: BROWSER_TIMEOUT,
+    });
+
+    // Wait a moment for page to load
+    await page.waitForTimeout(3000);
+
+    // Step 1: Analyze the initial page
+    const initialState = await page.evaluate(() => {
+      const buttons = document.querySelectorAll("button, a, [role='button']");
+      const bookingButtons = [];
+
+      buttons.forEach((btn) => {
+        const text = btn.textContent?.toLowerCase() || "";
+        if (text.includes("book") || text.includes("schedule") || text.includes("appointment")) {
+          bookingButtons.push({
+            text: btn.textContent.trim(),
+            tagName: btn.tagName,
+            className: btn.className,
+            id: btn.id,
+          });
+        }
+      });
+
+      return {
+        totalButtons: buttons.length,
+        bookingButtons: bookingButtons,
+        pageTitle: document.title,
+        url: window.location.href,
+        bodyText: document.body.textContent.substring(0, 500),
+      };
+    });
+
+    // Step 2: Try to find and click a service
+    const serviceClickResult = await page.evaluate((targetService) => {
+      // Use the improved selectors
+      const serviceElements = document.querySelectorAll(
+        '[data-testid*="service"], .purify_ZtDKuJ5JIyjeYoNm2V1flg\\=\\=, li[class*="purify"], div[class*="purify"]'
+      );
+
+      const matchingServices = [];
+
+      for (const element of serviceElements) {
+        const textContent = element.textContent || "";
+
+        if (
+          textContent.toLowerCase().includes(targetService.toLowerCase()) ||
+          textContent.toLowerCase().includes("curly") ||
+          textContent.toLowerCase().includes("consultation") ||
+          textContent.toLowerCase().includes("adventure")
+        ) {
+          matchingServices.push({
+            text: textContent.substring(0, 100),
+            tagName: element.tagName,
+            className: element.className,
+            hasClick: !!(element.onclick || element.getAttribute("role") === "button"),
+          });
+
+          // Try to click it
+          try {
+            element.click();
+            return { success: true, clicked: textContent.substring(0, 100) };
+          } catch (e) {
+            // Try to find clickable children
+            const clickables = element.querySelectorAll('button, a, [role="button"]');
+            for (const clickable of clickables) {
+              try {
+                clickable.click();
+                return { success: true, clicked: clickable.textContent.substring(0, 50) };
+              } catch (e2) {
+                continue;
+              }
+            }
+          }
+        }
+      }
+
+      return {
+        success: false,
+        totalServiceElements: serviceElements.length,
+        matchingServices: matchingServices,
+      };
+    }, serviceName);
+
+    // Step 3: Wait a moment and check what happened
+    await page.waitForTimeout(2000);
+
+    // Step 4: Look for calendar/time elements
+    const calendarState = await page.evaluate(() => {
+      const timeSelectors = [
+        'button[class*="time"]',
+        '[data-testid*="time"]',
+        '[data-cy*="time"]',
+        ".time-slot",
+        '[class*="slot"]',
+        'button[class*="purify"]',
+        'div[class*="purify"]',
+        'li[class*="purify"]',
+      ];
+
+      const selectorResults = {};
+      const allTimeElements = [];
+
+      timeSelectors.forEach((selector) => {
+        const elements = document.querySelectorAll(selector);
+        selectorResults[selector] = elements.length;
+
+        Array.from(elements).forEach((el) => {
+          const text = el.textContent?.trim() || "";
+          if (text.match(/\d{1,2}:\d{2}\s*(AM|PM)/i)) {
+            allTimeElements.push({
+              text: text,
+              selector: selector,
+              tagName: el.tagName,
+            });
+          }
+        });
+      });
+
+      // Also check for AM/PM text patterns in the page
+      const bodyText = document.body.textContent || "";
+      const timeMatches = bodyText.match(/\d{1,2}:\d{2}\s*(AM|PM)/gi) || [];
+
+      return {
+        selectorResults: selectorResults,
+        timeElements: allTimeElements,
+        timeMatches: timeMatches.slice(0, 10), // First 10 matches
+        currentUrl: window.location.href,
+        currentTitle: document.title,
+      };
+    });
+
+    await browser.close();
+
+    return {
+      serviceName: serviceName,
+      timestamp: new Date().toISOString(),
+      steps: {
+        initialState: initialState,
+        serviceClickResult: serviceClickResult,
+        calendarState: calendarState,
+      },
+    };
+  } catch (error) {
+    return {
+      error: "Debug failed",
+      message: error.message,
+      serviceName: serviceName,
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
+
+/**
  * Main request handler with enhanced error boundaries
  */
 export default {
@@ -1379,6 +1581,14 @@ async function handleRequest(request, env) {
 
     if (path === "/booksy/debug") {
       const debugInfo = await debugBooksyPage(env);
+      return new Response(JSON.stringify(debugInfo), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (path === "/booksy/debug-appointments") {
+      const serviceName = url.searchParams.get("service") || "Consultation";
+      const debugInfo = await debugAppointmentFlow(env, serviceName);
       return new Response(JSON.stringify(debugInfo), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
