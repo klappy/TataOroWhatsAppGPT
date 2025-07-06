@@ -597,274 +597,37 @@ async function getAvailableAppointments(env, serviceName, preferredDates = null)
       console.log("⚠️ Standard selectors not found, proceeding anyway...");
     }
 
-    // 🎯 SIMPLIFIED: Try to click a book button (but don't fail if we can't)
-    const serviceClicked = await page.evaluate((targetService) => {
-      console.log(`🔍 SIMPLIFIED: Quick search for any Book button...`);
-
-      // Just try to find any Book button quickly
-      const bookButtons = document.querySelectorAll("button, div, a");
-
-      for (const btn of bookButtons) {
-        const btnText = btn.textContent?.trim() || "";
-        if (btnText.includes("Book") && btnText.length < 100) {
-          console.log(`📍 SIMPLIFIED: Clicking Book button: ${btnText.substring(0, 50)}`);
-          btn.click();
-          return true;
+    // Wait for calendar to load
+    await page.waitForSelector(".b-datepicker", { timeout: 8000 });
+    const results = [];
+    const days = await page.$$(".b-datepicker-day:not(.b-datepicker-day-disabled)");
+    for (const day of days) {
+      await day.click();
+      await page.waitForTimeout(1000);
+      for (const period of ["Morning", "Afternoon", "Evening"]) {
+        const tab = await page.$(`button:has-text(\"${period}\")`);
+        if (tab) {
+          await tab.click();
+          await page.waitForTimeout(800);
+        }
+        // Extract all time buttons
+        const timeButtons = await page.$$("button");
+        for (const btn of timeButtons) {
+          const text = await btn.textContent();
+          if (text && /\d{1,2}:\d{2}\s*(AM|PM)/.test(text)) {
+            results.push({
+              date: (await day.getAttribute("aria-label")) || (await day.textContent()),
+              time: text.trim(),
+            });
+          }
         }
       }
-
-      console.log(`⚠️ No Book button found, but continuing anyway...`);
-      return false;
-    }, serviceName);
-
-    // 🎯 SIMPLIFIED: Just wait a bit and go straight to calendar detection
-    console.log("📅 SIMPLIFIED: Going straight to breakthrough calendar detection...");
-    await page.waitForTimeout(serviceClicked ? 5000 : 2000);
-
-    // 🎉 PRODUCTION BREAKTHROUGH: Enhanced appointment extraction with REAL calendar detection!
-    const appointments = await Promise.race([
-      page.evaluate(() => {
-        console.log("🎉 BREAKTHROUGH: Production calendar detection with proven selectors!");
-
-        // ⭐ PRODUCTION-READY: Real Booksy calendar selectors (CONFIRMED WORKING in debug!)
-        const timeSelectors = [
-          // 🗓️ ACTUAL Booksy calendar elements (PROVEN by local debugging + debug endpoint)
-          ".b-datepicker",
-          ".b-datepicker-days-row",
-          ".b-datepicker-day-today",
-          ".b-datepicker-day:not(.b-datepicker-day-disabled)",
-          ".b-datepicker li:not(.b-datepicker-day-disabled)",
-          '[data-testid*="datepicker"]',
-          "[data-v-47ed1a38]", // Booksy-specific attribute
-
-          // 🕐 Time period tabs and buttons (from your screenshot!) - Fixed CSS selectors
-          'button[data-testid*="morning"]',
-          'button[data-testid*="afternoon"]',
-          'button[data-testid*="evening"]',
-
-          // 🎯 Actual time buttons (the 1:30 PM, 1:45 PM, etc from your screenshot)
-          'button[aria-label*="PM"]',
-          'button[aria-label*="AM"]',
-
-          // 📅 Modal and booking interface (confirmed working)
-          '[class*="modal"] button',
-          '[role="modal"] button',
-          '[role="dialog"] button',
-
-          // 📦 Booksy purify classes (confirmed present)
-          'button[class*="purify"]',
-          'div[class*="purify"]',
-          'li[class*="purify"]',
-
-          // 🔄 Enhanced date/calendar selectors
-          '[class*="date"]',
-          '[data-testid*="date"]',
-          '[class*="calendar"]',
-          '[data-testid*="calendar"]',
-
-          // 🔘 Continue button (from your screenshot) - Fixed CSS selector
-          'button[type="submit"]',
-          'button[data-testid*="continue"]',
-
-          // ⚡ Generic fallbacks (keep as backup)
-          "button",
-          'div[role="button"]',
-          'a[role="button"]',
-        ];
-
-        const allElements = [];
-        const selectorResults = {};
-
-        timeSelectors.forEach((selector) => {
-          try {
-            const elements = document.querySelectorAll(selector);
-            selectorResults[selector] = elements.length;
-            allElements.push(...elements);
-          } catch (e) {
-            selectorResults[selector] = 0;
-          }
-        });
-
-        console.log(`Found ${allElements.length} total clickable elements`);
-
-        const times = [];
-        const timeRegex = /\b\d{1,2}:\d{2}\s*(AM|PM)\b|\b\d{1,2}\s*(AM|PM)\b/i;
-
-        // 🎯 Strategy 1: Look for Booksy calendar structure (from breakthrough debugging!)
-        const booksyCalendar = document.querySelector(".b-datepicker");
-        if (booksyCalendar) {
-          console.log("🎉 FOUND BOOKSY CALENDAR! Extracting real appointment data...");
-
-          // Look for clickable day elements
-          const availableDays = booksyCalendar.querySelectorAll(
-            ".b-datepicker-day:not(.b-datepicker-day-disabled)"
-          );
-          console.log(`📅 Found ${availableDays.length} available days`);
-
-          // Look for time period tabs (Morning/Afternoon/Evening)
-          const timePeriods = document.querySelectorAll("button");
-          const periods = [];
-          timePeriods.forEach((btn) => {
-            const text = btn.textContent?.trim() || "";
-            if (text === "Morning" || text === "Afternoon" || text === "Evening") {
-              periods.push(text);
-            }
-          });
-
-          if (periods.length > 0) {
-            console.log(`🕐 Found time periods: ${periods.join(", ")}`);
-          }
-
-          // Look for actual time buttons (1:30 PM, 1:45 PM, etc from your screenshot)
-          const timeButtons = document.querySelectorAll("button");
-          timeButtons.forEach((btn) => {
-            const text = btn.textContent?.trim() || "";
-            if (timeRegex.test(text) && text.length < 20) {
-              console.log(`⏰ Found time button: ${text}`);
-              if (!times.includes(text)) {
-                times.push(text);
-              }
-            }
-          });
-        }
-
-        // Strategy 2: Enhanced time element detection
-        for (let i = 0; i < Math.min(allElements.length, 100); i++) {
-          const element = allElements[i];
-          const timeText = element.textContent?.trim();
-
-          if (timeText && timeRegex.test(timeText) && timeText.length < 50) {
-            console.log(`✅ Found time element: ${timeText}`);
-            if (!times.includes(timeText)) {
-              times.push(timeText);
-            }
-          }
-        }
-
-        // Strategy 2: Look for buttons that might be time slots (even without obvious time text)
-        const potentialTimeButtons = [];
-        for (const element of allElements) {
-          const text = element.textContent?.trim() || "";
-          const isButton =
-            element.tagName === "BUTTON" || element.getAttribute("role") === "button";
-
-          // Look for short clickable text that could be times
-          if (
-            isButton &&
-            text.length > 1 &&
-            text.length < 20 &&
-            (text.match(/\d/) || text.includes("AM") || text.includes("PM"))
-          ) {
-            potentialTimeButtons.push(text);
-          }
-        }
-
-        console.log(`Found ${potentialTimeButtons.length} potential time buttons`);
-
-        // Strategy 3: Scan entire page text for time patterns
-        const allText = document.body.textContent || "";
-        const timeMatches = allText.match(/\b\d{1,2}:\d{2}\s*(AM|PM)\b/gi) || [];
-
-        if (timeMatches.length > 0) {
-          console.log(`Found ${timeMatches.length} time patterns in page text`);
-          timeMatches.forEach((match) => {
-            if (!times.includes(match) && times.length < 15) {
-              times.push(match);
-            }
-          });
-        }
-
-        // 🎯 Strategy 4: Look for REAL Booksy booking interface indicators (breakthrough discoveries!)
-        const bookingIndicators = {
-          // 🗓️ Real Booksy calendar detection
-          hasBooksyCalendar: document.querySelectorAll(".b-datepicker").length > 0,
-          booksyCalendarElements: document.querySelectorAll(".b-datepicker").length,
-          booksyDayRows: document.querySelectorAll(".b-datepicker-days-row").length,
-          booksyAvailableDays: document.querySelectorAll(
-            ".b-datepicker-day:not(.b-datepicker-day-disabled)"
-          ).length,
-
-          // 🕐 Time period detection (Morning/Afternoon/Evening from your screenshot)
-          hasTimePeriods: ["Morning", "Afternoon", "Evening"].some((period) =>
-            document.body.textContent.includes(period)
-          ),
-
-          // 📅 Generic calendar/booking detection (backup)
-          hasCalendar:
-            document.querySelectorAll('[class*="calendar"], [data-testid*="calendar"]').length > 0,
-          hasBooking:
-            document.querySelectorAll('[class*="booking"], [data-testid*="booking"]').length > 0,
-          hasModal:
-            document.querySelectorAll('[class*="modal"], [role="modal"], [role="dialog"]').length >
-            0,
-          hasTimeSelector:
-            document.querySelectorAll('[class*="time"], [data-testid*="time"]').length > 0,
-
-          // 🔘 Continue button detection (from your screenshot) - Enhanced detection
-          hasContinueButton: Array.from(document.querySelectorAll("button")).some((btn) =>
-            btn.textContent?.trim().toLowerCase().includes("continue")
-          ),
-
-          // 📦 Booksy-specific elements
-          hasPurifyElements: document.querySelectorAll('[class*="purify"]').length > 0,
-        };
-
-        return {
-          available: times.length > 0 || bookingIndicators.hasBooksyCalendar,
-          times: times.slice(0, 15), // Return up to 15 time slots
-          date: new Date().toLocaleDateString(),
-
-          // 🎉 Enhanced availability detection (breakthrough update!)
-          booksyCalendarDetected: bookingIndicators.hasBooksyCalendar,
-          availableDays: bookingIndicators.booksyAvailableDays,
-          hasTimePeriods: bookingIndicators.hasTimePeriods,
-          hasContinueButton: bookingIndicators.hasContinueButton,
-
-          // 📊 Debug info
-          quickScrape: true,
-          upgraded: true,
-          breakthrough: true, // Flag that we're using the new detection!
-          totalElements: allElements.length,
-          selectorResults: selectorResults,
-          potentialTimeButtons: potentialTimeButtons.slice(0, 10),
-          bookingIndicators: bookingIndicators,
-          timeMatchCount: timeMatches.length,
-
-          // 💡 Helpful interpretation
-          interpretation: bookingIndicators.hasBooksyCalendar
-            ? "Booksy calendar interface detected! Calendar is loaded and ready for booking."
-            : times.length > 0
-            ? `Found ${times.length} time slots available for booking.`
-            : "No time slots detected. May need to select a date first or booking interface isn't fully loaded.",
-        };
-      }),
-      // Longer timeout for comprehensive search
-      new Promise((_, reject) =>
-        setTimeout(
-          () => reject(new Error("Comprehensive appointment search timeout")),
-          EVALUATION_TIMEOUT + 5000
-        )
-      ),
-    ]);
-
-    await browser.close();
-
-    if (appointments && appointments.times && appointments.times.length > 0) {
-      await env.CHAT_HISTORY.put(
-        `booksy:appointments:${serviceName}`,
-        JSON.stringify({
-          appointments,
-          lastUpdated: new Date().toISOString(),
-          serviceName,
-        }),
-        { expirationTtl: APPOINTMENTS_CACHE_TTL }
-      );
     }
-
+    await browser.close();
     return {
       serviceName,
-      availableTimes: appointments,
-      totalSlots: appointments.times.length,
+      slots: results,
+      totalSlots: results.length,
       bookingUrl: BOOKSY_URL,
       scrapedAt: new Date().toISOString(),
     };
