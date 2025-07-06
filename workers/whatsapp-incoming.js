@@ -225,6 +225,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
   }
 
   // Use enhanced GPT completion with resilient function calling
+  let assistantReply;
   try {
     const result = await getChatCompletion(messages, env, {
       model: "gpt-4o",
