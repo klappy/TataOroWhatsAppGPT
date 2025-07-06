@@ -6,6 +6,7 @@
  */
 
 import { launch } from "@cloudflare/playwright";
+import { getNextNDates, getNextWeekdayDate, parseWeekdayName } from "../shared/dateUtils.js";
 
 const BOOKSY_URL =
   "https://booksy.com/en-us/155582_akro-beauty-by-la-morocha-makeup_hair-salon_134763_orlando/staffer/880999";
@@ -1866,10 +1867,10 @@ async function handleRequest(request, env) {
         );
       }
 
-      // Parse preferred dates if provided
-      const preferredDates = preferredDatesParam
+      // Always use today and the next 6 days if preferredDates is not provided
+      let preferredDates = preferredDatesParam
         ? preferredDatesParam.split(",").map((d) => d.trim())
-        : null;
+        : getNextNDates(7); // today + next 6 days
 
       // Try to get actual appointment times using Playwright
       const appointmentData = await getAvailableAppointments(env, serviceName, preferredDates);
