@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.9.9] - 2025-07-06
+
+- **Documentation**: Added comprehensive Booksy scraping architecture documentation
+- **Local Testing**: Created test-booksy-local.js for visible browser testing before production
+- **Development Process**: Documented local-first testing approach with screenshots and logging
+- **Architecture Decision**: ADR 018 - Always test Booksy scraping locally before deploying
 ## [1.9.6] - 2025-01-27
 
 - **Fixed Booking Availability**: Added missing BOOKSY_MCP_URL environment variable
