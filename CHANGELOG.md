@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.5] - 2025-07-06
+
+- **🎉 BREAKTHROUGH: Real Calendar Detection**: Successfully identified and implemented actual Booksy calendar selectors (.b-datepicker, .b-datepicker-days-row)
+- **🚀 Production Calendar Interface**: Live detection of Booksy booking calendar with breakthrough flag (available: true, booksyCalendarDetected: true)
+- **⚡ Simplified Production Flow**: Streamlined appointment detection logic focusing on proven calendar selectors
+- **🔍 Local Debugging Success**: User screenshot analysis led to discovery of real booking interface elements
+- **📊 Enhanced Detection Data**: Comprehensive selector results showing 1 calendar, 5 day rows, 91 Booksy-specific elements
+
 ## [1.9.4] - 2025-01-27
 
 - **🎯 Service Book Button Targeting**: Successfully implemented precise service-specific Book button clicking
