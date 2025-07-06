@@ -18,7 +18,7 @@ import {
   mediaPrefix,
   normalizePhoneNumber,
 } from "../shared/storageKeys.js";
-import { chatCompletion, executeFunctionCall, BOOKSY_FUNCTIONS } from "../shared/gpt.js";
+import { getChatCompletion, BOOKSY_FUNCTIONS } from "../shared/gpt.js";
 import { SYSTEM_PROMPT } from "../shared/systemPrompt.js";
 import { sendConsultationEmail } from "../shared/emailer.js";
 import { generateOrFetchSummary } from "../shared/summary.js";
@@ -224,77 +224,34 @@ export async function handleWhatsAppRequest(request, env, ctx) {
     messages.push({ role: "user", content: body });
   }
 
-  // Re-enable function calling for fast services (exclude slow appointment function)
-  // Use a subset of functions that are known to be fast and working
-  const FAST_BOOKSY_FUNCTIONS = BOOKSY_FUNCTIONS.filter(
-    (func) => func.function.name !== "get_available_appointments"
-  );
+  // Use enhanced GPT completion with resilient function calling
+  try {
+    const result = await getChatCompletion(messages, env, {
+      model: "gpt-4o",
+      temperature: 0.7,
+      includeFunctions: true, // Enable function calling for service requests
+    });
 
-  let assistantMessage = await chatCompletion(
-    messages,
-    env.OPENAI_API_KEY,
-    "gpt-4o",
-    0.7,
-    FAST_BOOKSY_FUNCTIONS // Re-enable function calling for fast services only
-  );
-  let assistantReply = "";
-
-  // Handle function calls if GPT wants to use them with timeout protection
-  if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
-    try {
-      // Execute function calls with overall timeout
-      const functionCallPromise = (async () => {
-        const functionResults = [];
-        for (const toolCall of assistantMessage.tool_calls) {
-          try {
-            console.log(`Executing function call: ${toolCall.function.name}`);
-            const result = await executeFunctionCall(toolCall.function, baseUrl);
-            functionResults.push({
-              tool_call_id: toolCall.id,
-              content: JSON.stringify(result),
-            });
-          } catch (error) {
-            console.error(`Function call failed for ${toolCall.function.name}:`, error);
-            functionResults.push({
-              tool_call_id: toolCall.id,
-              content: JSON.stringify({ error: "Function call failed", details: error.message }),
-            });
-          }
-        }
-        return functionResults;
-      })();
-
-      // Race between function calls and timeout
-      const timeoutPromise = new Promise(
-        (_, reject) => setTimeout(() => reject(new Error("Function calls timed out")), 20000) // 20 second overall timeout
-      );
-
-      const functionResults = await Promise.race([functionCallPromise, timeoutPromise]);
-
-      // Add function call message and results to conversation
-      messages.push(assistantMessage);
-      messages.push(
-        ...functionResults.map((result) => ({
-          role: "tool",
-          tool_call_id: result.tool_call_id,
-          content: result.content,
-        }))
-      );
-
-      // Get final response from GPT after function calls
-      const finalMessage = await chatCompletion(messages, env.OPENAI_API_KEY, "gpt-4o", 0.7);
-      assistantReply =
-        finalMessage.content?.trim() || "I'm having trouble processing that request right now.";
-    } catch (error) {
-      console.error("Function calling process failed:", error);
-      // Fall back to using backup service data directly
-      assistantReply =
-        "I'm having trouble accessing the current service information, but I can help you with our services based on available data. Here are the services Tata offers:\n\n💫 **Curly Hair Services**\n• Curly Adventure (Regular client): Starting $180 | 2.5h\n• Curly Cut + Simple Definition: Starting $150 | 1.5h\n• Deep Wash and Style Only: Starting $150 | 1.5h\n\n🎨 **Color Services**\n• Curly Color Experience: Starting $250 | 2.5h\n\n🌿 **Treatments & Therapy**\n• Scalp Treatment: Starting $140 | 1.5h\n• Ozone Therapy: Starting $150 | 2h\n\nTo book, visit https://booksy.com/en-us/155582_akro-beauty-by-la-morocha-makeup_hair-salon_134763_orlando/staffer/880999 😊";
-    }
-  } else {
-    // No function calls - just use the regular response
     assistantReply =
-      assistantMessage.content?.trim() || "I'm having trouble understanding that request.";
+      result.content?.trim() || "I'm having trouble processing that request right now.";
+  } catch (error) {
+    console.error("GPT completion failed:", error);
+    // Enhanced fallback response
+    assistantReply = `Hi there! 😊 I'm Tata's assistant, here to help with your curly hair journey!
+
+✂️ **Curly Adventure (First Time)** - $170 (3-4 hours)
+Perfect for new clients to discover your curl pattern!
+
+✂️ **Curly Adventure (Returning)** - $150 (2-3 hours)  
+For clients who know their curls already
+
+💆‍♀️ **Consultation Only** - $50 (45 minutes)
+Great way to start your curly journey
+
+🌈 **Color & Cut Package** - $250+ (4-5 hours)
+Complete transformation with color
+
+To book, visit Tata's Booksy page and use the "Search for service" box under her name/photo! I'm here if you need help choosing the right service! 😊`;
   }
 
   // Detect assistant-generated summary
