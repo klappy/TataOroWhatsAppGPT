@@ -595,23 +595,64 @@ async function getAvailableAppointments(env, serviceName, preferredDates = null)
 
     // Try to find the service by name and click its book button
     const serviceClicked = await page.evaluate((targetService) => {
+      // Use the selectors that are actually working from debug output
       const serviceElements = document.querySelectorAll(
-        '[data-testid="service-item"], .service-card, .booking-service, [class*="service"]'
+        '[data-testid*="service"], .purify_ZtDKuJ5JIyjeYoNm2V1flg\\=\\=, li[class*="purify"], div[class*="purify"]'
       );
 
+      console.log(`Found ${serviceElements.length} potential service elements`);
+
       for (const element of serviceElements) {
-        const nameEl = element.querySelector(
-          'h3, .service-name, [class*="title"], [class*="name"]'
-        );
-        if (nameEl && nameEl.textContent.includes(targetService)) {
-          // Find and click the book button for this service
-          const bookButton = element.querySelector('button, [class*="book"], [class*="select"], a');
-          if (bookButton) {
-            bookButton.click();
+        const textContent = element.textContent || "";
+
+        // Look for service names in text content (like "Diagnóstico capilar", "Curly Adventure", etc.)
+        if (
+          textContent.toLowerCase().includes(targetService.toLowerCase()) ||
+          textContent.toLowerCase().includes("curly") ||
+          textContent.toLowerCase().includes("consultation") ||
+          textContent.toLowerCase().includes("adventure")
+        ) {
+          console.log(`Found potential service match: ${textContent.substring(0, 50)}`);
+
+          // Look for clickable elements (buttons, links, or interactive divs)
+          const clickables = element.querySelectorAll(
+            'button, a, [role="button"], div[class*="button"], [onclick]'
+          );
+          for (const clickable of clickables) {
+            if (
+              clickable.textContent.toLowerCase().includes("book") ||
+              clickable.textContent.toLowerCase().includes("select") ||
+              clickable.textContent.toLowerCase().includes("choose")
+            ) {
+              console.log(`Clicking book button: ${clickable.textContent}`);
+              clickable.click();
+              return true;
+            }
+          }
+
+          // If no explicit book button, try clicking the service element itself
+          if (element.onclick || element.getAttribute("role") === "button") {
+            console.log(`Clicking service element directly`);
+            element.click();
             return true;
           }
         }
       }
+
+      // Fallback: try to find any booking-related buttons on the page
+      const bookButtons = document.querySelectorAll('button, a, [role="button"]');
+      for (const button of bookButtons) {
+        if (
+          button.textContent.toLowerCase().includes("book") ||
+          button.textContent.toLowerCase().includes("schedule") ||
+          button.textContent.toLowerCase().includes("appointment")
+        ) {
+          console.log(`Found general book button: ${button.textContent}`);
+          button.click();
+          return true;
+        }
+      }
+
       return false;
     }, serviceName);
 
@@ -625,12 +666,17 @@ async function getAvailableAppointments(env, serviceName, preferredDates = null)
     await page.waitForTimeout(6000); // Wait 6 seconds for calendar to fully load
 
     // Then wait for calendar elements to be present
-    await page.waitForSelector(
-      '[data-testid="calendar"], .calendar, [class*="calendar"], [class*="time"], [class*="slot"], [class*="date"]',
-      {
-        timeout: 10000,
-      }
-    );
+    try {
+      await page.waitForSelector(
+        '[data-testid*="calendar"], [data-testid*="time"], [data-testid*="slot"], [class*="calendar"], [class*="time"], [class*="slot"], [class*="date"], button[class*="purify"]',
+        {
+          timeout: 10000,
+        }
+      );
+      console.log("✅ Calendar elements found");
+    } catch (e) {
+      console.log("⚠️ Calendar elements not found, continuing anyway...");
+    }
 
     // Enhanced appointment scraping with upgraded browser capacity
     await page.goto(BOOKSY_URL, {
@@ -655,27 +701,65 @@ async function getAvailableAppointments(env, serviceName, preferredDates = null)
     // Enhanced appointment extraction with improved timeout
     const appointments = await Promise.race([
       page.evaluate(() => {
-        // Quick time slot detection
-        const timeElements = document.querySelectorAll(
-          'button[class*="time"], [data-cy*="time"], .time-slot, [class*="slot"], button:contains("AM"), button:contains("PM")'
-        );
+        console.log("🕐 Looking for time slots...");
+
+        // Enhanced time slot detection with multiple selector strategies
+        const timeSelectors = [
+          'button[class*="time"]',
+          '[data-testid*="time"]',
+          '[data-cy*="time"]',
+          ".time-slot",
+          '[class*="slot"]',
+          'button[class*="purify"]', // Based on Booksy's current class structure
+          'div[class*="purify"]',
+          'li[class*="purify"]',
+        ];
+
+        const allElements = [];
+        timeSelectors.forEach((selector) => {
+          const elements = document.querySelectorAll(selector);
+          allElements.push(...elements);
+        });
+
+        console.log(`Found ${allElements.length} potential time elements`);
 
         const times = [];
-        // Process max 15 time slots (increased from 10)
-        for (let i = 0; i < Math.min(timeElements.length, 15); i++) {
-          const element = timeElements[i];
+        const timeRegex = /\d{1,2}:\d{2}\s*(AM|PM)|(\d{1,2})\s*(AM|PM)/i;
+
+        // Process max 20 time slots
+        for (let i = 0; i < Math.min(allElements.length, 20); i++) {
+          const element = allElements[i];
           const timeText = element.textContent?.trim();
-          if (timeText && (timeText.includes("AM") || timeText.includes("PM"))) {
+
+          if (timeText && timeRegex.test(timeText)) {
+            console.log(`Found time slot: ${timeText}`);
             times.push(timeText);
           }
         }
 
+        // Also look for any text that contains AM/PM patterns
+        const allText = document.body.textContent || "";
+        const timeMatches = allText.match(/\d{1,2}:\d{2}\s*(AM|PM)/gi);
+        if (timeMatches) {
+          timeMatches.forEach((match) => {
+            if (!times.includes(match) && times.length < 10) {
+              console.log(`Found time in text: ${match}`);
+              times.push(match);
+            }
+          });
+        }
+
         return {
           available: times.length > 0,
-          times: times.slice(0, 8), // More time slots returned
+          times: times.slice(0, 10), // Return up to 10 time slots
           date: new Date().toLocaleDateString(),
           quickScrape: true,
-          upgraded: true, // Flag to indicate enhanced scraping
+          upgraded: true,
+          totalElements: allElements.length,
+          selectorResults: timeSelectors.map((sel) => ({
+            selector: sel,
+            count: document.querySelectorAll(sel).length,
+          })),
         };
       }),
       // Enhanced timeout for evaluation
