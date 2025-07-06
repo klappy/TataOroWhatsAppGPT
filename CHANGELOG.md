@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.10.3] - 2025-07-06
+
+- **🎯 BREAKTHROUGH: Replaced Broken Calendar Logic with Proven Iframe Approach**
+- **Fixed Core Issue**: Production appointment detection was using old `.b-datepicker` logic instead of working iframe approach
+- **Book Button Integration**: Added exact service targeting and clicking using `data-testid` selectors
+- **Iframe Detection**: Multi-attempt iframe detection with fallback for production timing differences
+- **Time Slot Extraction**: Working extraction from booking iframe using `a[data-testid^="time-slot-"]` pattern
+- **Date Detection**: Calendar swiper integration with proper day-of-week mapping from HTML
+- **Production Timing**: 4x timeout adjustments for Cloudflare infrastructure vs local development
+
+## [1.10.2] - 2025-07-06
+
+- **⏱️ PRODUCTION TIMING**: Extended all timeouts by 4x for production environment performance
+- **Enhanced Patience**: 20s interface load, 12s iframe detection, 40s evaluation timeout
+- **Remote Testing**: Validated approach using `wrangler dev --remote` (discovered browser binding limitations)
+- **Infrastructure Awareness**: Optimized for Cloudflare Workers production latency vs local dev speed
+- **Deployment Ready**: Proper timing accommodation for production Playwright execution
+
 ## [1.10.1] - 2025-07-06
 
 - **🗓️ CORRECT DATE DETECTION**: Fixed timezone bug causing wrong day of week extraction

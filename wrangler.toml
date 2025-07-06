@@ -1,5 +1,6 @@
 name = "tataoro-gpt"
 compatibility_date = "2025-05-18"
+# Version 1.10.3
 compatibility_flags = ["nodejs_compat"]
 main = "workers/router.js"
 route = "https://wa.tataoro.com/*"

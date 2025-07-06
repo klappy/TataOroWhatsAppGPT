@@ -535,7 +535,7 @@ function getServiceRecommendations(clientType = "unknown") {
  * @param {*} preferredDates - Optional array of preferred dates to check
  */
 async function getAvailableAppointments(env, serviceName, preferredDates = null) {
-  console.log(`🚀 BREAKTHROUGH: Starting appointment detection for ${serviceName}`);
+  console.log(`🚀 BREAKTHROUGH: Starting iframe-based appointment detection for ${serviceName}`);
 
   try {
     const browser = await launch(env.BROWSER, {
@@ -577,57 +577,301 @@ async function getAvailableAppointments(env, serviceName, preferredDates = null)
       Object.defineProperty(navigator, "webdriver", { get: () => undefined });
     });
 
-    console.log("🎉 BREAKTHROUGH: Simplified appointment detection with proven logic...");
+    console.log("🎯 Using proven iframe-based appointment detection...");
 
-    // Navigate to Booksy page (like debug does)
+    // Navigate to Booksy page
     await page.goto(BOOKSY_URL, {
       waitUntil: "domcontentloaded",
-      timeout: 15000, // Reasonable timeout
+      timeout: 15000,
     });
 
-    // Wait for page to load (like debug does)
+    // Wait for initial page load
     await page.waitForTimeout(3000);
 
-    console.log(`🔍 Looking for service: ${serviceName} (simplified approach)`);
+    console.log(`🔍 Looking for Book button for service: ${serviceName}`);
 
-    // Simplified service detection (don't fail if services don't load immediately)
-    try {
-      await page.waitForSelector("div, button, a", { timeout: 5000 });
-    } catch (e) {
-      console.log("⚠️ Standard selectors not found, proceeding anyway...");
+    // Find and click the Book button for the specific service (using proven logic)
+    const bookClicked = await page.evaluate(async (targetServiceName) => {
+      try {
+        console.log(`🔍 Looking for service with data-testid attributes...`);
+
+        // Find all service name headers
+        const serviceHeaders = document.querySelectorAll('h4[data-testid="service-name"]');
+        console.log(`Found ${serviceHeaders.length} service headers`);
+
+        for (const header of serviceHeaders) {
+          const headerText = header.textContent?.trim();
+          console.log(`Checking service: "${headerText}"`);
+
+          if (headerText && headerText.includes(targetServiceName)) {
+            console.log(`🎯 Found matching service: "${headerText}"`);
+
+            // Navigate up to find the Book button
+            let currentElement = header;
+            let attempts = 0;
+            const maxAttempts = 5;
+
+            while (currentElement && attempts < maxAttempts) {
+              currentElement = currentElement.parentElement;
+              attempts++;
+
+              if (currentElement) {
+                const bookButton = currentElement.querySelector(
+                  'button[data-testid="service-button"]'
+                );
+                if (bookButton) {
+                  const buttonText = bookButton.textContent?.trim();
+                  console.log(`🔘 Found Book button: "${buttonText}"`);
+
+                  // Click the button
+                  bookButton.click();
+                  console.log(`✅ Clicked Book button successfully`);
+                  return true;
+                }
+              }
+            }
+          }
+        }
+
+        console.log(`⚠️ No Book button found for service: ${targetServiceName}`);
+        return false;
+      } catch (error) {
+        console.log("❌ Error clicking service book button:", error.message);
+        return false;
+      }
+    }, serviceName);
+
+    if (!bookClicked) {
+      console.log("❌ Could not find or click Book button for service");
+      await browser.close();
+      return {
+        error: "Service Book button not found",
+        serviceName,
+        fallback: "Please visit the booking page directly to see available times",
+      };
     }
 
-    // Wait for calendar to load
-    await page.waitForSelector(".b-datepicker", { timeout: 8000 });
-    const results = [];
-    const days = await page.$$(".b-datepicker-day:not(.b-datepicker-day-disabled)");
-    for (const day of days) {
-      await day.click();
-      await page.waitForTimeout(1000);
-      for (const period of ["Morning", "Afternoon", "Evening"]) {
-        const tab = await page.$(`button:has-text(\"${period}\")`);
-        if (tab) {
-          await tab.click();
-          await page.waitForTimeout(800);
-        }
-        // Extract all time buttons
-        const timeButtons = await page.$$("button");
-        for (const btn of timeButtons) {
-          const text = await btn.textContent();
-          if (text && /\d{1,2}:\d{2}\s*(AM|PM)/.test(text)) {
-            results.push({
-              date: (await day.getAttribute("aria-label")) || (await day.textContent()),
-              time: text.trim(),
-            });
+    // Wait for booking interface to load (production timing - 4x longer than local)
+    console.log("⏳ Waiting for booking interface to load (production timing)...");
+    await page.waitForTimeout(20000); // 20 seconds (4x the 5 seconds local)
+
+    // Try to find and access the booking iframe with multiple attempts
+    console.log("🔍 Looking for booking iframe...");
+    let bookingFrame = null;
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      console.log(`🔍 Attempt ${attempt}: Looking for booking iframe...`);
+
+      try {
+        await page.waitForSelector('iframe[data-testid="booking-widget"]', { timeout: 12000 }); // 12 seconds (4x the 3 seconds local)
+
+        const iframeElement = await page.$('iframe[data-testid="booking-widget"]');
+        if (iframeElement) {
+          const iframeSrc = await iframeElement.getAttribute("src");
+          console.log(`🎯 Booking iframe src: ${iframeSrc}`);
+
+          bookingFrame = await iframeElement.contentFrame();
+          if (bookingFrame) {
+            console.log(`✅ Successfully accessed iframe content on attempt ${attempt}`);
+            break;
           }
+        }
+      } catch (e) {
+        console.log(`⚠️ Attempt ${attempt} failed: ${e.message}`);
+        if (attempt < 3) {
+          await page.waitForTimeout(8000); // Wait 8 seconds between attempts (4x the 2 seconds local)
         }
       }
     }
+
+    // Fallback: try to find any iframe
+    if (!bookingFrame) {
+      console.log("⚠️ Specific booking iframe not found, trying fallback...");
+
+      const frames = await page.frames();
+      console.log(`📱 Found ${frames.length} frames total`);
+
+      for (const frame of frames) {
+        const frameUrl = frame.url();
+        console.log(`📱 Frame URL: ${frameUrl}`);
+
+        if (
+          frameUrl.includes("widget") ||
+          frameUrl.includes("booking") ||
+          frameUrl.includes("booksy.com/widget")
+        ) {
+          console.log(`🎯 Found potential booking iframe: ${frameUrl}`);
+          bookingFrame = frame;
+          break;
+        }
+      }
+    }
+
+    if (!bookingFrame) {
+      console.log("❌ Could not find booking iframe");
+      await browser.close();
+      return {
+        error: "Booking iframe not found",
+        serviceName,
+        fallback: "Please visit the booking page directly to see available times",
+      };
+    }
+
+    console.log("📅 Booking iframe detected, extracting time slots...");
+
+    // Extract time slots and date from the iframe (using proven logic)
+    const appointmentData = await bookingFrame.evaluate(async () => {
+      const slots = [];
+      let selectedDate = "Unknown Date";
+
+      try {
+        console.log("📅 Detecting selected date from calendar...");
+
+        // Look for the selected date in the calendar swiper
+        const selectedSlide = await new Promise((resolve) => {
+          const checkSlide = () => {
+            const slide = document.querySelector(
+              '.swiper-slide[data-selected="true"].active, .swiper-slide.swiper-slide-active[data-selected="true"]'
+            );
+            if (slide) {
+              resolve(slide);
+            } else {
+              setTimeout(checkSlide, 500);
+            }
+          };
+          checkSlide();
+          setTimeout(() => resolve(null), 5000); // 5 second timeout
+        });
+
+        if (selectedSlide) {
+          const dateAttr = selectedSlide.getAttribute("data-date");
+          const monthAttr = selectedSlide.getAttribute("data-month");
+          const yearAttr = selectedSlide.getAttribute("data-year");
+
+          if (dateAttr && monthAttr && yearAttr) {
+            const dayNumber = dateAttr.split("-")[2];
+
+            // Extract day of week from HTML
+            let dayOfWeek = "Unknown";
+            const dayElement = selectedSlide.querySelector(".text-h5");
+            if (dayElement) {
+              const dayText = dayElement.textContent;
+              const dayMap = {
+                Sun: "Sunday",
+                Mon: "Monday",
+                Tue: "Tuesday",
+                Wed: "Wednesday",
+                Thu: "Thursday",
+                Fri: "Friday",
+                Sat: "Saturday",
+              };
+              dayOfWeek = dayMap[dayText] || dayText;
+            }
+
+            selectedDate = `${dayOfWeek}, ${monthAttr} ${dayNumber}`;
+            console.log(`📅 Found selected date: ${selectedDate} (${dateAttr})`);
+          }
+        }
+
+        // If no specific date found, use today as fallback
+        if (selectedDate === "Unknown Date") {
+          const today = new Date();
+          selectedDate = today.toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "short",
+            day: "numeric",
+          });
+          console.log(`📅 Using today as fallback: ${selectedDate}`);
+        }
+
+        console.log("🕐 Looking for time slots...");
+
+        // Wait for time slot carousel to load
+        await new Promise((resolve) => {
+          const checkCarousel = () => {
+            const carousel = document.querySelector(".swiper-wrapper");
+            if (carousel) {
+              resolve(carousel);
+            } else {
+              setTimeout(checkCarousel, 500);
+            }
+          };
+          checkCarousel();
+          setTimeout(() => resolve(null), 10000); // 10 second timeout
+        });
+
+        // Find all time slot elements using the data-testid pattern
+        const timeSlotElements = document.querySelectorAll('a[data-testid^="time-slot-"]');
+        console.log(`🕐 Found ${timeSlotElements.length} time slot elements`);
+
+        for (const element of timeSlotElements) {
+          try {
+            const timeText = element.textContent?.trim();
+            const testId = element.getAttribute("data-testid");
+
+            // Check if the element is clickable (not disabled)
+            const isDisabled =
+              element.classList.contains("disabled") ||
+              element.getAttribute("aria-disabled") === "true" ||
+              element.style.pointerEvents === "none";
+
+            if (!isDisabled && timeText && /\d{1,2}:\d{2}\s*(AM|PM)/i.test(timeText)) {
+              slots.push({
+                date: selectedDate,
+                time: timeText,
+                testId: testId || "unknown",
+              });
+              console.log(`✅ Available slot: ${timeText} on ${selectedDate}`);
+            }
+          } catch (elementError) {
+            console.log(`⚠️ Error processing time slot: ${elementError.message}`);
+          }
+        }
+
+        // If no data-testid elements found, try broader search
+        if (timeSlotElements.length === 0) {
+          console.log("🔍 Trying broader search for time elements...");
+          const allElements = document.querySelectorAll(
+            'a, button, [class*="time"], [class*="slot"], .chip'
+          );
+
+          for (const element of allElements) {
+            const text = element.textContent?.trim();
+            if (text && /\d{1,2}:\d{2}\s*(AM|PM)/i.test(text)) {
+              const isDisabled =
+                element.classList.contains("disabled") ||
+                element.getAttribute("aria-disabled") === "true" ||
+                element.style.pointerEvents === "none";
+
+              if (!isDisabled) {
+                slots.push({
+                  date: selectedDate,
+                  time: text,
+                  testId: "broad-search",
+                });
+                console.log(`✅ Available slot (broad search): ${text} on ${selectedDate}`);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.log("❌ Error extracting appointment data:", error.message);
+      }
+
+      return { slots, selectedDate };
+    });
+
     await browser.close();
+
+    console.log(
+      `✅ Found ${appointmentData.slots.length} available slots for ${appointmentData.selectedDate}`
+    );
+
     return {
       serviceName,
-      slots: results,
-      totalSlots: results.length,
+      selectedDate: appointmentData.selectedDate,
+      slots: appointmentData.slots,
+      totalSlots: appointmentData.slots.length,
       bookingUrl: BOOKSY_URL,
       scrapedAt: new Date().toISOString(),
     };
@@ -970,28 +1214,30 @@ async function scrapeAppointments(env, preferredDate = null) {
       page.waitForTimeout(3000), // Max 3 seconds to find booking button
     ]);
 
-    // Wait longer for the booking interface to fully load
-    console.log("⏳ Waiting for booking interface to stabilize...");
-    await page.waitForTimeout(5000);
+    // Wait longer for the booking interface to fully load (4x local timing)
+    console.log("⏳ Waiting for booking interface to stabilize (production timing)...");
+    await page.waitForTimeout(20000); // 20 seconds (4x the 5 seconds local)
 
-    // Try to wait for the booking iframe with multiple attempts
+    // Try to wait for the booking iframe with multiple attempts (longer timeouts)
     let iframeFound = false;
     for (let attempt = 1; attempt <= 3; attempt++) {
-      console.log(`🔍 Attempt ${attempt}: Looking for booking iframe...`);
+      console.log(`🔍 Attempt ${attempt}: Looking for booking iframe (production timing)...`);
 
       try {
-        await page.waitForSelector('iframe[data-testid="booking-widget"]', { timeout: 3000 });
+        await page.waitForSelector('iframe[data-testid="booking-widget"]', { timeout: 12000 }); // 12 seconds (4x the 3 seconds local)
         iframeFound = true;
         console.log(`✅ Iframe found on attempt ${attempt}`);
         break;
       } catch (e) {
         console.log(`⚠️ Attempt ${attempt} failed, trying again...`);
-        await page.waitForTimeout(2000); // Wait 2 seconds between attempts
+        await page.waitForTimeout(8000); // Wait 8 seconds between attempts (4x the 2 seconds local)
       }
     }
 
     if (!iframeFound) {
-      console.log("❌ Iframe not found after 3 attempts, checking for any iframe...");
+      console.log(
+        "❌ Iframe not found after 3 attempts with production timing, checking for any iframe..."
+      );
     }
 
     console.log("📅 Booking iframe detected, extracting time slots...");
@@ -1037,10 +1283,10 @@ async function scrapeAppointments(env, preferredDate = null) {
           return { available: false, times: [], error: "No iframe found" };
         }
 
-        console.log("✅ Found booking iframe, waiting for it to load...");
+        console.log("✅ Found booking iframe, waiting for it to load (production timing)...");
 
-        // Wait a moment for iframe to load
-        await new Promise((resolve) => setTimeout(resolve, 3000));
+        // Wait a moment for iframe to load (4x local timing)
+        await new Promise((resolve) => setTimeout(resolve, 12000)); // 12 seconds (4x the 3 seconds local)
 
         try {
           // Access iframe content
@@ -1177,9 +1423,9 @@ async function scrapeAppointments(env, preferredDate = null) {
           };
         }
       }),
-      // 10 second timeout for iframe evaluation (more generous)
+      // 40 second timeout for iframe evaluation (4x local timing)
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Iframe extraction timeout")), 10000)
+        setTimeout(() => reject(new Error("Iframe extraction timeout")), 40000)
       ),
     ]);
 
