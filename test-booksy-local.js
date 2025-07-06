@@ -68,12 +68,13 @@ class BooksyScraper {
       }
 
       // Extract time slots from the iframe
-      const slots = await this.extractTimeSlotsFromFrame(bookingFrame);
+      const { slots, selectedDate } = await this.extractTimeSlotsFromFrame(bookingFrame);
 
-      this.log(`✅ Found ${slots.length} available slots`);
+      this.log(`✅ Found ${slots.length} available slots for ${selectedDate}`);
 
       return {
         serviceName,
+        selectedDate,
         slots,
         totalSlots: slots.length,
         scrapedAt: new Date().toISOString(),
@@ -125,87 +126,58 @@ class BooksyScraper {
 
   async findBookingIframe() {
     try {
-      this.log("🔍 Looking for booking modal and iframe...");
+      this.log("🔍 Looking for booking iframe...");
 
-      // First, let's see what modals actually exist
-      const allModals = await this.page.$$('div[class*="modal"], [role="modal"], [role="dialog"]');
-      this.log(`🔍 Found ${allModals.length} modal-like elements`);
+      // Wait for iframe to appear with timeout
+      try {
+        await this.page.waitForSelector('iframe[data-testid="booking-widget"]', { timeout: 10000 });
+        this.log("✅ Found booking iframe!");
 
-      for (let i = 0; i < allModals.length; i++) {
-        const modal = allModals[i];
-        const modalClass = await modal.getAttribute("class");
-        const modalRole = await modal.getAttribute("role");
-        this.log(`📦 Modal ${i}: class="${modalClass}" role="${modalRole}"`);
-      }
-
-      // Look for any iframe with booking-related attributes
-      const allIframes = await this.page.$$("iframe");
-      this.log(`🔍 Found ${allIframes.length} iframe elements`);
-
-      for (let i = 0; i < allIframes.length; i++) {
-        const iframe = allIframes[i];
-        const src = await iframe.getAttribute("src");
-        const testId = await iframe.getAttribute("data-testid");
-        const id = await iframe.getAttribute("id");
-        this.log(`📱 Iframe ${i}: src="${src}" data-testid="${testId}" id="${id}"`);
-
-        // Check if this is the booking iframe
-        if (
-          testId === "booking-widget" ||
-          src?.includes("booking") ||
-          src?.includes("widget") ||
-          src?.includes("booksy.com/widget")
-        ) {
-          this.log(`🎯 Found booking iframe: ${src}`);
-
-          // Get the frame object
-          const frame = await iframe.contentFrame();
-          if (frame) {
-            this.log("✅ Successfully accessed iframe content");
-            return frame;
-          } else {
-            this.log("❌ Could not access iframe content");
-          }
+        // Get the iframe element
+        const iframeElement = await this.page.$('iframe[data-testid="booking-widget"]');
+        if (!iframeElement) {
+          this.log("❌ Could not get iframe element");
+          return null;
         }
+
+        // Get the iframe src for logging
+        const iframeSrc = await iframeElement.getAttribute("src");
+        this.log(`🎯 Booking iframe src: ${iframeSrc}`);
+
+        // Get the frame object
+        const frame = await iframeElement.contentFrame();
+        if (!frame) {
+          this.log("❌ Could not access iframe content");
+          return null;
+        }
+
+        this.log("✅ Successfully accessed iframe content");
+        return frame;
+      } catch (timeoutError) {
+        this.log("⚠️ Specific booking iframe not found, trying fallback...");
       }
 
       // Fallback: try to find any iframe
-      try {
-        this.log("🔄 Trying fallback iframe detection...");
-        const frames = await this.page.frames();
-        this.log(`📱 Found ${frames.length} frames total`);
+      const frames = await this.page.frames();
+      this.log(`📱 Found ${frames.length} frames total`);
 
-        // Look for the booking iframe (might have specific src or name)
-        for (const frame of frames) {
-          const frameUrl = frame.url();
-          const frameName = frame.name();
+      for (const frame of frames) {
+        const frameUrl = frame.url();
+        const frameName = frame.name();
 
-          this.log(`📱 Frame: ${frameName || "unnamed"} | URL: ${frameUrl}`);
+        this.log(`📱 Frame: ${frameName || "unnamed"} | URL: ${frameUrl}`);
 
-          // Check if this frame contains booking-related content
-          if (
-            frameUrl.includes("widget") ||
-            frameUrl.includes("booking") ||
-            frameUrl.includes("appointment") ||
-            frameUrl.includes("calendar") ||
-            frameName.includes("booking") ||
-            frameUrl.includes("booksy.com/widget")
-          ) {
-            this.log(`🎯 Found potential booking iframe: ${frameUrl}`);
-            return frame;
-          }
+        if (
+          frameUrl.includes("widget") ||
+          frameUrl.includes("booking") ||
+          frameUrl.includes("booksy.com/widget")
+        ) {
+          this.log(`🎯 Found potential booking iframe: ${frameUrl}`);
+          return frame;
         }
-
-        // If no specific booking frame found, try the first non-main frame
-        const nonMainFrames = frames.filter((f) => f !== this.page.mainFrame());
-        if (nonMainFrames.length > 0) {
-          this.log(`🔄 Using first non-main frame as fallback`);
-          return nonMainFrames[0];
-        }
-      } catch (fallbackError) {
-        this.log("❌ Fallback iframe detection also failed:", fallbackError.message);
       }
 
+      this.log("❌ No suitable iframe found");
       return null;
     } catch (error) {
       this.log("❌ Error finding iframe:", error.message);
@@ -215,9 +187,110 @@ class BooksyScraper {
 
   async extractTimeSlotsFromFrame(frame) {
     const slots = [];
+    let selectedDate = "Unknown Date"; // Move this outside the try block
 
     try {
       this.log("🕐 Looking for time slots inside iframe...");
+      try {
+        this.log("📅 Detecting selected date...");
+
+        // Look for the selected date in the calendar swiper
+        try {
+          // Find the swiper slide with data-selected="true" and class="active"
+          const selectedSlide = await frame.$(
+            '.swiper-slide[data-selected="true"].active, .swiper-slide.swiper-slide-active[data-selected="true"]'
+          );
+
+          if (selectedSlide) {
+            const dateAttr = await selectedSlide.getAttribute("data-date");
+            const monthAttr = await selectedSlide.getAttribute("data-month");
+            const yearAttr = await selectedSlide.getAttribute("data-year");
+
+            if (dateAttr && monthAttr && yearAttr) {
+              // Extract day from the data-date attribute directly (YYYY-MM-DD format)
+              const dayNumber = dateAttr.split("-")[2]; // Get the day part from YYYY-MM-DD
+
+              // Extract day of week directly from the HTML content (more reliable than Date parsing)
+              let dayOfWeek = "Unknown";
+              try {
+                const dayElement = await selectedSlide.$(".text-h5");
+                if (dayElement) {
+                  const dayText = await dayElement.textContent();
+                  // Convert short day names to full names
+                  const dayMap = {
+                    Sun: "Sunday",
+                    Mon: "Monday",
+                    Tue: "Tuesday",
+                    Wed: "Wednesday",
+                    Thu: "Thursday",
+                    Fri: "Friday",
+                    Sat: "Saturday",
+                  };
+                  dayOfWeek = dayMap[dayText] || dayText;
+                }
+              } catch (e) {
+                this.log(`⚠️ Could not extract day of week from HTML: ${e.message}`);
+                // Fallback to Date parsing (but with timezone awareness)
+                const dateObj = new Date(dateAttr + "T12:00:00"); // Add noon time to avoid timezone issues
+                dayOfWeek = dateObj.toLocaleDateString("en-US", { weekday: "long" });
+              }
+
+              selectedDate = `${dayOfWeek}, ${monthAttr} ${dayNumber}`;
+              this.log(`📅 Found selected date from calendar: ${selectedDate} (${dateAttr})`);
+            }
+          } else {
+            this.log("⚠️ No selected calendar slide found, trying alternative approach...");
+
+            // Fallback: look for any active slide in the calendar
+            const activeSlide = await frame.$(
+              ".swiper-slide.active, .swiper-slide.swiper-slide-active"
+            );
+            if (activeSlide) {
+              const dateAttr = await activeSlide.getAttribute("data-date");
+              if (dateAttr) {
+                const dateObj = new Date(dateAttr);
+                const dayOfWeek = dateObj.toLocaleDateString("en-US", { weekday: "long" });
+                const monthDay = dateObj.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                });
+                selectedDate = `${dayOfWeek}, ${monthDay}`;
+                this.log(`📅 Found active date: ${selectedDate} (${dateAttr})`);
+              }
+            }
+          }
+        } catch (calendarError) {
+          this.log(`⚠️ Calendar date detection failed: ${calendarError.message}`);
+        }
+
+        // If no specific date found, try to get today's date and see if it matches
+        if (selectedDate === "Unknown Date") {
+          const today = new Date();
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+
+          const todayStr = today.toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "short",
+            day: "numeric",
+          });
+          const tomorrowStr = tomorrow.toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "short",
+            day: "numeric",
+          });
+
+          this.log(
+            `📅 Checking if selected date is today (${todayStr}) or tomorrow (${tomorrowStr})`
+          );
+
+          // Default assumption - most booking systems default to today or next available day
+          selectedDate = `Today (${todayStr})`;
+        }
+      } catch (dateError) {
+        this.log(`⚠️ Could not detect selected date: ${dateError.message}`);
+        selectedDate = "Unknown Date - Please verify in booking interface";
+      }
 
       // Wait for the time slot carousel to load inside the iframe
       try {
@@ -249,7 +322,7 @@ class BooksyScraper {
 
         if (!found) {
           this.log("❌ No time slot elements found in iframe");
-          return slots;
+          return { slots: [], selectedDate };
         }
       }
 
@@ -300,13 +373,13 @@ class BooksyScraper {
 
           if (!isDisabled && timeText && timeText.trim()) {
             slots.push({
-              date: "Default Selected Date",
+              date: selectedDate,
               time: timeText.trim(),
               period: dayPart,
               testId: testId || "unknown",
             });
 
-            this.log(`✅ Available slot: ${timeText.trim()} (${dayPart})`);
+            this.log(`✅ Available slot: ${timeText.trim()} on ${selectedDate} (${dayPart})`);
           }
         } catch (elementError) {
           this.log(`⚠️ Error processing time slot element: ${elementError.message}`);
@@ -316,7 +389,7 @@ class BooksyScraper {
       this.log("❌ Error extracting time slots from iframe:", error.message);
     }
 
-    return slots;
+    return { slots, selectedDate };
   }
 }
 

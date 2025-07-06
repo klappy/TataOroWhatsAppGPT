@@ -1052,6 +1052,62 @@ async function scrapeAppointments(env, preferredDate = null) {
 
           console.log("✅ Accessing iframe content...");
 
+          // First, detect the selected date from calendar swiper
+          let selectedDate = "Unknown Date";
+          try {
+            console.log("📅 Detecting selected date from calendar...");
+
+            // Find the swiper slide with data-selected="true" and class="active"
+            const selectedSlide = iframeDoc.querySelector(
+              '.swiper-slide[data-selected="true"].active, .swiper-slide.swiper-slide-active[data-selected="true"]'
+            );
+
+            if (selectedSlide) {
+              const dateAttr = selectedSlide.getAttribute("data-date");
+              const monthAttr = selectedSlide.getAttribute("data-month");
+              const yearAttr = selectedSlide.getAttribute("data-year");
+
+              if (dateAttr && monthAttr && yearAttr) {
+                // Extract day from the data-date attribute directly (YYYY-MM-DD format)
+                const dayNumber = dateAttr.split("-")[2];
+
+                // Extract day of week directly from the HTML content
+                let dayOfWeek = "Unknown";
+                try {
+                  const dayElement = selectedSlide.querySelector(".text-h5");
+                  if (dayElement) {
+                    const dayText = dayElement.textContent.trim();
+                    // Convert short day names to full names
+                    const dayMap = {
+                      Sun: "Sunday",
+                      Mon: "Monday",
+                      Tue: "Tuesday",
+                      Wed: "Wednesday",
+                      Thu: "Thursday",
+                      Fri: "Friday",
+                      Sat: "Saturday",
+                    };
+                    dayOfWeek = dayMap[dayText] || dayText;
+                  }
+                } catch (e) {
+                  console.log(`⚠️ Could not extract day of week from HTML: ${e.message}`);
+                  // Fallback to Date parsing with timezone awareness
+                  const dateObj = new Date(dateAttr + "T12:00:00");
+                  dayOfWeek = dateObj.toLocaleDateString("en-US", { weekday: "long" });
+                }
+
+                selectedDate = `${dayOfWeek}, ${monthAttr} ${dayNumber}`;
+                console.log(`✅ Found selected date: ${selectedDate} (${dateAttr})`);
+              }
+            } else {
+              console.log("⚠️ No selected calendar slide found");
+              selectedDate = "Date not detected - please verify in booking interface";
+            }
+          } catch (dateError) {
+            console.log(`⚠️ Date detection failed: ${dateError.message}`);
+            selectedDate = "Date detection failed - please verify in booking interface";
+          }
+
           // Look for time slots within the iframe using proven selectors from local test
           const timeSlotSelectors = [
             'a[data-testid^="time-slot-"]', // Proven working selector from local test
@@ -1107,7 +1163,8 @@ async function scrapeAppointments(env, preferredDate = null) {
           return {
             available: times.length > 0,
             times: times.slice(0, 15), // Allow more time slots like local test
-            date: new Date().toLocaleDateString(),
+            selectedDate: selectedDate,
+            date: new Date().toLocaleDateString(), // Keep for compatibility
             iframeAccess: true,
             source: "iframe_extraction",
           };

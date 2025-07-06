@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.10.1] - 2025-07-06
+
+- **🗓️ CORRECT DATE DETECTION**: Fixed timezone bug causing wrong day of week extraction
+- **Calendar Integration**: Extract selected date directly from Booksy calendar swiper HTML
+- **Production Deployment**: Applied working iframe + date detection logic to production worker
+- **Accurate Scheduling**: Now shows correct date (e.g., "Monday, July 7" not "Sunday, July 7")
+- **Customer Safety**: Prevents appointment scheduling confusion with accurate date display
+
 ## [1.10.0] - 2025-07-06
 
 - **🎯 IFRAME BREAKTHROUGH**: Successfully implemented iframe detection and time slot extraction
