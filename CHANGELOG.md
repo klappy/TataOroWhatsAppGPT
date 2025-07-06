@@ -119,3 +119,10 @@
 - **GPT Function Calling**: Natural language processing instead of exact phrase matching
 - **Live Service Data**: Real-time Booksy information via Cloudflare Workers + Playwright
 - **Enhanced User Experience**: Flexible service requests and intelligent responses
+
+## [1.9.7] - 2025-01-27
+
+- **Cache Improvements**: Service info now cached for 1 hour, appointment availability for 5 minutes
+- **Circuit Breaker**: Trips after 2 failures, resets after 2 minutes (was 3 failures/1 hour)
+- **No More Slow Retries**: If booking fails, user is told to try again in a couple minutes or visit Booksy directly
+- **Prepares for better UX and faster recovery from issues**
