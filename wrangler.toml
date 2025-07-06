@@ -29,6 +29,7 @@ EMAIL_FROM = "consultations@tataoro.com"
 EMAIL_TO = "tatacurly@tataoro.com"
 SHOPIFY_STORE_DOMAIN = "tataoro.com"
 WHATSAPP_BASE_URL = "https://wa.tataoro.com"
+BOOKSY_MCP_URL = "https://wa.tataoro.com/booksy"
 
 [observability.logs]
 enabled = true
