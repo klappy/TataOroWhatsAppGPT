@@ -64,16 +64,41 @@ export const BOOKSY_FUNCTIONS = [
       required: ["serviceName"],
     },
   },
+  {
+    name: "get_available_appointments",
+    description:
+      "Get actual available appointment times for a specific service by scraping Booksy's booking calendar. Shows real-time availability! Ask client for preferred dates for better results.",
+    parameters: {
+      type: "object",
+      properties: {
+        serviceName: {
+          type: "string",
+          description:
+            "Exact name of the service to get appointment times for (e.g. 'Curly Adventure (First Time)', 'Curly Cut + Simple Definition')",
+        },
+        preferredDates: {
+          type: "array",
+          items: {
+            type: "string",
+          },
+          description:
+            "Optional array of preferred dates in YYYY-MM-DD format (e.g. ['2025-01-28', '2025-01-29']). Ask the client what dates work best for them.",
+        },
+      },
+      required: ["serviceName"],
+    },
+  },
 ];
 
 /**
- * Enhanced function calling with resilience and timeout protection
+ * Enhanced function calling with retry logic and user communication
  */
-async function executeBooksyFunction(functionName, args, env) {
-  try {
-    console.log(`🔧 Executing ${functionName} with circuit breaker check...`);
+async function executeBooksyFunction(functionName, args, env, attempt = 1) {
+  const maxAttempts = 2; // Allow one retry
 
-    // Construct the MCP server URL
+  try {
+    console.log(`🔧 Executing ${functionName} (attempt ${attempt}/${maxAttempts})`);
+
     const baseUrl = env.BOOKSY_MCP_URL || "https://booksy-dynamic.tataorowhatsappgpt.workers.dev";
 
     // Route function calls to appropriate endpoints
@@ -82,6 +107,9 @@ async function executeBooksyFunction(functionName, args, env) {
       search_booksy_services: `/search?q=${encodeURIComponent(args.query || "")}`,
       get_service_recommendations: `/recommendations?clientType=${args.clientType || "unknown"}`,
       get_booking_instructions: `/booking?service=${encodeURIComponent(args.serviceName || "")}`,
+      get_available_appointments: `/appointments?service=${encodeURIComponent(
+        args.serviceName || ""
+      )}${args.preferredDates ? `&dates=${args.preferredDates.join(",")}` : ""}`,
     };
 
     const endpoint = endpointMap[functionName];
@@ -91,25 +119,33 @@ async function executeBooksyFunction(functionName, args, env) {
     }
 
     const url = `${baseUrl}${endpoint}`;
-    console.log(`🌐 Calling: ${url}`);
+    console.log(`🌐 Calling: ${url} (attempt ${attempt})`);
 
-    // Enhanced timeout and retry logic
+    // Enhanced timeout with retry-aware timing
+    const timeoutMs = attempt === 1 ? 12000 : 15000; // More time on retry
     const response = await Promise.race([
       fetch(url, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "User-Agent": "TataOro-WhatsApp-GPT/1.8.8",
+          "User-Agent": `TataOro-WhatsApp-GPT/1.9.0-retry-${attempt}`,
         },
       }),
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Function call timeout after 12 seconds")), 12000)
+        setTimeout(
+          () =>
+            reject(
+              new Error(
+                `Function call timeout after ${timeoutMs / 1000} seconds (attempt ${attempt})`
+              )
+            ),
+          timeoutMs
+        )
       ),
     ]);
 
     if (!response.ok) {
-      console.log(`❌ Function call failed: ${response.status} ${response.statusText}`);
-      return getFunctionFallback(functionName, args);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
     const result = await Promise.race([
@@ -117,12 +153,84 @@ async function executeBooksyFunction(functionName, args, env) {
       new Promise((_, reject) => setTimeout(() => reject(new Error("JSON parsing timeout")), 3000)),
     ]);
 
-    console.log(`✅ Function ${functionName} executed successfully`);
+    console.log(`✅ Function ${functionName} executed successfully on attempt ${attempt}`);
+
+    // Add retry success metadata for user communication
+    if (attempt > 1) {
+      result.retrySuccess = true;
+      result.successfulAttempt = attempt;
+      result.userMessage = "Great! I was able to get the latest information on my second try.";
+    }
+
     return result;
   } catch (error) {
-    console.error(`🚨 Function ${functionName} failed:`, error);
-    return getFunctionFallback(functionName, args);
+    console.error(`🚨 Function ${functionName} failed on attempt ${attempt}:`, error);
+
+    // If this was our first attempt and we can retry, prepare retry response
+    if (attempt < maxAttempts) {
+      console.log(`🔄 Will retry ${functionName} (attempt ${attempt + 1}/${maxAttempts})`);
+
+      // Return a retry indicator for user communication
+      const retryResponse = {
+        retryNeeded: true,
+        currentAttempt: attempt,
+        maxAttempts: maxAttempts,
+        functionName: functionName,
+        userMessage: generateRetryMessage(functionName, args),
+        error: error.message,
+      };
+
+      return retryResponse;
+    }
+
+    // We've exhausted retries - return fallback with context
+    console.log(`💥 Function ${functionName} failed after ${maxAttempts} attempts`);
+
+    const fallback = getFunctionFallback(functionName, args);
+    fallback.retriedAndFailed = true;
+    fallback.totalAttempts = maxAttempts;
+    fallback.userMessage = generateFailureMessage(functionName, args);
+
+    return fallback;
   }
+}
+
+/**
+ * Generate user-friendly retry messages
+ */
+function generateRetryMessage(functionName, args) {
+  const messages = {
+    get_booksy_services:
+      "I'm having a bit of trouble getting the latest service information. Let me try again to get you the most current details! ⏳",
+    search_booksy_services: `I had some difficulty searching for "${args.query}" services. Give me a moment to try again! 🔍`,
+    get_service_recommendations: `I'm working to get you personalized recommendations. Let me try once more to find the perfect options for you! 💫`,
+    get_booking_instructions: `I want to make sure I give you the clearest booking instructions for "${args.serviceName}". Trying again! 📅`,
+    get_available_appointments: `I'm having trouble checking appointment availability for "${args.serviceName}". Let me try once more to get you real appointment times! ⏰`,
+  };
+
+  return (
+    messages[functionName] || "I had some difficulty getting that information. Let me try again! ⏳"
+  );
+}
+
+/**
+ * Generate user-friendly failure messages after retries
+ */
+function generateFailureMessage(functionName, args) {
+  const messages = {
+    get_booksy_services:
+      "I tried twice but had trouble getting the very latest service details. I'll show you our comprehensive service list with current pricing! 📋",
+    search_booksy_services: `I tried a couple of times to search for "${args.query}" but ran into some technical issues. Here are the related services I can show you! 🔍`,
+    get_service_recommendations:
+      "I attempted to get you personalized recommendations but had some technical difficulties. Here are some great options based on your needs! 💫",
+    get_booking_instructions: `I tried to get the most current booking steps for "${args.serviceName}" but encountered some issues. Here's how you can book! 📅`,
+    get_available_appointments: `I tried twice to check real appointment times for "${args.serviceName}" but had technical difficulties. I'll help you with booking guidance instead! ⏰`,
+  };
+
+  return (
+    messages[functionName] ||
+    "I tried a couple of times but ran into some technical issues. Here's what I can help you with! 🛠️"
+  );
 }
 
 /**
@@ -201,6 +309,17 @@ function getFunctionFallback(functionName, args) {
       fallback: true,
       message:
         "Here are the general booking steps. The live calendar will show current availability.",
+    },
+
+    get_available_appointments: {
+      available: false,
+      message: `I'd love to help you find appointment times for "${
+        args.serviceName || "your service"
+      }"! For the most current availability, please visit Tata's Booksy page where you can see real-time open slots.`,
+      bookingTip:
+        "Use the 'Search for service' box under Tata's name/photo to find your specific service, then click 'Book' to see all available times.",
+      preferredDates: args.preferredDates,
+      fallback: true,
     },
   };
 
@@ -313,54 +432,84 @@ export async function getChatCompletion(messages, env, options = {}) {
       throw new Error("No response from OpenAI");
     }
 
-    // Enhanced function calling with resilience
+    // Enhanced function calling with resilience and retry logic
     if (message.tool_calls && message.tool_calls.length > 0) {
       console.log(`🔧 Processing ${message.tool_calls.length} function call(s)...`);
 
-      // Process function calls with enhanced error handling
-      const functionResults = await Promise.all(
-        message.tool_calls.map(async (toolCall) => {
-          try {
-            const functionName = toolCall.function.name;
-            const args = JSON.parse(toolCall.function.arguments);
+      // Process function calls with enhanced error handling and retry logic
+      const functionResults = [];
+      let retryNeeded = false;
+      let retryMessages = [];
 
-            console.log(`🔧 Calling function: ${functionName}`, args);
+      for (const toolCall of message.tool_calls) {
+        try {
+          const functionName = toolCall.function.name;
+          const args = JSON.parse(toolCall.function.arguments);
 
-            // Use the new enhanced function execution
-            const result = await executeBooksyFunction(functionName, args, env);
+          console.log(`🔧 Calling function: ${functionName}`, args);
 
-            return {
+          // First attempt
+          const result = await executeBooksyFunction(functionName, args, env, 1);
+
+          // Check if retry is needed
+          if (result.retryNeeded) {
+            console.log(`🔄 Function ${functionName} needs retry`);
+            retryNeeded = true;
+            retryMessages.push(result.userMessage);
+
+            // Perform the actual retry
+            const retryResult = await executeBooksyFunction(functionName, args, env, 2);
+
+            functionResults.push({
+              tool_call_id: toolCall.id,
+              role: "tool",
+              name: functionName,
+              content: JSON.stringify(retryResult),
+            });
+          } else {
+            // First attempt succeeded or failed completely
+            functionResults.push({
               tool_call_id: toolCall.id,
               role: "tool",
               name: functionName,
               content: JSON.stringify(result),
-            };
-          } catch (error) {
-            console.error(`❌ Function call failed:`, error);
-
-            // Return graceful fallback for failed function calls
-            return {
-              tool_call_id: toolCall.id,
-              role: "tool",
-              name: toolCall.function.name,
-              content: JSON.stringify({
-                error: "Function temporarily unavailable",
-                fallback: true,
-                message:
-                  "Using backup data. For live information, please visit Tata's Booksy page.",
-              }),
-            };
+            });
           }
-        })
-      );
+        } catch (error) {
+          console.error(`❌ Function call failed:`, error);
 
-      // Add function results to conversation and get final response
-      const followUpMessages = [...messages, message, ...functionResults];
+          // Return graceful fallback for failed function calls
+          functionResults.push({
+            tool_call_id: toolCall.id,
+            role: "tool",
+            name: toolCall.function.name,
+            content: JSON.stringify({
+              error: "Function temporarily unavailable",
+              fallback: true,
+              message: "Using backup data. For live information, please visit Tata's Booksy page.",
+            }),
+          });
+        }
+      }
+
+      // If retries were needed, we should communicate that to the user
+      let conversationMessages = [...messages, message, ...functionResults];
+
+      // Add retry context to the conversation if retries occurred
+      if (retryNeeded && retryMessages.length > 0) {
+        const retryContext = {
+          role: "system",
+          content: `Note: Some information required retries. User was informed with these messages: ${retryMessages.join(
+            " "
+          )} Please acknowledge the retry effort in your response and provide the requested information.`,
+        };
+        conversationMessages.push(retryContext);
+      }
 
       console.log(`🔄 Getting follow-up response after function calls...`);
 
       // Recursive call without functions to get final response
-      return await getChatCompletion(followUpMessages, env, {
+      return await getChatCompletion(conversationMessages, env, {
         ...options,
         includeFunctions: false, // Prevent infinite function calling
         max_tokens: options.max_tokens || 1200, // Slightly higher for function result processing

@@ -2,7 +2,124 @@
 
 All notable changes to this project will be documented in this file.
 
-## v1.8.9 - 2025-01-27
+## [1.9.1] - 2025-01-27
+
+### 🔄 **RETRY LOGIC & USER COMMUNICATION: Never Leave Users Hanging!**
+
+**MOTIVATION**: Users deserve to know what's happening when scraping takes time, and we should give things a second shot before falling back to backup data.
+
+#### 🗣️ **TRANSPARENT USER COMMUNICATION**
+
+- **Retry notifications**: "I'm having trouble getting the latest info. Let me try again! ⏳"
+- **Success celebrations**: "Great! I was able to get the current details on my second attempt!"
+- **Honest failure communication**: "I tried twice but had some technical issues. Here's what I can tell you!"
+- **Always valuable**: Even with technical difficulties, users always get helpful information
+
+#### 🔄 **SMART RETRY LOGIC**
+
+- **Two-attempt strategy**: Every function gets at least one retry before giving up
+- **Progressive timeouts**: First attempt (12s), retry attempt (15s) for better success
+- **Failure tracking**: Only counts as circuit breaker failure after both attempts fail
+- **Retry metadata**: Track successful retries for user communication
+
+#### 💬 **ENHANCED USER EXPERIENCE**
+
+**Before**:
+
+- User: "What services do you offer?"
+- _12 seconds of silence_
+- Bot: "Here's our backup service list" (no explanation)
+
+**After**:
+
+- User: "What services do you offer?"
+- _8 seconds_
+- Bot: "I'm having trouble getting the latest service info. Let me try again! ⏳"
+- _3 seconds_
+- Bot: "Great! I was able to get the current details on my second attempt! Here are all our services..."
+
+#### 🛠️ **TECHNICAL IMPLEMENTATION**
+
+- **Function-specific retry messages**: Tailored communication per function type
+- **Retry attempt tracking**: Logs and metadata for monitoring
+- **Enhanced error context**: Better debugging with attempt numbers
+- **User Agent versioning**: Track retry attempts in logs
+
+#### 📊 **IMPROVED RELIABILITY**
+
+- **Higher success rates**: Second attempts often succeed when first fails
+- **Better user confidence**: Users know the system is working hard for them
+- **Reduced perceived downtime**: Communication prevents "is it broken?" confusion
+- **Graceful degradation**: Fallbacks still work perfectly when retries fail
+
+#### 🎯 **USER PSYCHOLOGY BENEFITS**
+
+- **Trust building**: Transparent communication builds confidence
+- **Patience management**: Users wait longer when they know what's happening
+- **Value perception**: Users appreciate the extra effort to get live data
+- **Professional experience**: Handles technical issues like a human assistant would
+
+**RESULT**: Users now experience a system that communicates clearly, tries hard to get them the best information, and never leaves them wondering what's happening! 🌟
+
+## [1.9.0] - 2025-01-27
+
+### 🚀 **FULL BEAST MODE ACTIVATED: Complete System Unleashed!**
+
+**CELEBRATION**: Cloudflare plan upgraded! 🎉 All appointment features now LIVE and operational!
+
+#### ⚡ **FULL FUNCTIONALITY RESTORED**
+
+- **✅ Real-time appointment scraping**: `get_available_appointments` function re-enabled
+- **✅ Complete service discovery**: All 5 function calls now operational
+- **✅ Live availability checking**: Actual appointment times from Booksy calendar
+- **✅ Enhanced user experience**: Full booking flow with real data
+
+#### 🔧 **ENHANCED PERFORMANCE WITH UPGRADED CAPACITY**
+
+- **Enhanced timeouts**: 10-second browser (up from 8), 8-second selectors (up from 6)
+- **Better success rates**: More generous timing allows thorough scraping
+- **Increased data return**: 15 time slots processed (up from 10), 8 returned (up from 5)
+- **Improved scraping**: 12-second evaluation timeout for complex pages
+
+#### 📅 **APPOINTMENT FEATURES UNLOCKED**
+
+- **Real calendar scraping**: Actual available times from Booksy
+- **Date preference support**: Users can specify preferred dates
+- **Enhanced time detection**: Better parsing of AM/PM time slots
+- **Graceful fallbacks**: Smart responses even if specific times unavailable
+
+#### 🛡️ **FORTRESS RESILIENCE MAINTAINED**
+
+- **Circuit breaker still active**: Protects against future issues
+- **Multi-layer fallbacks**: Comprehensive backup responses
+- **Smart caching**: 24-hour cache for optimal performance
+- **Error boundaries**: Isolated function failures don't break system
+
+#### 🎯 **USER EXPERIENCE TRANSFORMATION**
+
+**Before**: "Do you have appointments Tuesday?" → Generic Booksy link
+**After**: "Do you have appointments Tuesday?" → "Here are the available times: 10:00 AM, 2:30 PM, 4:00 PM..."
+
+**Before**: Manual calendar checking required
+**After**: Instant availability with preferred date filtering
+
+#### 📊 **TECHNICAL ACHIEVEMENTS**
+
+- **5/5 functions operational**: Complete Booksy integration
+- **Enhanced appointment endpoint**: `/appointments?service=X&dates=Y,Z`
+- **Upgraded browser utilization**: Optimized for higher capacity plan
+- **Progressive enhancement**: Fast functions + slow functions both working
+
+#### 🌟 **BUSINESS IMPACT**
+
+- **Reduced booking friction**: Customers see availability instantly
+- **Higher conversion**: Real appointment times vs generic instructions
+- **Better user experience**: Complete information in one interaction
+- **Competitive advantage**: Dynamic booking vs static competitors
+
+**RESULT**: From resilient fortress to FULL POWER UNLEASHED! 🚀 The system now delivers everything originally envisioned - bulletproof reliability WITH complete appointment functionality.
+
+## [1.8.9] - 2025-01-27
 
 ### 🛡️ **ULTRA-RESILIENCE UPDATE: Circuit Breaker & Fortress Mode**
 

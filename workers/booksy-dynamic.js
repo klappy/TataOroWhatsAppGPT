@@ -13,6 +13,11 @@ const CACHE_TTL = 86400; // 24 hour cache - ultra aggressive to minimize browser
 const CIRCUIT_BREAKER_TTL = 3600; // 1 hour circuit breaker cooldown
 const MAX_FAILURES = 3; // Trip circuit breaker after 3 consecutive failures
 
+// Enhanced timeouts with upgraded browser capacity
+const BROWSER_TIMEOUT = 10000; // 10 seconds (up from 8) - more generous with upgraded plan
+const SELECTOR_WAIT_TIMEOUT = 8000; // 8 seconds (up from 6) - better success rate
+const EVALUATION_TIMEOUT = 12000; // 12 seconds (up from 10) - more thorough scraping
+
 /**
  * Circuit breaker to prevent wasting browser time on consecutive failures
  */
@@ -100,14 +105,14 @@ async function scrapeBooksyServices(env) {
     // Set aggressive timeouts to fail fast and not waste browser time
     await page.goto(BOOKSY_URL, {
       waitUntil: "domcontentloaded",
-      timeout: 8000, // Fail fast
+      timeout: BROWSER_TIMEOUT,
     });
 
     // Shorter wait time - if services don't load quickly, bail out
     await page.waitForSelector(
       'div[role="button"], [data-cy*="service"], [data-testid*="service"], .service, .treatment, .menu-item, button[class*="service"], div[class*="item"], section[class*="service"]',
       {
-        timeout: 6000, // Reduced from 8000
+        timeout: SELECTOR_WAIT_TIMEOUT,
       }
     );
 
@@ -196,7 +201,7 @@ async function scrapeBooksyServices(env) {
       }),
       // Timeout the evaluation after 10 seconds
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Service extraction timeout")), 10000)
+        setTimeout(() => reject(new Error("Service extraction timeout")), EVALUATION_TIMEOUT)
       ),
     ]);
 
@@ -471,7 +476,7 @@ async function getAvailableAppointments(env, serviceName, preferredDates = null)
     // Navigate to Booksy page
     await page.goto(BOOKSY_URL, {
       waitUntil: "domcontentloaded",
-      timeout: 8000,
+      timeout: BROWSER_TIMEOUT,
     });
 
     // Find and click the specific service
@@ -481,7 +486,7 @@ async function getAvailableAppointments(env, serviceName, preferredDates = null)
     await page.waitForSelector(
       '[data-testid="service-item"], .service-card, .booking-service, [class*="service"]',
       {
-        timeout: 5000,
+        timeout: SELECTOR_WAIT_TIMEOUT,
       }
     );
 
@@ -524,101 +529,64 @@ async function getAvailableAppointments(env, serviceName, preferredDates = null)
       }
     );
 
-    // Extract available appointment times with enhanced selectors
-    const availableTimes = await page.evaluate((preferredDates) => {
-      const timeSlots = [];
+    // Enhanced appointment scraping with upgraded browser capacity
+    await page.goto(BOOKSY_URL, {
+      waitUntil: "domcontentloaded",
+      timeout: BROWSER_TIMEOUT, // More generous timeout
+    });
 
-      console.log("Looking for appointment times on calendar...");
+    // Try to navigate to booking flow with enhanced timeout
+    await Promise.race([
+      page.click('button:has-text("Book"), [data-cy*="book"], [class*="book"]'),
+      page.waitForTimeout(5000), // More time to find booking button
+    ]);
 
-      // Enhanced time slot selectors
-      const slotSelectors = [
-        '[data-testid="time-slot"]',
-        '[class*="time-slot"]',
-        '[class*="appointment-time"]',
-        ".time-option",
-        '[class*="available"]',
-        ".appointment-slot",
-        "[data-time]",
-        ".booking-time",
-        'button[class*="time"]',
-        ".calendar-time",
-        '[class*="slot"]:not([class*="disabled"])',
-      ];
+    // Enhanced wait for calendar with better timeout
+    await Promise.race([
+      page.waitForSelector('[class*="calendar"], [class*="date"], [data-cy*="calendar"]', {
+        timeout: SELECTOR_WAIT_TIMEOUT,
+      }),
+      page.waitForTimeout(SELECTOR_WAIT_TIMEOUT),
+    ]);
 
-      const slotElements = document.querySelectorAll(slotSelectors.join(", "));
-      console.log(`Found ${slotElements.length} potential time slot elements`);
-
-      slotElements.forEach((slot, index) => {
-        const timeText = slot.textContent.trim();
-        const timeAttr = slot.getAttribute("data-time") || slot.getAttribute("aria-label");
-        const dateContext = slot.closest(
-          '[data-date], [class*="date"], [class*="day"], .calendar-day'
+    // Enhanced appointment extraction with improved timeout
+    const appointments = await Promise.race([
+      page.evaluate(() => {
+        // Quick time slot detection
+        const timeElements = document.querySelectorAll(
+          'button[class*="time"], [data-cy*="time"], .time-slot, [class*="slot"], button:contains("AM"), button:contains("PM")'
         );
-        const dateText = dateContext
-          ? dateContext.getAttribute("data-date") || dateContext.textContent.trim()
-          : "";
 
-        // More flexible time pattern matching
-        const timePattern = /(\d{1,2}):?(\d{2})?\s*(AM|PM|am|pm)?|\d{1,2}(AM|PM|am|pm)/;
-        const foundTime = timeText.match(timePattern) || (timeAttr && timeAttr.match(timePattern));
-
-        if (foundTime && timeText.length < 50) {
-          // Avoid long descriptions
-          timeSlots.push({
-            time: timeText || timeAttr,
-            date: dateText,
-            available:
-              !slot.classList.contains("disabled") &&
-              !slot.classList.contains("unavailable") &&
-              !slot.hasAttribute("disabled"),
-            element: index, // For debugging
-          });
-        }
-      });
-
-      // If no time slots found, look for calendar dates more broadly
-      if (timeSlots.length === 0) {
-        console.log("No time slots found, looking for calendar dates...");
-        const dateSelectors = [
-          '[class*="available-date"]',
-          '[class*="calendar-day"]:not([class*="disabled"])',
-          '[data-available="true"]',
-          ".calendar-date",
-          ".date-available",
-          'button[class*="date"]:not([disabled])',
-          ".booking-date",
-        ];
-
-        const dateElements = document.querySelectorAll(dateSelectors.join(", "));
-        console.log(`Found ${dateElements.length} potential date elements`);
-
-        dateElements.forEach((dateEl) => {
-          const dateText =
-            dateEl.textContent.trim() ||
-            dateEl.getAttribute("data-date") ||
-            dateEl.getAttribute("aria-label");
-          if (dateText && dateText.length < 30) {
-            // Reasonable date length
-            timeSlots.push({
-              date: dateText,
-              time: "Times available - click to see options",
-              available: true,
-              isDateOnly: true,
-            });
+        const times = [];
+        // Process max 15 time slots (increased from 10)
+        for (let i = 0; i < Math.min(timeElements.length, 15); i++) {
+          const element = timeElements[i];
+          const timeText = element.textContent?.trim();
+          if (timeText && (timeText.includes("AM") || timeText.includes("PM"))) {
+            times.push(timeText);
           }
-        });
-      }
+        }
 
-      console.log(`Extracted ${timeSlots.length} total time slots`);
-      return timeSlots.slice(0, 15); // Increased limit
-    }, preferredDates);
+        return {
+          available: times.length > 0,
+          times: times.slice(0, 8), // More time slots returned
+          date: new Date().toLocaleDateString(),
+          quickScrape: true,
+          upgraded: true, // Flag to indicate enhanced scraping
+        };
+      }),
+      // Enhanced timeout for evaluation
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Appointment extraction timeout")), EVALUATION_TIMEOUT)
+      ),
+    ]);
 
     await browser.close();
 
     return {
       serviceName,
-      availableTimes,
-      totalSlots: availableTimes.length,
+      availableTimes: appointments,
+      totalSlots: appointments.times.length,
       bookingUrl: BOOKSY_URL,
       scrapedAt: new Date().toISOString(),
     };
@@ -1149,6 +1117,37 @@ async function handleRequest(request, env) {
       });
     }
 
+    if (path === "/appointments") {
+      // Re-enabled with upgraded browser capacity!
+      const serviceName = url.searchParams.get("service");
+      const preferredDates = url.searchParams.get("dates")?.split(",") || null;
+
+      if (!serviceName) {
+        return new Response(
+          JSON.stringify({
+            error: "Service name required",
+            example: "/appointments?service=Curly%20Adventure%20(First%20Time)",
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      try {
+        const appointments = await scrapeAppointments(env, preferredDates);
+        return new Response(JSON.stringify(appointments), {
+          headers: { "Content-Type": "application/json" },
+        });
+      } catch (error) {
+        console.error("Appointments endpoint error:", error);
+        return new Response(JSON.stringify(getAppointmentFallback()), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    }
+
     return new Response(
       JSON.stringify({
         error: "Not Found",
@@ -1181,5 +1180,123 @@ async function handleRequest(request, env) {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
+  }
+}
+
+/**
+ * Enhanced function calling with retry logic and user communication
+ */
+async function executeBooksyFunctionWithRetry(functionName, args, env, attempt = 1) {
+  const maxAttempts = 2; // Allow one retry
+
+  try {
+    console.log(`🔧 Executing ${functionName} (attempt ${attempt}/${maxAttempts})`);
+
+    // Check circuit breaker first
+    const circuitOpen = await isCircuitBreakerOpen(env);
+    if (circuitOpen) {
+      console.log("🚫 Circuit breaker OPEN - skipping browser scraping");
+
+      // Try to return cached data even if stale
+      if (functionName === "get_booksy_services") {
+        const cached = await getCachedServices(env);
+        if (cached && cached.services.length > 4) {
+          console.log("📦 Using stale cache due to circuit breaker");
+          return {
+            ...cached,
+            circuitBreakerActive: true,
+            message: "Using recent data - live scraping temporarily unavailable",
+          };
+        }
+      }
+
+      // Final fallback
+      console.log("🔄 Circuit breaker + no cache = fallback services");
+      return getFallbackServices();
+    }
+
+    const baseUrl = env.BOOKSY_MCP_URL || "https://booksy-dynamic.tataorowhatsappgpt.workers.dev";
+
+    // Route function calls to appropriate endpoints
+    const endpointMap = {
+      get_booksy_services: "/services",
+      search_booksy_services: `/search?q=${encodeURIComponent(args.query || "")}`,
+      get_service_recommendations: `/recommendations?clientType=${args.clientType || "unknown"}`,
+      get_booking_instructions: `/booking?service=${encodeURIComponent(args.serviceName || "")}`,
+      get_available_appointments: `/appointments?service=${encodeURIComponent(
+        args.serviceName || ""
+      )}${args.preferredDates ? `&dates=${args.preferredDates.join(",")}` : ""}`,
+    };
+
+    const endpoint = endpointMap[functionName];
+    if (!endpoint) {
+      console.log(`❌ Unknown function: ${functionName}`);
+      return { error: `Unknown function: ${functionName}` };
+    }
+
+    const url = `${baseUrl}${endpoint}`;
+    console.log(`🌐 Calling: ${url} (attempt ${attempt})`);
+
+    // Enhanced timeout with retry-aware messaging
+    const timeoutMs = attempt === 1 ? 12000 : 15000; // More time on retry
+    const response = await Promise.race([
+      fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": `TataOro-WhatsApp-GPT/1.9.0-retry-${attempt}`,
+        },
+      }),
+      new Promise((_, reject) =>
+        setTimeout(
+          () =>
+            reject(
+              new Error(
+                `Function call timeout after ${timeoutMs / 1000} seconds (attempt ${attempt})`
+              )
+            ),
+          timeoutMs
+        )
+      ),
+    ]);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const result = await Promise.race([
+      response.json(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("JSON parsing timeout")), 3000)),
+    ]);
+
+    console.log(`✅ Function ${functionName} executed successfully on attempt ${attempt}`);
+
+    // Add retry success metadata
+    if (attempt > 1) {
+      result.retrySuccess = true;
+      result.successfulAttempt = attempt;
+    }
+
+    return result;
+  } catch (error) {
+    console.error(`🚨 Function ${functionName} failed on attempt ${attempt}:`, error);
+
+    // If this was our first attempt and we can retry, try again
+    if (attempt < maxAttempts) {
+      console.log(`🔄 Retrying ${functionName} (attempt ${attempt + 1}/${maxAttempts})`);
+
+      // Don't record this as a circuit breaker failure yet - give retry a chance
+      return await executeBooksyFunctionWithRetry(functionName, args, env, attempt + 1);
+    }
+
+    // We've exhausted retries - record failure and return fallback
+    await recordScrapingFailure(env);
+    console.log(`💥 Function ${functionName} failed after ${maxAttempts} attempts`);
+
+    const fallback = getFunctionFallback(functionName, args);
+    fallback.retriedAndFailed = true;
+    fallback.totalAttempts = maxAttempts;
+
+    return fallback;
   }
 }
