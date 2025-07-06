@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.2 - Smart Client Branching Flow (2025-07-06)
+
+- **New vs existing client detection** - Ask "Are you a new client or have you seen Tata before?" for better flow routing
+- **New clients** → Guided curl discovery consultation process (photos, hair history, goals)
+- **Existing clients** → Direct access to service list and booking
+- **Smart status detection** - Skip branching question when client status is clear from initial message
+- **Better UX flow** - Personalized experience based on client relationship with Tata
+
 ## v1.8.1 - Improved Booking Experience (2025-07-06)
 
 - **Direct service listing** - "I want to book a service" now immediately shows all available services instead of asking clarifying questions
