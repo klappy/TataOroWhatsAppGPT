@@ -102,11 +102,57 @@ async function scrapeBooksyServices(env) {
     const browser = await launch(env.BROWSER);
     const page = await browser.newPage();
 
-    // Set aggressive timeouts to fail fast and not waste browser time
+    // 🥷 STEALTH MODE: Make browser look like a real human
+    await page.setUserAgent(
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    );
+
+    await page.setViewportSize({ width: 1366, height: 768 }); // Common laptop resolution
+
+    // Set realistic headers
+    await page.setExtraHTTPHeaders({
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.5",
+      "Accept-Encoding": "gzip, deflate, br",
+      DNT: "1",
+      Connection: "keep-alive",
+      "Cache-Control": "max-age=0",
+    });
+
+    // Randomize timezone to look more human
+    await page.emulateTimezone("America/New_York");
+
+    // 🎭 NINJA MODE: Hide automation detection
+    await page.evaluateOnNewDocument(() => {
+      // Remove webdriver property
+      delete navigator.__proto__.webdriver;
+
+      // Override the plugins property to avoid headless detection
+      Object.defineProperty(navigator, "plugins", {
+        get: () => [1, 2, 3, 4, 5],
+      });
+
+      // Override the languages property
+      Object.defineProperty(navigator, "languages", {
+        get: () => ["en-US", "en"],
+      });
+
+      // Override the hardwareConcurrency to look like real device
+      Object.defineProperty(navigator, "hardwareConcurrency", {
+        get: () => 4,
+      });
+    });
+
+    console.log("🎭 Stealth mode activated - navigating to Booksy...");
+
+    // Navigate with realistic behavior
     await page.goto(BOOKSY_URL, {
       waitUntil: "domcontentloaded",
       timeout: BROWSER_TIMEOUT,
     });
+
+    // Add a small human-like delay
+    await page.waitForTimeout(Math.random() * 2000 + 1000); // 1-3 second random delay
 
     // Shorter wait time - if services don't load quickly, bail out
     await page.waitForSelector(
@@ -473,11 +519,34 @@ async function getAvailableAppointments(env, serviceName, preferredDates = null)
     const browser = await launch(env.BROWSER);
     const page = await browser.newPage();
 
+    // 🥷 STEALTH MODE: Make browser look like a real human
+    await page.setUserAgent(
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    );
+
+    await page.setViewportSize({ width: 1366, height: 768 });
+
+    await page.setExtraHTTPHeaders({
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.5",
+      "Accept-Encoding": "gzip, deflate, br",
+      DNT: "1",
+      Connection: "keep-alive",
+      "Cache-Control": "max-age=0",
+    });
+
+    await page.emulateTimezone("America/New_York");
+
+    console.log("🎭 Appointment scraping with stealth mode...");
+
     // Navigate to Booksy page
     await page.goto(BOOKSY_URL, {
       waitUntil: "domcontentloaded",
       timeout: BROWSER_TIMEOUT,
     });
+
+    // Human-like delay
+    await page.waitForTimeout(Math.random() * 2000 + 1000);
 
     // Find and click the specific service
     console.log(`Looking for service: ${serviceName}`);
@@ -608,13 +677,34 @@ async function debugBooksyPage(env) {
     const browser = await launch(env.BROWSER);
     const page = await browser.newPage();
 
-    console.log("🔍 Starting Booksy page debugging...");
+    // 🥷 STEALTH MODE: Make browser look like a real human
+    await page.setUserAgent(
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    );
+
+    await page.setViewportSize({ width: 1366, height: 768 });
+
+    await page.setExtraHTTPHeaders({
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.5",
+      "Accept-Encoding": "gzip, deflate, br",
+      DNT: "1",
+      Connection: "keep-alive",
+      "Cache-Control": "max-age=0",
+    });
+
+    await page.emulateTimezone("America/New_York");
+
+    console.log("🔍 Starting Booksy page debugging with stealth mode...");
 
     // Navigate to Booksy page
     await page.goto(BOOKSY_URL, {
       waitUntil: "domcontentloaded",
       timeout: 10000,
     });
+
+    // Human-like delay
+    await page.waitForTimeout(Math.random() * 2000 + 1000);
 
     console.log("📄 Page loaded, analyzing structure...");
 
@@ -837,11 +927,34 @@ async function scrapeAppointments(env, preferredDate = null) {
     const browser = await launch(env.BROWSER);
     const page = await browser.newPage();
 
-    // Ultra-aggressive timeout for appointments
+    // 🥷 STEALTH MODE: Make browser look like a real human
+    await page.setUserAgent(
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    );
+
+    await page.setViewportSize({ width: 1366, height: 768 });
+
+    await page.setExtraHTTPHeaders({
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.5",
+      "Accept-Encoding": "gzip, deflate, br",
+      DNT: "1",
+      Connection: "keep-alive",
+      "Cache-Control": "max-age=0",
+    });
+
+    await page.emulateTimezone("America/New_York");
+
+    console.log("🎭 Quick appointment scraping with stealth mode...");
+
+    // Navigate with stealth
     await page.goto(BOOKSY_URL, {
       waitUntil: "domcontentloaded",
-      timeout: 6000, // Even faster fail
+      timeout: 8000, // Slightly more time with stealth
     });
+
+    // Human-like delay
+    await page.waitForTimeout(Math.random() * 1500 + 500);
 
     // Try to navigate to booking flow with short timeout
     await Promise.race([
