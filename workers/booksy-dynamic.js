@@ -595,64 +595,79 @@ async function getAvailableAppointments(env, serviceName, preferredDates = null)
 
     // Try to find the service by name and click its book button
     const serviceClicked = await page.evaluate((targetService) => {
-      // Use the selectors that are actually working from debug output
-      const serviceElements = document.querySelectorAll(
-        '[data-testid*="service"], .purify_ZtDKuJ5JIyjeYoNm2V1flg\\=\\=, li[class*="purify"], div[class*="purify"]'
-      );
+      console.log(`🔍 Looking for service: ${targetService}`);
 
-      console.log(`Found ${serviceElements.length} potential service elements`);
+      // Strategy: Find service name, then find its associated Book button
+      const allElements = document.querySelectorAll("h4, div, li, button");
 
-      for (const element of serviceElements) {
-        const textContent = element.textContent || "";
+      console.log(`Scanning ${allElements.length} elements for service-book pairs`);
 
-        // Look for service names in text content (like "Diagnóstico capilar", "Curly Adventure", etc.)
-        if (
-          textContent.toLowerCase().includes(targetService.toLowerCase()) ||
-          textContent.toLowerCase().includes("curly") ||
-          textContent.toLowerCase().includes("consultation") ||
-          textContent.toLowerCase().includes("adventure")
-        ) {
-          console.log(`Found potential service match: ${textContent.substring(0, 50)}`);
+      for (let i = 0; i < allElements.length; i++) {
+        const element = allElements[i];
+        const text = element.textContent?.trim() || "";
 
-          // Look for clickable elements (buttons, links, or interactive divs)
-          const clickables = element.querySelectorAll(
-            'button, a, [role="button"], div[class*="button"], [onclick]'
-          );
-          for (const clickable of clickables) {
-            if (
-              clickable.textContent.toLowerCase().includes("book") ||
-              clickable.textContent.toLowerCase().includes("select") ||
-              clickable.textContent.toLowerCase().includes("choose")
-            ) {
-              console.log(`Clicking book button: ${clickable.textContent}`);
-              clickable.click();
+        // Look for service names that match our target
+        const isServiceMatch =
+          text.toLowerCase().includes(targetService.toLowerCase()) ||
+          (targetService.toLowerCase().includes("consultation") &&
+            text.toLowerCase().includes("consultation")) ||
+          (targetService.toLowerCase().includes("curly adventure") &&
+            text.toLowerCase().includes("curly adventure")) ||
+          (targetService.toLowerCase().includes("regular") &&
+            text.toLowerCase().includes("regular client")) ||
+          (targetService.toLowerCase().includes("first") &&
+            text.toLowerCase().includes("first time"));
+
+        if (isServiceMatch && text.length > 10 && text.length < 200) {
+          console.log(`✅ Found service match: ${text}`);
+
+          // Strategy 1: Look in siblings after this element for Book button
+          for (let j = i + 1; j < Math.min(i + 10, allElements.length); j++) {
+            const nextElement = allElements[j];
+            const nextText = nextElement.textContent?.trim() || "";
+
+            if (nextText.includes("Book") && (nextText.includes("$") || nextText.includes("min"))) {
+              console.log(`🎯 Clicking Book button: ${nextText.substring(0, 50)}`);
+              nextElement.click();
               return true;
             }
           }
 
-          // If no explicit book button, try clicking the service element itself
-          if (element.onclick || element.getAttribute("role") === "button") {
-            console.log(`Clicking service element directly`);
-            element.click();
-            return true;
+          // Strategy 2: Look in parent container for Book button
+          let parent = element.parentElement;
+          for (let level = 0; level < 3 && parent; level++) {
+            const bookButtons = parent.querySelectorAll("div, button");
+            for (const btn of bookButtons) {
+              const btnText = btn.textContent?.trim() || "";
+              if (btnText.includes("Book") && btnText !== text && btnText.length < 100) {
+                console.log(`🎯 Clicking parent Book button: ${btnText.substring(0, 50)}`);
+                btn.click();
+                return true;
+              }
+            }
+            parent = parent.parentElement;
           }
         }
       }
 
-      // Fallback: try to find any booking-related buttons on the page
-      const bookButtons = document.querySelectorAll('button, a, [role="button"]');
-      for (const button of bookButtons) {
+      // Strategy 3: Fallback - any prominent Book button
+      console.log(`⚠️ Fallback: looking for any Book button`);
+      const allBookButtons = document.querySelectorAll("button, div, a");
+
+      for (const btn of allBookButtons) {
+        const btnText = btn.textContent?.trim() || "";
+
         if (
-          button.textContent.toLowerCase().includes("book") ||
-          button.textContent.toLowerCase().includes("schedule") ||
-          button.textContent.toLowerCase().includes("appointment")
+          btnText === "Book" ||
+          (btnText.includes("Book") && btnText.includes("$") && btnText.length < 100)
         ) {
-          console.log(`Found general book button: ${button.textContent}`);
-          button.click();
+          console.log(`📍 Clicking fallback Book button: ${btnText.substring(0, 50)}`);
+          btn.click();
           return true;
         }
       }
 
+      console.log(`❌ No Book button found for ${targetService}`);
       return false;
     }, serviceName);
 
@@ -1268,54 +1283,123 @@ async function debugAppointmentFlow(env, serviceName) {
       };
     });
 
-    // Step 2: Try to find and click a service
+    // Step 2: Find and click the specific service Book button
     const serviceClickResult = await page.evaluate((targetService) => {
-      // Use the improved selectors
-      const serviceElements = document.querySelectorAll(
-        '[data-testid*="service"], .purify_ZtDKuJ5JIyjeYoNm2V1flg\\=\\=, li[class*="purify"], div[class*="purify"]'
-      );
+      console.log(`🔍 Looking for service: ${targetService}`);
 
-      const matchingServices = [];
+      // Strategy: Find service name, then find its associated Book button
+      const allElements = document.querySelectorAll("h4, div, li, button");
+      const serviceBookPairs = [];
 
-      for (const element of serviceElements) {
-        const textContent = element.textContent || "";
+      console.log(`Scanning ${allElements.length} elements for service-book pairs`);
 
-        if (
-          textContent.toLowerCase().includes(targetService.toLowerCase()) ||
-          textContent.toLowerCase().includes("curly") ||
-          textContent.toLowerCase().includes("consultation") ||
-          textContent.toLowerCase().includes("adventure")
-        ) {
-          matchingServices.push({
-            text: textContent.substring(0, 100),
-            tagName: element.tagName,
-            className: element.className,
-            hasClick: !!(element.onclick || element.getAttribute("role") === "button"),
-          });
+      for (let i = 0; i < allElements.length; i++) {
+        const element = allElements[i];
+        const text = element.textContent?.trim() || "";
 
-          // Try to click it
-          try {
-            element.click();
-            return { success: true, clicked: textContent.substring(0, 100) };
-          } catch (e) {
-            // Try to find clickable children
-            const clickables = element.querySelectorAll('button, a, [role="button"]');
-            for (const clickable of clickables) {
+        // Look for service names that match our target
+        const isServiceMatch =
+          text.toLowerCase().includes(targetService.toLowerCase()) ||
+          (targetService.toLowerCase().includes("consultation") &&
+            text.toLowerCase().includes("consultation")) ||
+          (targetService.toLowerCase().includes("curly adventure") &&
+            text.toLowerCase().includes("curly adventure")) ||
+          (targetService.toLowerCase().includes("regular") &&
+            text.toLowerCase().includes("regular client")) ||
+          (targetService.toLowerCase().includes("first") &&
+            text.toLowerCase().includes("first time"));
+
+        if (isServiceMatch && text.length > 10 && text.length < 200) {
+          console.log(`✅ Found service match: ${text}`);
+
+          // Now look for a Book button in the next few elements or parent containers
+          let found = false;
+
+          // Strategy 1: Look in siblings after this element
+          for (let j = i + 1; j < Math.min(i + 10, allElements.length); j++) {
+            const nextElement = allElements[j];
+            const nextText = nextElement.textContent?.trim() || "";
+
+            if (nextText.includes("Book") && (nextText.includes("$") || nextText.includes("min"))) {
+              console.log(`🎯 Found Book button after service: ${nextText.substring(0, 50)}`);
               try {
-                clickable.click();
-                return { success: true, clicked: clickable.textContent.substring(0, 50) };
-              } catch (e2) {
+                nextElement.click();
+                return {
+                  success: true,
+                  clicked: nextText.substring(0, 100),
+                  serviceName: text,
+                  strategy: "sibling",
+                };
+              } catch (e) {
+                console.log(`Failed to click: ${e.message}`);
                 continue;
               }
             }
+          }
+
+          // Strategy 2: Look in parent container
+          let parent = element.parentElement;
+          for (let level = 0; level < 3 && parent; level++) {
+            const bookButtons = parent.querySelectorAll("div, button");
+            for (const btn of bookButtons) {
+              const btnText = btn.textContent?.trim() || "";
+              if (btnText.includes("Book") && btnText !== text) {
+                console.log(`🎯 Found Book button in parent: ${btnText.substring(0, 50)}`);
+                try {
+                  btn.click();
+                  return {
+                    success: true,
+                    clicked: btnText.substring(0, 100),
+                    serviceName: text,
+                    strategy: "parent",
+                  };
+                } catch (e) {
+                  console.log(`Failed to click parent book: ${e.message}`);
+                  continue;
+                }
+              }
+            }
+            parent = parent.parentElement;
+          }
+
+          serviceBookPairs.push({
+            service: text,
+            position: i,
+            element: element.tagName,
+          });
+        }
+      }
+
+      // Strategy 3: Fallback - look for any prominent Book button
+      console.log(`⚠️ Fallback: looking for any prominent Book button`);
+      const allBookButtons = document.querySelectorAll("button, div, a");
+
+      for (const btn of allBookButtons) {
+        const btnText = btn.textContent?.trim() || "";
+
+        if (
+          btnText === "Book" ||
+          (btnText.includes("Book") && btnText.includes("$") && btnText.length < 100)
+        ) {
+          console.log(`📍 Trying fallback Book button: ${btnText.substring(0, 50)}`);
+          try {
+            btn.click();
+            return {
+              success: true,
+              clicked: btnText.substring(0, 100),
+              strategy: "fallback",
+            };
+          } catch (e) {
+            continue;
           }
         }
       }
 
       return {
         success: false,
-        totalServiceElements: serviceElements.length,
-        matchingServices: matchingServices,
+        message: "No Book button found",
+        serviceBookPairs: serviceBookPairs,
+        totalElements: allElements.length,
       };
     }, serviceName);
 
