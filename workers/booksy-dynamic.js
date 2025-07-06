@@ -676,21 +676,47 @@ async function getAvailableAppointments(env, serviceName, preferredDates = null)
       return { error: `Could not find service: ${serviceName}` };
     }
 
-    // Wait for calendar/time selection to load (5+ seconds as you noted)
-    console.log("Waiting for calendar to load after clicking book...");
-    await page.waitForTimeout(6000); // Wait 6 seconds for calendar to fully load
+    if (serviceClicked) {
+      console.log("✅ Service book button clicked successfully!");
 
-    // Then wait for calendar elements to be present
-    try {
-      await page.waitForSelector(
-        '[data-testid*="calendar"], [data-testid*="time"], [data-testid*="slot"], [class*="calendar"], [class*="time"], [class*="slot"], [class*="date"], button[class*="purify"]',
-        {
-          timeout: 10000,
-        }
+      // Wait longer for booking interface to load
+      console.log("⏳ Waiting for booking interface to load...");
+      await page.waitForTimeout(8000); // 8 seconds for booking interface
+
+      // Check if we're now in a booking modal or new interface
+      const bookingInterface = await page.evaluate(() => {
+        // Look for booking-specific elements
+        const bookingElements = document.querySelectorAll(
+          '[data-testid*="booking"], [data-testid*="calendar"], [data-testid*="time"], [class*="booking"], [class*="calendar"], [class*="appointment"], [class*="modal"]'
+        );
+
+        return {
+          bookingElementsFound: bookingElements.length,
+          currentUrl: window.location.href,
+          title: document.title,
+          bodyText: document.body.textContent.substring(0, 200),
+        };
+      });
+
+      console.log(
+        `📋 Booking interface check: ${bookingInterface.bookingElementsFound} elements found`
       );
-      console.log("✅ Calendar elements found");
-    } catch (e) {
-      console.log("⚠️ Calendar elements not found, continuing anyway...");
+
+      // Try waiting for specific booking interface elements
+      try {
+        await page.waitForSelector(
+          '[data-testid*="calendar"], [data-testid*="time"], [data-testid*="slot"], [data-testid*="booking"], [class*="calendar"], [class*="time"], [class*="slot"], [class*="date"], [class*="appointment"], [class*="modal"], button[class*="purify"]',
+          {
+            timeout: 12000,
+          }
+        );
+        console.log("✅ Booking interface elements found");
+      } catch (e) {
+        console.log("⚠️ Booking interface elements not found, continuing with time search...");
+      }
+    } else {
+      console.log("❌ Service book button NOT clicked - proceeding anyway");
+      await page.waitForTimeout(3000);
     }
 
     // Enhanced appointment scraping with upgraded browser capacity
@@ -716,70 +742,129 @@ async function getAvailableAppointments(env, serviceName, preferredDates = null)
     // Enhanced appointment extraction with improved timeout
     const appointments = await Promise.race([
       page.evaluate(() => {
-        console.log("🕐 Looking for time slots...");
+        console.log("🕐 Comprehensive time slot search...");
 
-        // Enhanced time slot detection with multiple selector strategies
+        // Comprehensive time slot detection strategies
         const timeSelectors = [
+          // Standard time selectors
           'button[class*="time"]',
           '[data-testid*="time"]',
           '[data-cy*="time"]',
           ".time-slot",
           '[class*="slot"]',
-          'button[class*="purify"]', // Based on Booksy's current class structure
+          // Booking-specific selectors
+          '[data-testid*="booking"] button',
+          '[data-testid*="calendar"] button',
+          '[class*="booking"] button',
+          '[class*="calendar"] button',
+          '[class*="appointment"] button',
+          '[class*="modal"] button',
+          // Booksy-specific selectors
+          'button[class*="purify"]',
           'div[class*="purify"]',
           'li[class*="purify"]',
+          // Generic clickable elements
+          "button",
+          'div[role="button"]',
+          'a[role="button"]',
         ];
 
         const allElements = [];
+        const selectorResults = {};
+
         timeSelectors.forEach((selector) => {
-          const elements = document.querySelectorAll(selector);
-          allElements.push(...elements);
+          try {
+            const elements = document.querySelectorAll(selector);
+            selectorResults[selector] = elements.length;
+            allElements.push(...elements);
+          } catch (e) {
+            selectorResults[selector] = 0;
+          }
         });
 
-        console.log(`Found ${allElements.length} potential time elements`);
+        console.log(`Found ${allElements.length} total clickable elements`);
 
         const times = [];
-        const timeRegex = /\d{1,2}:\d{2}\s*(AM|PM)|(\d{1,2})\s*(AM|PM)/i;
+        const timeRegex = /\b\d{1,2}:\d{2}\s*(AM|PM)\b|\b\d{1,2}\s*(AM|PM)\b/i;
 
-        // Process max 20 time slots
-        for (let i = 0; i < Math.min(allElements.length, 20); i++) {
+        // Strategy 1: Look for elements with time text
+        for (let i = 0; i < Math.min(allElements.length, 50); i++) {
           const element = allElements[i];
           const timeText = element.textContent?.trim();
 
-          if (timeText && timeRegex.test(timeText)) {
-            console.log(`Found time slot: ${timeText}`);
-            times.push(timeText);
+          if (timeText && timeRegex.test(timeText) && timeText.length < 50) {
+            console.log(`✅ Found time element: ${timeText}`);
+            if (!times.includes(timeText)) {
+              times.push(timeText);
+            }
           }
         }
 
-        // Also look for any text that contains AM/PM patterns
+        // Strategy 2: Look for buttons that might be time slots (even without obvious time text)
+        const potentialTimeButtons = [];
+        for (const element of allElements) {
+          const text = element.textContent?.trim() || "";
+          const isButton =
+            element.tagName === "BUTTON" || element.getAttribute("role") === "button";
+
+          // Look for short clickable text that could be times
+          if (
+            isButton &&
+            text.length > 1 &&
+            text.length < 20 &&
+            (text.match(/\d/) || text.includes("AM") || text.includes("PM"))
+          ) {
+            potentialTimeButtons.push(text);
+          }
+        }
+
+        console.log(`Found ${potentialTimeButtons.length} potential time buttons`);
+
+        // Strategy 3: Scan entire page text for time patterns
         const allText = document.body.textContent || "";
-        const timeMatches = allText.match(/\d{1,2}:\d{2}\s*(AM|PM)/gi);
-        if (timeMatches) {
+        const timeMatches = allText.match(/\b\d{1,2}:\d{2}\s*(AM|PM)\b/gi) || [];
+
+        if (timeMatches.length > 0) {
+          console.log(`Found ${timeMatches.length} time patterns in page text`);
           timeMatches.forEach((match) => {
-            if (!times.includes(match) && times.length < 10) {
-              console.log(`Found time in text: ${match}`);
+            if (!times.includes(match) && times.length < 15) {
               times.push(match);
             }
           });
         }
 
+        // Strategy 4: Look for common booking interface indicators
+        const bookingIndicators = {
+          hasCalendar:
+            document.querySelectorAll('[class*="calendar"], [data-testid*="calendar"]').length > 0,
+          hasBooking:
+            document.querySelectorAll('[class*="booking"], [data-testid*="booking"]').length > 0,
+          hasModal:
+            document.querySelectorAll('[class*="modal"], [role="modal"], [role="dialog"]').length >
+            0,
+          hasTimeSelector:
+            document.querySelectorAll('[class*="time"], [data-testid*="time"]').length > 0,
+        };
+
         return {
           available: times.length > 0,
-          times: times.slice(0, 10), // Return up to 10 time slots
+          times: times.slice(0, 15), // Return up to 15 time slots
           date: new Date().toLocaleDateString(),
           quickScrape: true,
           upgraded: true,
           totalElements: allElements.length,
-          selectorResults: timeSelectors.map((sel) => ({
-            selector: sel,
-            count: document.querySelectorAll(sel).length,
-          })),
+          selectorResults: selectorResults,
+          potentialTimeButtons: potentialTimeButtons.slice(0, 10),
+          bookingIndicators: bookingIndicators,
+          timeMatchCount: timeMatches.length,
         };
       }),
-      // Enhanced timeout for evaluation
+      // Longer timeout for comprehensive search
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Appointment extraction timeout")), EVALUATION_TIMEOUT)
+        setTimeout(
+          () => reject(new Error("Comprehensive appointment search timeout")),
+          EVALUATION_TIMEOUT + 5000
+        )
       ),
     ]);
 
