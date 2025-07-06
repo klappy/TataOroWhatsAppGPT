@@ -78,6 +78,9 @@ export async function executeFunctionCall(functionCall, baseUrl) {
         url = `${baseUrl}/booksy/appointments?service=${encodeURIComponent(
           parsedArgs.serviceName
         )}`;
+        if (parsedArgs.preferredDates && parsedArgs.preferredDates.length > 0) {
+          url += `&dates=${encodeURIComponent(parsedArgs.preferredDates.join(","))}`;
+        }
         break;
 
       default:
@@ -193,7 +196,7 @@ export const BOOKSY_FUNCTIONS = [
     function: {
       name: "get_available_appointments",
       description:
-        "Get actual available appointment times for a specific service by scraping Booksy's booking calendar. This shows real-time availability instead of just booking instructions.",
+        "Get actual available appointment times for a specific service by scraping Booksy's booking calendar. This shows real-time availability instead of just booking instructions. Ask client for preferred dates first for better results.",
       parameters: {
         type: "object",
         properties: {
@@ -201,6 +204,14 @@ export const BOOKSY_FUNCTIONS = [
             type: "string",
             description:
               "Exact name of the service to get appointment times for (e.g. 'Curly Adventure (First Time)', 'Curly Cut + Simple Definition')",
+          },
+          preferredDates: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+            description:
+              "Optional array of preferred dates in YYYY-MM-DD format (e.g. ['2025-07-10', '2025-07-11']). Ask the client what dates work best for them.",
           },
         },
         required: ["serviceName"],

@@ -191,8 +191,11 @@ function getServiceRecommendations(services, clientType = "new") {
 
 /**
  * Get available appointment times for a specific service using Playwright
+ * @param {*} env - Environment variables
+ * @param {*} serviceName - Name of the service to book
+ * @param {*} preferredDates - Optional array of preferred dates to check
  */
-async function getAvailableAppointments(env, serviceName) {
+async function getAvailableAppointments(env, serviceName, preferredDates = null) {
   try {
     const browser = await launch(env.BROWSER);
     const page = await browser.newPage();
@@ -241,60 +244,106 @@ async function getAvailableAppointments(env, serviceName) {
       return { error: `Could not find service: ${serviceName}` };
     }
 
-    // Wait for calendar/time selection to load
+    // Wait for calendar/time selection to load (5+ seconds as you noted)
+    console.log("Waiting for calendar to load after clicking book...");
+    await page.waitForTimeout(6000); // Wait 6 seconds for calendar to fully load
+
+    // Then wait for calendar elements to be present
     await page.waitForSelector(
-      '[data-testid="calendar"], .calendar, [class*="calendar"], [class*="time"], [class*="slot"]',
+      '[data-testid="calendar"], .calendar, [class*="calendar"], [class*="time"], [class*="slot"], [class*="date"]',
       {
-        timeout: 8000,
+        timeout: 10000,
       }
     );
 
-    // Extract available appointment times
-    const availableTimes = await page.evaluate(() => {
+    // Extract available appointment times with enhanced selectors
+    const availableTimes = await page.evaluate((preferredDates) => {
       const timeSlots = [];
 
-      // Look for various time slot selectors
-      const slotElements = document.querySelectorAll(
-        '[data-testid="time-slot"], [class*="time-slot"], [class*="appointment-time"], .time-option, [class*="available"]'
-      );
+      console.log("Looking for appointment times on calendar...");
 
-      slotElements.forEach((slot) => {
+      // Enhanced time slot selectors
+      const slotSelectors = [
+        '[data-testid="time-slot"]',
+        '[class*="time-slot"]',
+        '[class*="appointment-time"]',
+        ".time-option",
+        '[class*="available"]',
+        ".appointment-slot",
+        "[data-time]",
+        ".booking-time",
+        'button[class*="time"]',
+        ".calendar-time",
+        '[class*="slot"]:not([class*="disabled"])',
+      ];
+
+      const slotElements = document.querySelectorAll(slotSelectors.join(", "));
+      console.log(`Found ${slotElements.length} potential time slot elements`);
+
+      slotElements.forEach((slot, index) => {
         const timeText = slot.textContent.trim();
-        const dateContext = slot.closest('[data-date], [class*="date"], [class*="day"]');
+        const timeAttr = slot.getAttribute("data-time") || slot.getAttribute("aria-label");
+        const dateContext = slot.closest(
+          '[data-date], [class*="date"], [class*="day"], .calendar-day'
+        );
         const dateText = dateContext
-          ? dateContext.getAttribute("data-date") || dateContext.textContent
+          ? dateContext.getAttribute("data-date") || dateContext.textContent.trim()
           : "";
 
-        if (timeText && timeText.match(/\d{1,2}:\d{2}|AM|PM/)) {
+        // More flexible time pattern matching
+        const timePattern = /(\d{1,2}):?(\d{2})?\s*(AM|PM|am|pm)?|\d{1,2}(AM|PM|am|pm)/;
+        const foundTime = timeText.match(timePattern) || (timeAttr && timeAttr.match(timePattern));
+
+        if (foundTime && timeText.length < 50) {
+          // Avoid long descriptions
           timeSlots.push({
-            time: timeText,
+            time: timeText || timeAttr,
             date: dateText,
             available:
-              !slot.classList.contains("disabled") && !slot.classList.contains("unavailable"),
+              !slot.classList.contains("disabled") &&
+              !slot.classList.contains("unavailable") &&
+              !slot.hasAttribute("disabled"),
+            element: index, // For debugging
           });
         }
       });
 
-      // If no time slots found, look for calendar dates
+      // If no time slots found, look for calendar dates more broadly
       if (timeSlots.length === 0) {
-        const dateElements = document.querySelectorAll(
-          '[class*="available-date"], [class*="calendar-day"]:not([class*="disabled"]), [data-available="true"]'
-        );
+        console.log("No time slots found, looking for calendar dates...");
+        const dateSelectors = [
+          '[class*="available-date"]',
+          '[class*="calendar-day"]:not([class*="disabled"])',
+          '[data-available="true"]',
+          ".calendar-date",
+          ".date-available",
+          'button[class*="date"]:not([disabled])',
+          ".booking-date",
+        ];
+
+        const dateElements = document.querySelectorAll(dateSelectors.join(", "));
+        console.log(`Found ${dateElements.length} potential date elements`);
 
         dateElements.forEach((dateEl) => {
-          const dateText = dateEl.textContent.trim() || dateEl.getAttribute("data-date");
-          if (dateText) {
+          const dateText =
+            dateEl.textContent.trim() ||
+            dateEl.getAttribute("data-date") ||
+            dateEl.getAttribute("aria-label");
+          if (dateText && dateText.length < 30) {
+            // Reasonable date length
             timeSlots.push({
               date: dateText,
-              time: "Times available",
+              time: "Times available - click to see options",
               available: true,
+              isDateOnly: true,
             });
           }
         });
       }
 
-      return timeSlots.slice(0, 10); // Limit to first 10 slots
-    });
+      console.log(`Extracted ${timeSlots.length} total time slots`);
+      return timeSlots.slice(0, 15); // Increased limit
+    }, preferredDates);
 
     await browser.close();
 
@@ -323,14 +372,15 @@ function getBookingInstructions(serviceName) {
     url: BOOKSY_URL,
     instructions: [
       `1. Visit Tata's booking page using the link above`,
-      `2. Scroll down to find "${serviceName}"`,
-      `3. Click the "Book" button next to that service`,
-      `4. Select your preferred date and time from the calendar`,
-      `5. Fill out your contact information`,
-      `6. Confirm your appointment`,
+      `2. Use the "Search for service" box under Tata's name/photo (NOT the main Booksy search at the top)`,
+      `3. Type "${serviceName}" to find the service quickly`,
+      `4. Click the "Book" button next to that service`,
+      `5. Select your preferred date and time from the calendar`,
+      `6. Fill out your contact information`,
+      `7. Confirm your appointment`,
     ],
     serviceName,
-    note: "The booking page has multiple search options that can be confusing - scrolling to find your service is more reliable than searching.",
+    note: "Important: Use the service search under Tata's section, not the main Booksy search which searches all providers.",
   };
 }
 
@@ -448,10 +498,13 @@ export default {
 
       if (path === "/booksy/appointments") {
         const serviceName = url.searchParams.get("service");
+        const preferredDatesParam = url.searchParams.get("dates");
+
         if (!serviceName) {
           return new Response(
             JSON.stringify({
-              error: "Service name required. Use ?service=ServiceName",
+              error:
+                "Service name required. Use ?service=ServiceName&dates=YYYY-MM-DD,YYYY-MM-DD (optional)",
             }),
             {
               status: 400,
@@ -460,8 +513,13 @@ export default {
           );
         }
 
+        // Parse preferred dates if provided
+        const preferredDates = preferredDatesParam
+          ? preferredDatesParam.split(",").map((d) => d.trim())
+          : null;
+
         // Try to get actual appointment times using Playwright
-        const appointmentData = await getAvailableAppointments(env, serviceName);
+        const appointmentData = await getAvailableAppointments(env, serviceName, preferredDates);
 
         return new Response(JSON.stringify(appointmentData), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },

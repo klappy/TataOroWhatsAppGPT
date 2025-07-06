@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.6 - Enhanced Appointment Scraping & Correct Search Instructions (2025-07-06)
+
+- **Fixed search instructions** - Now correctly specifies "Search for service" box under Tata's name, not the main Booksy search
+- **Enhanced Playwright scraping** - Extended wait time to 6+ seconds after clicking "book" for calendar loading
+- **Preferred dates support** - Can now ask clients for preferred dates before scraping appointments
+- **Improved time slot detection** - More comprehensive selectors and patterns for finding appointment times
+- **Better debugging** - Added console logging to track scraping progress and failures
+- **Enhanced function calling** - `get_available_appointments` now supports optional preferred dates parameter
+
 ## v1.8.5 - Revolutionary Appointment Time Scraping (2025-07-06)
 
 - **NEW: Real appointment time scraping** - Can now show actual available appointment slots instead of just booking instructions
