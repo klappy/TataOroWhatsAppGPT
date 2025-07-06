@@ -209,6 +209,17 @@ export async function handleWhatsAppRequest(request, env, ctx) {
     "consultation",
     "free",
     "diagnostic",
+    "full rizos",
+    "curly adventure",
+    "curly experience",
+    "full curly",
+    "experience",
+    "rizos",
+    "adventure",
+    "scalp treatment",
+    "spa service",
+    "restructuring",
+    "bridal",
   ];
   const hasBookingKeyword = bookingKeywords.some((keyword) =>
     incoming.includes(keyword.toLowerCase())
@@ -232,34 +243,69 @@ export async function handleWhatsAppRequest(request, env, ctx) {
       const serviceMatches = [
         { keywords: ["diagnostic", "consultation", "diagnóstico"], serviceId: "diagnostic" },
         {
-          keywords: ["curly adventure first", "first time adventure"],
+          keywords: [
+            "curly adventure first",
+            "first time adventure",
+            "adventure first",
+            "first time",
+            "new client adventure",
+          ],
           serviceId: "curlyAdventureFirst",
         },
         {
-          keywords: ["curly cut", "cut definition", "simple definition"],
+          keywords: ["curly cut", "cut definition", "simple definition", "cut + definition"],
           serviceId: "curlyCutDefinition",
         },
         {
-          keywords: ["curly adventure regular", "regular adventure"],
+          keywords: [
+            "curly adventure regular",
+            "regular adventure",
+            "adventure regular",
+            "regular client",
+          ],
           serviceId: "curlyAdventureRegular",
         },
-        { keywords: ["full rizos", "cliente nuevo"], serviceId: "fullRizos" },
-        { keywords: ["deep wash", "wash style", "wash only"], serviceId: "deepWashStyle" },
-        { keywords: ["curly color experience", "curly color"], serviceId: "curlyColor" },
+        {
+          keywords: [
+            "full rizos",
+            "cliente nuevo",
+            "full curly",
+            "curly experience",
+            "full experience",
+            "rizos",
+            "full curly hair experience",
+            "full curly experience",
+          ],
+          serviceId: "fullRizos",
+        },
+        {
+          keywords: ["deep wash", "wash style", "wash only", "wash and style"],
+          serviceId: "deepWashStyle",
+        },
+        {
+          keywords: ["curly color experience", "curly color", "color experience"],
+          serviceId: "curlyColor",
+        },
         { keywords: ["hair color", "cambio de color", "color change"], serviceId: "hairColor" },
         {
-          keywords: ["scalp treatment", "masaje chino", "chinese massage"],
+          keywords: ["scalp treatment", "masaje chino", "chinese massage", "scalp massage"],
           serviceId: "scalpTreatment",
         },
         {
-          keywords: ["scalp treatment men", "masaje chino hombre"],
+          keywords: ["scalp treatment men", "masaje chino hombre", "men scalp", "scalp men"],
           serviceId: "scalpTreatmentMen",
         },
-        { keywords: ["curly spa", "hair growth treatment", "spa service"], serviceId: "curlySpa" },
-        { keywords: ["photon therapy", "terapia photon"], serviceId: "photonTherapy" },
-        { keywords: ["curly restructuring", "restructuring"], serviceId: "curlyRestructuring" },
         {
-          keywords: ["bridal", "bride", "airbrush makeup", "wedding"],
+          keywords: ["curly spa", "hair growth treatment", "spa service", "spa"],
+          serviceId: "curlySpa",
+        },
+        { keywords: ["photon therapy", "terapia photon", "photon"], serviceId: "photonTherapy" },
+        {
+          keywords: ["curly restructuring", "restructuring", "restructure"],
+          serviceId: "curlyRestructuring",
+        },
+        {
+          keywords: ["bridal", "bride", "airbrush makeup", "wedding", "bridal makeup"],
           serviceId: "bridalService",
         },
       ];
@@ -267,6 +313,19 @@ export async function handleWhatsAppRequest(request, env, ctx) {
       const specificService = serviceMatches.find((match) =>
         match.keywords.some((keyword) => incoming.includes(keyword.toLowerCase()))
       );
+
+      console.log("Service matching debug:", {
+        incoming: incoming,
+        foundMatch: !!specificService,
+        matchedService: specificService?.serviceId,
+        allMatches: serviceMatches.map((match) => ({
+          serviceId: match.serviceId,
+          matched: match.keywords.some((keyword) => incoming.includes(keyword.toLowerCase())),
+          matchingKeywords: match.keywords.filter((keyword) =>
+            incoming.includes(keyword.toLowerCase())
+          ),
+        })),
+      });
 
       if (specificService) {
         // User asked for a specific service - provide direct booking link

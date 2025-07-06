@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.7.1 - Critical Booking Flow Fixes and Straight Hair Detection (2025-07-05)
+
+### Critical Bug Fixes
+
+- **Fixed Service Matching**: Expanded keyword detection for service-specific booking requests
+  - Added "full curly hair experience", "curly experience", "full experience", "rizos" to Full Rizos matching
+  - Enhanced "curly adventure", "first time", "regular client" keyword detection
+  - Added more natural language variations for all services
+- **Enhanced Booking Keywords**: Added missing keywords to trigger Booksy integration
+  - "full rizos", "curly adventure", "curly experience", "full curly", "experience", "rizos", "adventure"
+  - "scalp treatment", "spa service", "restructuring", "bridal"
+- **Added Service Matching Debug Logs**: Console logging to track keyword matching for troubleshooting
+
+### New Features
+
+- **Straight Hair Detection**: Added system prompt guidance for straight hair clients
+  - Bot now detects when clients have straight hair (no natural waves/curls)
+  - Gently explains that Tata specializes in enhancing existing curls, not creating curls
+  - Guides clients to consider if they have any natural texture that could be enhanced
+
+### Technical Improvements
+
+- Comprehensive keyword expansion for better natural language understanding
+- Debug logging for service matching to improve troubleshooting
+- Updated system prompt with important straight hair guidance
+
+### Business Impact
+
+- **Prevents Inappropriate Bookings**: Straight hair clients are properly guided about service limitations
+- **Improved Service Discovery**: Better keyword matching means fewer missed booking opportunities
+- **Enhanced User Experience**: More natural language understanding for service requests
+
 ## v1.7.0 - Guided Booking Flow with Transparent Pricing (2025-07-05)
 
 ### Major Enhancements
