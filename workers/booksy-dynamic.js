@@ -9,7 +9,7 @@ import { launch } from "@cloudflare/playwright";
 
 const BOOKSY_URL =
   "https://booksy.com/en-us/155582_akro-beauty-by-la-morocha-makeup_hair-salon_134763_orlando/staffer/880999";
-const CACHE_TTL = 3600; // 1 hour cache
+const CACHE_TTL = 7200; // 2 hour cache to reduce scraping frequency
 
 /**
  * Scrape live services from Booksy page
@@ -19,13 +19,19 @@ async function scrapeBooksyServices(env) {
     const browser = await launch(env.BROWSER);
     const page = await browser.newPage();
 
-    // Navigate to Booksy page
-    await page.goto(BOOKSY_URL, { waitUntil: "networkidle" });
-
-    // Wait for services to load
-    await page.waitForSelector('[data-testid="service-item"], .service-card, .booking-service', {
-      timeout: 10000,
+    // Navigate to Booksy page with faster settings
+    await page.goto(BOOKSY_URL, {
+      waitUntil: "domcontentloaded", // Faster than networkidle
+      timeout: 8000,
     });
+
+    // Wait for services to load with shorter timeout
+    await page.waitForSelector(
+      '[data-testid="service-item"], .service-card, .booking-service, .service-list, [class*="service"]',
+      {
+        timeout: 5000,
+      }
+    );
 
     // Extract service data
     const services = await page.evaluate(() => {
@@ -225,14 +231,25 @@ export default {
 
     try {
       if (path === "/booksy/services") {
-        // Get all services (try cache first, then scrape if needed)
+        // Get all services (strongly prefer cache to avoid slow scraping)
         let cached = await getCachedServices(env);
         let services;
+        let source = "cache";
 
         if (cached && Date.now() - new Date(cached.lastUpdated).getTime() < CACHE_TTL * 1000) {
+          // Use cached data if within TTL
           services = cached.services;
+        } else if (cached && cached.services.length > 0) {
+          // Use stale cached data if available to avoid hanging
+          services = cached.services;
+          source = "stale_cache";
+
+          // Trigger background refresh for next time (don't wait)
+          ctx.waitUntil(scrapeBooksyServices(env));
         } else {
+          // Only scrape if no cache exists at all
           services = await scrapeBooksyServices(env);
+          source = "live_scrape";
         }
 
         return new Response(
@@ -240,7 +257,7 @@ export default {
             services,
             totalCount: services.length,
             lastUpdated: cached ? cached.lastUpdated : new Date().toISOString(),
-            source: cached ? "cache" : "live_scrape",
+            source: source,
           }),
           {
             headers: { ...corsHeaders, "Content-Type": "application/json" },

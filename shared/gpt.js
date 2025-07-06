@@ -78,7 +78,7 @@ export async function executeFunctionCall(functionCall, baseUrl) {
     console.log(`Calling function ${name} at URL: ${url}`);
 
     const response = await fetch(url, {
-      timeout: 5000, // 5 second timeout
+      timeout: 15000, // 15 second timeout for Playwright scraping
       headers: {
         "User-Agent": "TataOro-WhatsApp-Bot/1.0",
       },

@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.3 - Performance Fixes for Function Calling (2025-07-06)
+
+- **Increased function call timeout** from 5s to 15s to accommodate Playwright scraping
+- **Optimized Playwright scraper** - use domcontentloaded instead of networkidle for faster page loads
+- **Improved caching strategy** - prefer stale cache over slow scraping to eliminate hanging
+- **Extended cache TTL** to 2 hours to reduce scraping frequency
+- **Background refresh** - update cache in background when using stale data
+- **Fixed hanging issue** when existing clients request service list
+
 ## v1.8.2 - Smart Client Branching Flow (2025-07-06)
 
 - **New vs existing client detection** - Ask "Are you a new client or have you seen Tata before?" for better flow routing
