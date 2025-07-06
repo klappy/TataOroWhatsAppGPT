@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.4 - Emergency Fix for Hanging Issue (2025-07-06)
+
+- **Temporarily disabled function calling** to eliminate hanging responses
+- **Added request-level timeout** protection with 20-second overall limit
+- **Enhanced error handling** with automatic fallback to backup service data
+- **Emergency fallback response** provides complete service list when function calls fail
+- **Fixed hanging issue** - all responses now complete within 3-4 seconds
+- **Note**: Function calling will be re-enabled once MCP performance is optimized
+
 ## v1.8.3 - Performance Fixes for Function Calling (2025-07-06)
 
 - **Increased function call timeout** from 5s to 15s to accommodate Playwright scraping

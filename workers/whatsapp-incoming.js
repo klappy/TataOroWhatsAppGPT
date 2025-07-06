@@ -224,50 +224,69 @@ export async function handleWhatsAppRequest(request, env, ctx) {
     messages.push({ role: "user", content: body });
   }
 
-  // Call OpenAI Chat Completion API with function calling support
+  // Temporarily disable function calling for faster responses - use backup data
+  // TODO: Re-enable function calling once MCP performance is optimized
   let assistantMessage = await chatCompletion(
     messages,
     env.OPENAI_API_KEY,
     "gpt-4o",
     0.7,
-    BOOKSY_FUNCTIONS
+    null // Disable function calling temporarily
   );
   let assistantReply = "";
 
-  // Handle function calls if GPT wants to use them
+  // Handle function calls if GPT wants to use them with timeout protection
   if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
-    // Execute function calls and get results
-    const functionResults = [];
-    for (const toolCall of assistantMessage.tool_calls) {
-      try {
-        const result = await executeFunctionCall(toolCall.function, baseUrl);
-        functionResults.push({
-          tool_call_id: toolCall.id,
-          content: JSON.stringify(result),
-        });
-      } catch (error) {
-        console.error("Function call failed:", error);
-        functionResults.push({
-          tool_call_id: toolCall.id,
-          content: JSON.stringify({ error: "Function call failed", details: error.message }),
-        });
-      }
+    try {
+      // Execute function calls with overall timeout
+      const functionCallPromise = (async () => {
+        const functionResults = [];
+        for (const toolCall of assistantMessage.tool_calls) {
+          try {
+            console.log(`Executing function call: ${toolCall.function.name}`);
+            const result = await executeFunctionCall(toolCall.function, baseUrl);
+            functionResults.push({
+              tool_call_id: toolCall.id,
+              content: JSON.stringify(result),
+            });
+          } catch (error) {
+            console.error(`Function call failed for ${toolCall.function.name}:`, error);
+            functionResults.push({
+              tool_call_id: toolCall.id,
+              content: JSON.stringify({ error: "Function call failed", details: error.message }),
+            });
+          }
+        }
+        return functionResults;
+      })();
+
+      // Race between function calls and timeout
+      const timeoutPromise = new Promise(
+        (_, reject) => setTimeout(() => reject(new Error("Function calls timed out")), 20000) // 20 second overall timeout
+      );
+
+      const functionResults = await Promise.race([functionCallPromise, timeoutPromise]);
+
+      // Add function call message and results to conversation
+      messages.push(assistantMessage);
+      messages.push(
+        ...functionResults.map((result) => ({
+          role: "tool",
+          tool_call_id: result.tool_call_id,
+          content: result.content,
+        }))
+      );
+
+      // Get final response from GPT after function calls
+      const finalMessage = await chatCompletion(messages, env.OPENAI_API_KEY, "gpt-4o", 0.7);
+      assistantReply =
+        finalMessage.content?.trim() || "I'm having trouble processing that request right now.";
+    } catch (error) {
+      console.error("Function calling process failed:", error);
+      // Fall back to using backup service data directly
+      assistantReply =
+        "I'm having trouble accessing the current service information, but I can help you with our services based on available data. Here are the services Tata offers:\n\n💫 **Curly Hair Services**\n• Curly Adventure (Regular client): Starting $180 | 2.5h\n• Curly Cut + Simple Definition: Starting $150 | 1.5h\n• Deep Wash and Style Only: Starting $150 | 1.5h\n\n🎨 **Color Services**\n• Curly Color Experience: Starting $250 | 2.5h\n\n🌿 **Treatments & Therapy**\n• Scalp Treatment: Starting $140 | 1.5h\n• Ozone Therapy: Starting $150 | 2h\n\nTo book, visit https://booksy.com/en-us/155582_akro-beauty-by-la-morocha-makeup_hair-salon_134763_orlando/staffer/880999 😊";
     }
-
-    // Add function call message and results to conversation
-    messages.push(assistantMessage);
-    messages.push(
-      ...functionResults.map((result) => ({
-        role: "tool",
-        tool_call_id: result.tool_call_id,
-        content: result.content,
-      }))
-    );
-
-    // Get final response from GPT after function calls
-    const finalMessage = await chatCompletion(messages, env.OPENAI_API_KEY, "gpt-4o", 0.7);
-    assistantReply =
-      finalMessage.content?.trim() || "I'm having trouble processing that request right now.";
   } else {
     // No function calls - just use the regular response
     assistantReply =
