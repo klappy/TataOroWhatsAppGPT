@@ -126,3 +126,9 @@
 - **Circuit Breaker**: Trips after 2 failures, resets after 2 minutes (was 3 failures/1 hour)
 - **No More Slow Retries**: If booking fails, user is told to try again in a couple minutes or visit Booksy directly
 - **Prepares for better UX and faster recovery from issues**
+
+## [1.9.8] - 2025-07-06
+
+- Booksy scraper now clicks each day and period (Morning, Afternoon, Evening) and extracts all available time slots, matching the UI
+- Returns a list of {date, time} slots for each service
+- Initial deploy failed (error: Could not retrieve appointment times); further debugging required
