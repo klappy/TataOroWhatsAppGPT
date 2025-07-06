@@ -237,22 +237,21 @@ export async function handleWhatsAppRequest(request, env, ctx) {
       result.content?.trim() || "I'm having trouble processing that request right now.";
   } catch (error) {
     console.error("GPT completion failed:", error);
-    // Enhanced fallback response
-    assistantReply = `Hi there! 😊 I'm Tata's assistant, here to help with your curly hair journey!
+    // Enhanced fallback response (WhatsApp-friendly)
+    assistantReply = `Hi there! 😊 I'm Tata's assistant for curly hair!
 
-✂️ **Curly Adventure (First Time)** - $170 (3-4 hours)
-Perfect for new clients to discover your curl pattern!
+✂️ **Curly Adventure (First Time)** - $170 (3-4h)
+Perfect for discovering your curl pattern!
 
-✂️ **Curly Adventure (Returning)** - $150 (2-3 hours)  
-For clients who know their curls already
+✂️ **Curly Adventure (Returning)** - $150 (2-3h)  
+For clients who know their curls
 
-💆‍♀️ **Consultation Only** - $50 (45 minutes)
-Great way to start your curly journey
+💆‍♀️ **Consultation Only** - $50 (45min)
+Great way to start your journey
 
-🌈 **Color & Cut Package** - $250+ (4-5 hours)
-Complete transformation with color
+🌈 **Color & Cut Package** - $250+ (4-5h)
 
-To book, visit Tata's Booksy page and use the "Search for service" box under her name/photo! I'm here if you need help choosing the right service! 😊`;
+To book: Visit Tata's Booksy page → Use "Search for service" box → Book your slot! 😊`;
   }
 
   // Detect assistant-generated summary

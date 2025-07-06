@@ -276,15 +276,17 @@ function getFunctionFallback(functionName, args) {
         },
       ],
       fallback: true,
+      whatsappFriendly: true,
       message:
-        "Using backup service data. For complete options and live booking, please visit Tata's Booksy page.",
+        "Showing top services. Visit Tata's Booksy page for complete options and live booking!",
     },
 
     search_booksy_services: {
       services: getSearchFallback(args.query),
       fallback: true,
       query: args.query,
-      message: `Found services related to "${args.query}" from backup data.`,
+      whatsappFriendly: true,
+      message: `Found services for "${args.query}". Visit Booksy for more options!`,
     },
 
     get_service_recommendations: {
@@ -294,32 +296,32 @@ function getFunctionFallback(functionName, args) {
         args.clientType === "new_client" ? "new" : "returning"
       } clients!`,
       fallback: true,
+      whatsappFriendly: true,
     },
 
     get_booking_instructions: {
       instructions: [
         "Visit Tata's Booksy page",
-        "Look for the 'Search for service' box under Tata's name/photo",
-        `Search for "${args.serviceName || "your desired service"}"`,
-        "Click 'Book' next to your chosen service",
-        "Select your preferred date and time",
-        "Complete the booking form",
+        "Use 'Search for service' box under Tata's name",
+        `Search for "${args.serviceName || "your service"}"`,
+        "Click 'Book' and select your time",
       ],
       serviceName: args.serviceName,
       fallback: true,
-      message:
-        "Here are the general booking steps. The live calendar will show current availability.",
+      whatsappFriendly: true,
+      message: "Quick booking steps - live calendar shows current availability!",
     },
 
     get_available_appointments: {
       available: false,
-      message: `I'd love to help you find appointment times for "${
+      message: `For "${
         args.serviceName || "your service"
-      }"! For the most current availability, please visit Tata's Booksy page where you can see real-time open slots.`,
+      }" availability, please visit Tata's Booksy page where you can see real-time open slots.`,
       bookingTip:
-        "Use the 'Search for service' box under Tata's name/photo to find your specific service, then click 'Book' to see all available times.",
+        "Use the 'Search for service' box under Tata's name, then click 'Book' for available times.",
       preferredDates: args.preferredDates,
       fallback: true,
+      whatsappFriendly: true,
     },
   };
 
@@ -327,6 +329,7 @@ function getFunctionFallback(functionName, args) {
     fallbacks[functionName] || {
       error: "Service temporarily unavailable",
       fallback: true,
+      whatsappFriendly: true,
       message: "Please visit Tata's Booksy page directly for current information.",
     }
   );
@@ -539,68 +542,66 @@ export async function getChatCompletion(messages, env, options = {}) {
 }
 
 /**
- * Generate smart fallback responses based on user message content
+ * Generate smart fallback responses based on user message content (WhatsApp-friendly)
  */
 function generateSmartFallback(userMessage) {
   const message = userMessage.toLowerCase();
 
-  // Service-related fallbacks
+  // Service-related fallbacks (concise)
   if (message.includes("service") || message.includes("price") || message.includes("cost")) {
-    return `Hi there! 😊 I'm Tata's assistant. Here are the main services:
+    return `Hi there! 😊 I'm Tata's assistant! Here are our top services:
 
-✂️ **Curly Adventure (First Time)** - $170 (3-4 hours)
-Perfect for new clients to discover your curl pattern!
+✂️ **Curly Adventure (First Time)** - $170 (3-4h)
+Perfect for discovering your curl pattern!
 
-✂️ **Curly Adventure (Returning)** - $150 (2-3 hours)  
-For clients who know their curls already
+✂️ **Curly Adventure (Returning)** - $150 (2-3h)  
+For clients who know their curls
 
-💆‍♀️ **Consultation Only** - $50 (45 minutes)
-Great way to start your curly journey
+💆‍♀️ **Consultation Only** - $50 (45min)
+Great way to start your journey
 
-🌈 **Color & Cut Package** - $250+ (4-5 hours)
-Complete transformation with color
+🌈 **Color & Cut Package** - $250+ (4-5h)
 
-To book, visit Tata's Booksy page and use the "Search for service" box under her name/photo!`;
+To book: Visit Tata's Booksy page → Search for service → Book!`;
   }
 
-  // Booking-related fallbacks
+  // Booking-related fallbacks (concise)
   if (message.includes("book") || message.includes("appointment") || message.includes("schedule")) {
-    return `I'd love to help you book! 📅
+    return `Ready to book? 📅
 
-To schedule your appointment:
 1. Visit Tata's Booksy page
-2. Look for the "Search for service" box under Tata's name/photo
-3. Search for your desired service
-4. Click "Book" and select your preferred time
+2. Use "Search for service" box under her name
+3. Find your service → Click "Book"
+4. Pick your preferred time
 
-The live calendar will show all available slots. I'm here if you need help choosing the right service! 😊`;
+The live calendar shows all available slots. Need help choosing a service? Just ask! 😊`;
   }
 
-  // New client fallbacks
+  // New client fallbacks (concise)
   if (message.includes("new") || message.includes("first time")) {
     return `Welcome to your curly hair journey! 🌟
 
-For first-time clients, I recommend:
-✂️ **Curly Adventure (First Time)** - $170 (3-4 hours)
-This includes consultation, cut, and styling education!
+Perfect for new clients:
+✂️ **Curly Adventure (First Time)** - $170 (3-4h)
+Includes consultation, cut & styling education!
 
 Or start with:
-💆‍♀️ **Consultation Only** - $50 (45 minutes)
-Perfect to understand your curl pattern first
+💆‍♀️ **Consultation Only** - $50 (45min)
+Understand your curl pattern first
 
-Ready to book? Visit Tata's Booksy page and search for your chosen service! 😊`;
+Ready to book? Visit Tata's Booksy page! 😊`;
   }
 
-  // Default friendly fallback
-  return `Hi there! 😊 I'm Tata's assistant, here to help with your curly hair journey!
+  // Default friendly fallback (concise)
+  return `Hi there! 😊 I'm Tata's assistant for all things curly hair!
 
 I can help you:
-🔍 Find the perfect service for your curls
-💰 Get pricing and duration info  
+🔍 Find the perfect service
+💰 Get pricing info  
 📅 Guide you through booking
-✨ Answer questions about curly hair care
+✨ Answer curly hair questions
 
-What can I help you with today? Just let me know if you're a new or returning client and I'll show you the best options! 🌈`;
+Are you a new client or have you seen Tata before? 🌈`;
 }
 
 /**
