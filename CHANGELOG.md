@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.1 - Improved Booking Experience (2025-07-06)
+
+- **Direct service listing** - "I want to book a service" now immediately shows all available services instead of asking clarifying questions
+- **Better UX for general requests** - Optimized system prompt to recognize when users want to see the full service catalog
+- **Clear examples** - Added specific triggers for when to show complete service list vs. specific recommendations
+
 ## v1.8.0 - Dynamic Booksy MCP Server (2025-07-06)
 
 - **Dynamic service scraping** - Real-time Playwright scraper replaces static hardcoded service data
