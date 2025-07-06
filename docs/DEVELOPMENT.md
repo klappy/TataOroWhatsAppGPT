@@ -2,8 +2,41 @@
 
 **Purpose**: Complete guide for local development, testing, and deployment  
 **Audience**: Developers, contributors  
-**Last Updated**: Version 1.0.0  
+**Last Updated**: Version 1.7.1  
 **Status**: CURRENT - COMPLETE DEVELOPMENT GUIDE
+
+## 🚨 CRITICAL: Deployment Workflow
+
+**NEVER DEPLOY WITHOUT COMMITTING FIRST!**
+
+### Mandatory Pre-Deployment Steps
+
+1. **Update Version**: Bump version in `package.json`
+2. **Update Changelog**: Add entry to `CHANGELOG.md` with changes
+3. **Commit Changes**: `git add . && git commit -m "v1.x.x: Description"`
+4. **Push to Remote**: `git push`
+5. **Then Deploy**: `wrangler deploy`
+
+### Example Workflow
+
+```bash
+# 1. Update package.json version
+# 2. Update CHANGELOG.md
+# 3. Commit everything
+git add .
+git commit -m "v1.7.1: Description of changes"
+git push
+
+# 4. THEN deploy
+wrangler deploy
+```
+
+**Why This Matters**:
+
+- Ensures version control matches deployed code
+- Maintains proper changelog documentation
+- Enables rollback to specific versions
+- Tracks deployment history properly
 
 ## Prerequisites
 

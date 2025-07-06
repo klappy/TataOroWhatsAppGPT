@@ -2,10 +2,22 @@
 
 **Scope**: Mandatory reading for all AI agents working on this codebase  
 **Audience**: AI agents, LLMs, automated systems  
-**Last Updated**: Version 1.0.0  
+**Last Updated**: Version 1.7.1  
 **Status**: CURRENT - MUST READ BEFORE ANY CODE CHANGES
 
 > 🤖 **MANDATORY FOR AI AGENTS**: Read this entire document before making any suggestions or code changes. Failure to follow these instructions may result in recommending already-failed approaches.
+
+## 🚨 CRITICAL: NEVER DEPLOY WITHOUT COMMITTING
+
+**DEPLOYMENT RULE**: Before ANY deployment, you MUST:
+
+1. **Update version** in `package.json`
+2. **Update changelog** in `CHANGELOG.md`
+3. **Commit all changes**: `git add . && git commit -m "v1.x.x: Description"`
+4. **Push to remote**: `git push`
+5. **THEN deploy**: `wrangler deploy`
+
+**NO EXCEPTIONS**: This prevents version mismatches and maintains proper deployment history.
 
 ## Critical First Steps
 
