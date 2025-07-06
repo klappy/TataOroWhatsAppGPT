@@ -602,51 +602,100 @@ async function getAvailableAppointments(env, serviceName, preferredDates = null)
 
       console.log(`Scanning ${allElements.length} elements for service-book pairs`);
 
+      // First pass: collect all potential service matches with scores
+      const serviceMatches = [];
+
       for (let i = 0; i < allElements.length; i++) {
         const element = allElements[i];
         const text = element.textContent?.trim() || "";
 
-        // Look for service names that match our target
-        const isServiceMatch =
-          text.toLowerCase().includes(targetService.toLowerCase()) ||
-          (targetService.toLowerCase().includes("consultation") &&
-            text.toLowerCase().includes("consultation")) ||
-          (targetService.toLowerCase().includes("curly adventure") &&
-            text.toLowerCase().includes("curly adventure")) ||
-          (targetService.toLowerCase().includes("regular") &&
-            text.toLowerCase().includes("regular client")) ||
-          (targetService.toLowerCase().includes("first") &&
-            text.toLowerCase().includes("first time"));
+        if (text.length > 10 && text.length < 200) {
+          // Smart service matching with priority scoring
+          function getMatchScore(text, targetService) {
+            const textLower = text.toLowerCase();
+            const targetLower = targetService.toLowerCase();
 
-        if (isServiceMatch && text.length > 10 && text.length < 200) {
-          console.log(`✅ Found service match: ${text}`);
+            // Exact match gets highest score
+            if (textLower === targetLower) return 100;
 
-          // Strategy 1: Look in siblings after this element for Book button
-          for (let j = i + 1; j < Math.min(i + 10, allElements.length); j++) {
-            const nextElement = allElements[j];
-            const nextText = nextElement.textContent?.trim() || "";
+            // Exact match of service name with parenthetical details
+            if (textLower.includes(targetLower)) return 90;
 
-            if (nextText.includes("Book") && (nextText.includes("$") || nextText.includes("min"))) {
-              console.log(`🎯 Clicking Book button: ${nextText.substring(0, 50)}`);
-              nextElement.click();
+            // Check for specific service variants
+            if (targetLower.includes("regular client") && textLower.includes("regular client"))
+              return 85;
+            if (targetLower.includes("first time") && textLower.includes("first time")) return 85;
+            if (targetLower.includes("cliente nuevo") && textLower.includes("cliente nuevo"))
+              return 85;
+
+            // Partial match for main service name
+            if (targetLower.includes("curly adventure") && textLower.includes("curly adventure")) {
+              // Prefer Regular over First Time when asking for Regular
+              if (targetLower.includes("regular") && textLower.includes("regular")) return 80;
+              if (targetLower.includes("regular") && textLower.includes("first")) return 40; // Low score
+              return 70; // Generic curly adventure match
+            }
+
+            if (targetLower.includes("consultation") && textLower.includes("consultation"))
+              return 75;
+
+            // Basic partial match
+            if (textLower.includes(targetLower) || targetLower.includes(textLower)) return 50;
+
+            return 0; // No match
+          }
+
+          const matchScore = getMatchScore(text, targetService);
+
+          if (matchScore > 0) {
+            serviceMatches.push({
+              element,
+              text,
+              score: matchScore,
+              index: i,
+            });
+          }
+        }
+      }
+
+      // Sort by score (highest first) and try to click the best match
+      serviceMatches.sort((a, b) => b.score - a.score);
+
+      console.log(
+        `Found ${serviceMatches.length} service matches:`,
+        serviceMatches.slice(0, 3).map((m) => ({ text: m.text.substring(0, 50), score: m.score }))
+      );
+
+      for (const match of serviceMatches) {
+        console.log(
+          `✅ Trying service match (score ${match.score}): ${match.text.substring(0, 50)}`
+        );
+
+        // Strategy 1: Look in siblings after this element for Book button
+        for (let j = match.index + 1; j < Math.min(match.index + 10, allElements.length); j++) {
+          const nextElement = allElements[j];
+          const nextText = nextElement.textContent?.trim() || "";
+
+          if (nextText.includes("Book") && (nextText.includes("$") || nextText.includes("min"))) {
+            console.log(`🎯 Clicking Book button: ${nextText.substring(0, 50)}`);
+            nextElement.click();
+            return true;
+          }
+        }
+
+        // Strategy 2: Look in parent container for Book button
+        let parent = match.element.parentElement;
+        for (let level = 0; level < 3 && parent; level++) {
+          const bookButtons = parent.querySelectorAll("div, button");
+          for (const btn of bookButtons) {
+            const btnText = btn.textContent?.trim() || "";
+            if (btnText.includes("Book") && btnText !== match.text && btnText.length < 100) {
+              console.log(`🎯 Clicking parent Book button: ${btnText.substring(0, 50)}`);
+              btn.click();
               return true;
             }
           }
-
-          // Strategy 2: Look in parent container for Book button
-          let parent = element.parentElement;
-          for (let level = 0; level < 3 && parent; level++) {
-            const bookButtons = parent.querySelectorAll("div, button");
-            for (const btn of bookButtons) {
-              const btnText = btn.textContent?.trim() || "";
-              if (btnText.includes("Book") && btnText !== text && btnText.length < 100) {
-                console.log(`🎯 Clicking parent Book button: ${btnText.substring(0, 50)}`);
-                btn.click();
-                return true;
-              }
-            }
-            parent = parent.parentElement;
-          }
+          parent = parent.parentElement;
         }
       }
 
@@ -1378,81 +1427,130 @@ async function debugAppointmentFlow(env, serviceName) {
 
       console.log(`Scanning ${allElements.length} elements for service-book pairs`);
 
+      // First pass: collect all potential service matches with scores
+      const serviceMatches = [];
+
       for (let i = 0; i < allElements.length; i++) {
         const element = allElements[i];
         const text = element.textContent?.trim() || "";
 
-        // Look for service names that match our target
-        const isServiceMatch =
-          text.toLowerCase().includes(targetService.toLowerCase()) ||
-          (targetService.toLowerCase().includes("consultation") &&
-            text.toLowerCase().includes("consultation")) ||
-          (targetService.toLowerCase().includes("curly adventure") &&
-            text.toLowerCase().includes("curly adventure")) ||
-          (targetService.toLowerCase().includes("regular") &&
-            text.toLowerCase().includes("regular client")) ||
-          (targetService.toLowerCase().includes("first") &&
-            text.toLowerCase().includes("first time"));
+        if (text.length > 10 && text.length < 200) {
+          // Smart service matching with priority scoring (same as main function)
+          function getMatchScore(text, targetService) {
+            const textLower = text.toLowerCase();
+            const targetLower = targetService.toLowerCase();
 
-        if (isServiceMatch && text.length > 10 && text.length < 200) {
-          console.log(`✅ Found service match: ${text}`);
+            // Exact match gets highest score
+            if (textLower === targetLower) return 100;
 
-          // Now look for a Book button in the next few elements or parent containers
-          let found = false;
+            // Exact match of service name with parenthetical details
+            if (textLower.includes(targetLower)) return 90;
 
-          // Strategy 1: Look in siblings after this element
-          for (let j = i + 1; j < Math.min(i + 10, allElements.length); j++) {
-            const nextElement = allElements[j];
-            const nextText = nextElement.textContent?.trim() || "";
+            // Check for specific service variants
+            if (targetLower.includes("regular client") && textLower.includes("regular client"))
+              return 85;
+            if (targetLower.includes("first time") && textLower.includes("first time")) return 85;
+            if (targetLower.includes("cliente nuevo") && textLower.includes("cliente nuevo"))
+              return 85;
 
-            if (nextText.includes("Book") && (nextText.includes("$") || nextText.includes("min"))) {
-              console.log(`🎯 Found Book button after service: ${nextText.substring(0, 50)}`);
+            // Partial match for main service name
+            if (targetLower.includes("curly adventure") && textLower.includes("curly adventure")) {
+              // Prefer Regular over First Time when asking for Regular
+              if (targetLower.includes("regular") && textLower.includes("regular")) return 80;
+              if (targetLower.includes("regular") && textLower.includes("first")) return 40; // Low score
+              return 70; // Generic curly adventure match
+            }
+
+            if (targetLower.includes("consultation") && textLower.includes("consultation"))
+              return 75;
+
+            // Basic partial match
+            if (textLower.includes(targetLower) || targetLower.includes(textLower)) return 50;
+
+            return 0; // No match
+          }
+
+          const matchScore = getMatchScore(text, targetService);
+
+          if (matchScore > 0) {
+            serviceMatches.push({
+              element,
+              text,
+              score: matchScore,
+              index: i,
+            });
+          }
+        }
+      }
+
+      // Sort by score (highest first) and try to click the best match
+      serviceMatches.sort((a, b) => b.score - a.score);
+
+      console.log(
+        `Debug: Found ${serviceMatches.length} service matches:`,
+        serviceMatches.slice(0, 3).map((m) => ({ text: m.text.substring(0, 50), score: m.score }))
+      );
+
+      for (const match of serviceMatches) {
+        console.log(
+          `Debug: ✅ Trying service match (score ${match.score}): ${match.text.substring(0, 50)}`
+        );
+
+        // Strategy 1: Look in siblings after this element
+        for (let j = match.index + 1; j < Math.min(match.index + 10, allElements.length); j++) {
+          const nextElement = allElements[j];
+          const nextText = nextElement.textContent?.trim() || "";
+
+          if (nextText.includes("Book") && (nextText.includes("$") || nextText.includes("min"))) {
+            console.log(`Debug: 🎯 Found Book button after service: ${nextText.substring(0, 50)}`);
+            try {
+              nextElement.click();
+              return {
+                success: true,
+                clicked: nextText.substring(0, 100),
+                serviceName: match.text,
+                strategy: "sibling",
+                score: match.score,
+              };
+            } catch (e) {
+              console.log(`Debug: Failed to click: ${e.message}`);
+              continue;
+            }
+          }
+        }
+
+        // Strategy 2: Look in parent container
+        let parent = match.element.parentElement;
+        for (let level = 0; level < 3 && parent; level++) {
+          const bookButtons = parent.querySelectorAll("div, button");
+          for (const btn of bookButtons) {
+            const btnText = btn.textContent?.trim() || "";
+            if (btnText.includes("Book") && btnText !== match.text) {
+              console.log(`Debug: 🎯 Found Book button in parent: ${btnText.substring(0, 50)}`);
               try {
-                nextElement.click();
+                btn.click();
                 return {
                   success: true,
-                  clicked: nextText.substring(0, 100),
-                  serviceName: text,
-                  strategy: "sibling",
+                  clicked: btnText.substring(0, 100),
+                  serviceName: match.text,
+                  strategy: "parent",
+                  score: match.score,
                 };
               } catch (e) {
-                console.log(`Failed to click: ${e.message}`);
+                console.log(`Debug: Failed to click parent book: ${e.message}`);
                 continue;
               }
             }
           }
-
-          // Strategy 2: Look in parent container
-          let parent = element.parentElement;
-          for (let level = 0; level < 3 && parent; level++) {
-            const bookButtons = parent.querySelectorAll("div, button");
-            for (const btn of bookButtons) {
-              const btnText = btn.textContent?.trim() || "";
-              if (btnText.includes("Book") && btnText !== text) {
-                console.log(`🎯 Found Book button in parent: ${btnText.substring(0, 50)}`);
-                try {
-                  btn.click();
-                  return {
-                    success: true,
-                    clicked: btnText.substring(0, 100),
-                    serviceName: text,
-                    strategy: "parent",
-                  };
-                } catch (e) {
-                  console.log(`Failed to click parent book: ${e.message}`);
-                  continue;
-                }
-              }
-            }
-            parent = parent.parentElement;
-          }
-
-          serviceBookPairs.push({
-            service: text,
-            position: i,
-            element: element.tagName,
-          });
+          parent = parent.parentElement;
         }
+
+        serviceBookPairs.push({
+          service: match.text,
+          position: match.index,
+          element: match.element.tagName,
+          score: match.score,
+        });
       }
 
       // Strategy 3: Fallback - look for any prominent Book button
