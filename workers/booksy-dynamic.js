@@ -365,6 +365,202 @@ async function getAvailableAppointments(env, serviceName, preferredDates = null)
 }
 
 /**
+ * Debug the actual Booksy page structure to understand what selectors we should use
+ */
+async function debugBooksyPage(env) {
+  try {
+    const browser = await launch(env.BROWSER);
+    const page = await browser.newPage();
+
+    console.log("🔍 Starting Booksy page debugging...");
+
+    // Navigate to Booksy page
+    await page.goto(BOOKSY_URL, {
+      waitUntil: "domcontentloaded",
+      timeout: 10000,
+    });
+
+    console.log("📄 Page loaded, analyzing structure...");
+
+    // Wait a bit for dynamic content to load
+    await page.waitForTimeout(3000);
+
+    // Get page info
+    const pageInfo = await page.evaluate(() => {
+      return {
+        title: document.title,
+        url: window.location.href,
+        bodyClasses: document.body.className,
+        totalElements: document.querySelectorAll("*").length,
+      };
+    });
+
+    console.log("📊 Page Info:", pageInfo);
+
+    // Find all potential service-related elements
+    const serviceAnalysis = await page.evaluate(() => {
+      const analysis = {
+        potentialServiceContainers: [],
+        allClassNames: new Set(),
+        allDataAttributes: new Set(),
+        headings: [],
+        serviceKeywords: [],
+      };
+
+      // Collect all elements that might be services
+      const allElements = document.querySelectorAll("*");
+
+      allElements.forEach((el) => {
+        // Collect class names
+        if (el.className && typeof el.className === "string") {
+          el.className.split(" ").forEach((cls) => {
+            if (cls) analysis.allClassNames.add(cls);
+          });
+        }
+
+        // Collect data attributes
+        Array.from(el.attributes).forEach((attr) => {
+          if (attr.name.startsWith("data-")) {
+            analysis.allDataAttributes.add(attr.name);
+          }
+        });
+
+        // Look for service-related text content
+        const text = el.textContent?.trim() || "";
+        if (text && text.length > 5 && text.length < 100) {
+          // Check for service-like keywords
+          const serviceWords = [
+            "curly",
+            "cut",
+            "color",
+            "treatment",
+            "consultation",
+            "adventure",
+            "$",
+            "hour",
+            "min",
+          ];
+          if (serviceWords.some((word) => text.toLowerCase().includes(word))) {
+            analysis.serviceKeywords.push({
+              text: text,
+              tagName: el.tagName,
+              className: el.className,
+              id: el.id,
+            });
+          }
+        }
+
+        // Collect headings
+        if (el.tagName.match(/^H[1-6]$/)) {
+          analysis.headings.push({
+            level: el.tagName,
+            text: el.textContent?.trim(),
+            className: el.className,
+          });
+        }
+      });
+
+      // Look specifically for service-like containers
+      const serviceSelectors = [
+        '[data-testid*="service"]',
+        '[class*="service"]',
+        '[class*="booking"]',
+        '[class*="item"]',
+        '[class*="card"]',
+        '[class*="list"]',
+        "article",
+        "section",
+        ".menu-item",
+        ".treatment",
+        ".offer",
+      ];
+
+      serviceSelectors.forEach((selector) => {
+        try {
+          const elements = document.querySelectorAll(selector);
+          if (elements.length > 0) {
+            analysis.potentialServiceContainers.push({
+              selector: selector,
+              count: elements.length,
+              examples: Array.from(elements)
+                .slice(0, 3)
+                .map((el) => ({
+                  tagName: el.tagName,
+                  className: el.className,
+                  id: el.id,
+                  textPreview: el.textContent?.trim().substring(0, 100),
+                  innerHTML: el.innerHTML.substring(0, 200),
+                })),
+            });
+          }
+        } catch (e) {
+          // Skip invalid selectors
+        }
+      });
+
+      return {
+        ...analysis,
+        allClassNames: Array.from(analysis.allClassNames).sort(),
+        allDataAttributes: Array.from(analysis.allDataAttributes).sort(),
+      };
+    });
+
+    console.log("🔍 Service Analysis:", JSON.stringify(serviceAnalysis, null, 2));
+
+    // Try our current selectors to see what they find
+    const currentSelectorTest = await page.evaluate(() => {
+      const currentSelectors = [
+        '[data-testid="service-item"]',
+        ".service-card",
+        ".booking-service",
+        ".service-list",
+        '[class*="service"]',
+      ];
+
+      const results = {};
+
+      currentSelectors.forEach((selector) => {
+        try {
+          const elements = document.querySelectorAll(selector);
+          results[selector] = {
+            count: elements.length,
+            examples: Array.from(elements)
+              .slice(0, 2)
+              .map((el) => ({
+                text: el.textContent?.trim().substring(0, 100),
+                className: el.className,
+                tagName: el.tagName,
+              })),
+          };
+        } catch (e) {
+          results[selector] = { error: e.message };
+        }
+      });
+
+      return results;
+    });
+
+    console.log("🧪 Current Selector Test:", JSON.stringify(currentSelectorTest, null, 2));
+
+    await browser.close();
+
+    return {
+      pageInfo,
+      serviceAnalysis,
+      currentSelectorTest,
+      timestamp: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("❌ Debug failed:", error);
+    return {
+      error: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
+
+/**
  * Generate booking link with navigation instructions (fallback)
  */
 function getBookingInstructions(serviceName) {
@@ -543,6 +739,13 @@ export default {
         );
       }
 
+      if (path === "/booksy/debug") {
+        const debugInfo = await debugBooksyPage(env);
+        return new Response(JSON.stringify(debugInfo), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       return new Response(
         JSON.stringify({
           error: "Not Found",
@@ -553,6 +756,7 @@ export default {
             "/booksy/booking?service=ServiceName - Get booking instructions",
             "/booksy/appointments?service=ServiceName - Get available appointment times (NEW!)",
             "/booksy/refresh - Force refresh service data",
+            "/booksy/debug - Get debug information about the Booksy page",
           ],
         }),
         {
