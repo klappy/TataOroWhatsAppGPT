@@ -147,7 +147,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
     const keys = (objects || []).map((obj) => obj.key);
     await deleteR2Objects(env, keys);
     await env.CHAT_HISTORY.delete(sessionKey);
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>No problem! I’ve cleared our conversation so we can start fresh. 🌱 What would you like to do next?</Message></Response>`;
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>No problem! I've cleared our conversation so we can start fresh. 🌱 What would you like to do next?</Message></Response>`;
     return new Response(twiml, {
       headers: { "Content-Type": "text/xml; charset=UTF-8", "Access-Control-Allow-Origin": "*" },
     });
@@ -156,7 +156,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
   const emailTriggers = ["send email", "email summary"];
   if (emailTriggers.includes(incoming)) {
     if (!session.history || session.history.length === 0) {
-      const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>Sorry, I haven’t captured any conversation yet to summarize. Let’s chat a bit more before sending the email!</Message></Response>`;
+      const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>Sorry, I haven't captured any conversation yet to summarize. Let's chat a bit more before sending the email!</Message></Response>`;
       return new Response(twiml, {
         headers: { "Content-Type": "text/xml; charset=UTF-8", "Access-Control-Allow-Origin": "*" },
       });
@@ -178,7 +178,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
     session.progress_status = "summary-ready";
     // Extend session retention to one month
     await env.CHAT_HISTORY.put(sessionKey, JSON.stringify(session), { expirationTtl: 2592000 });
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>Done! 💌 I’ve sent your consultation summary to Tata by email.</Message></Response>`;
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>Done! 💌 I've sent your consultation summary to Tata by email.</Message></Response>`;
     return new Response(twiml, {
       headers: { "Content-Type": "text/xml; charset=UTF-8", "Access-Control-Allow-Origin": "*" },
     });
@@ -224,14 +224,18 @@ export async function handleWhatsAppRequest(request, env, ctx) {
     messages.push({ role: "user", content: body });
   }
 
-  // Temporarily disable function calling for faster responses - use backup data
-  // TODO: Re-enable function calling once MCP performance is optimized
+  // Re-enable function calling for fast services (exclude slow appointment function)
+  // Use a subset of functions that are known to be fast and working
+  const FAST_BOOKSY_FUNCTIONS = BOOKSY_FUNCTIONS.filter(
+    (func) => func.function.name !== "get_available_appointments"
+  );
+
   let assistantMessage = await chatCompletion(
     messages,
     env.OPENAI_API_KEY,
     "gpt-4o",
     0.7,
-    null // Disable function calling temporarily
+    FAST_BOOKSY_FUNCTIONS // Re-enable function calling for fast services only
   );
   let assistantReply = "";
 

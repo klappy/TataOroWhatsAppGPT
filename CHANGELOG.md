@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.8 - Re-enabled Fast Function Calling (2025-07-06)
+
+- **Re-enabled smart function calling** - Service info, search, and recommendations functions now work dynamically
+- **Excluded slow appointment scraping** - Only disabled the problematic appointment function to prevent hanging
+- **Live service data** - GPT can now access real Booksy service information instead of only backup data
+- **Progressive enhancement** - Fast functions work now, appointment scraping optimization comes next
+
 ## v1.8.7 - Improved Initial Greeting & Readable Service Format (2025-07-06)
 
 - **Warm introduction on first contact** - Bot now introduces itself and explains Tata's service before asking new/existing client status
