@@ -1491,46 +1491,117 @@ async function debugAppointmentFlow(env, serviceName) {
     // Step 3: Wait a moment and check what happened
     await page.waitForTimeout(2000);
 
-    // Step 4: Look for calendar/time elements
+    // Step 4: Comprehensive time slot and booking interface detection
     const calendarState = await page.evaluate(() => {
+      console.log("🕐 Debug: Comprehensive time slot search...");
+
+      // Comprehensive time slot detection strategies (same as main function)
       const timeSelectors = [
+        // Standard time selectors
         'button[class*="time"]',
         '[data-testid*="time"]',
         '[data-cy*="time"]',
         ".time-slot",
         '[class*="slot"]',
+        // Booking-specific selectors
+        '[data-testid*="booking"] button',
+        '[data-testid*="calendar"] button',
+        '[class*="booking"] button',
+        '[class*="calendar"] button',
+        '[class*="appointment"] button',
+        '[class*="modal"] button',
+        // Booksy-specific selectors
         'button[class*="purify"]',
         'div[class*="purify"]',
         'li[class*="purify"]',
+        // Generic clickable elements
+        "button",
+        'div[role="button"]',
+        'a[role="button"]',
       ];
 
+      const allElements = [];
       const selectorResults = {};
-      const allTimeElements = [];
 
       timeSelectors.forEach((selector) => {
-        const elements = document.querySelectorAll(selector);
-        selectorResults[selector] = elements.length;
-
-        Array.from(elements).forEach((el) => {
-          const text = el.textContent?.trim() || "";
-          if (text.match(/\d{1,2}:\d{2}\s*(AM|PM)/i)) {
-            allTimeElements.push({
-              text: text,
-              selector: selector,
-              tagName: el.tagName,
-            });
-          }
-        });
+        try {
+          const elements = document.querySelectorAll(selector);
+          selectorResults[selector] = elements.length;
+          allElements.push(...elements);
+        } catch (e) {
+          selectorResults[selector] = 0;
+        }
       });
 
-      // Also check for AM/PM text patterns in the page
-      const bodyText = document.body.textContent || "";
-      const timeMatches = bodyText.match(/\d{1,2}:\d{2}\s*(AM|PM)/gi) || [];
+      console.log(`Debug: Found ${allElements.length} total clickable elements`);
+
+      const times = [];
+      const timeRegex = /\b\d{1,2}:\d{2}\s*(AM|PM)\b|\b\d{1,2}\s*(AM|PM)\b/i;
+
+      // Strategy 1: Look for elements with time text
+      for (let i = 0; i < Math.min(allElements.length, 50); i++) {
+        const element = allElements[i];
+        const timeText = element.textContent?.trim();
+
+        if (timeText && timeRegex.test(timeText) && timeText.length < 50) {
+          console.log(`Debug: ✅ Found time element: ${timeText}`);
+          if (!times.includes(timeText)) {
+            times.push(timeText);
+          }
+        }
+      }
+
+      // Strategy 2: Look for buttons that might be time slots
+      const potentialTimeButtons = [];
+      for (const element of allElements) {
+        const text = element.textContent?.trim() || "";
+        const isButton = element.tagName === "BUTTON" || element.getAttribute("role") === "button";
+
+        if (
+          isButton &&
+          text.length > 1 &&
+          text.length < 20 &&
+          (text.match(/\d/) || text.includes("AM") || text.includes("PM"))
+        ) {
+          potentialTimeButtons.push(text);
+        }
+      }
+
+      console.log(`Debug: Found ${potentialTimeButtons.length} potential time buttons`);
+
+      // Strategy 3: Scan entire page text for time patterns
+      const allText = document.body.textContent || "";
+      const timeMatches = allText.match(/\b\d{1,2}:\d{2}\s*(AM|PM)\b/gi) || [];
+
+      if (timeMatches.length > 0) {
+        console.log(`Debug: Found ${timeMatches.length} time patterns in page text`);
+        timeMatches.forEach((match) => {
+          if (!times.includes(match) && times.length < 15) {
+            times.push(match);
+          }
+        });
+      }
+
+      // Strategy 4: Look for common booking interface indicators
+      const bookingIndicators = {
+        hasCalendar:
+          document.querySelectorAll('[class*="calendar"], [data-testid*="calendar"]').length > 0,
+        hasBooking:
+          document.querySelectorAll('[class*="booking"], [data-testid*="booking"]').length > 0,
+        hasModal:
+          document.querySelectorAll('[class*="modal"], [role="modal"], [role="dialog"]').length > 0,
+        hasTimeSelector:
+          document.querySelectorAll('[class*="time"], [data-testid*="time"]').length > 0,
+      };
 
       return {
+        available: times.length > 0,
+        times: times.slice(0, 15),
         selectorResults: selectorResults,
-        timeElements: allTimeElements,
-        timeMatches: timeMatches.slice(0, 10), // First 10 matches
+        potentialTimeButtons: potentialTimeButtons.slice(0, 10),
+        bookingIndicators: bookingIndicators,
+        timeMatchCount: timeMatches.length,
+        totalElements: allElements.length,
         currentUrl: window.location.href,
         currentTitle: document.title,
       };
