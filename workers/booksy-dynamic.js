@@ -190,23 +190,147 @@ function getServiceRecommendations(services, clientType = "new") {
 }
 
 /**
- * Generate booking link with navigation instructions
+ * Get available appointment times for a specific service using Playwright
+ */
+async function getAvailableAppointments(env, serviceName) {
+  try {
+    const browser = await launch(env.BROWSER);
+    const page = await browser.newPage();
+
+    // Navigate to Booksy page
+    await page.goto(BOOKSY_URL, {
+      waitUntil: "domcontentloaded",
+      timeout: 8000,
+    });
+
+    // Find and click the specific service
+    console.log(`Looking for service: ${serviceName}`);
+
+    // Wait for services to load
+    await page.waitForSelector(
+      '[data-testid="service-item"], .service-card, .booking-service, [class*="service"]',
+      {
+        timeout: 5000,
+      }
+    );
+
+    // Try to find the service by name and click its book button
+    const serviceClicked = await page.evaluate((targetService) => {
+      const serviceElements = document.querySelectorAll(
+        '[data-testid="service-item"], .service-card, .booking-service, [class*="service"]'
+      );
+
+      for (const element of serviceElements) {
+        const nameEl = element.querySelector(
+          'h3, .service-name, [class*="title"], [class*="name"]'
+        );
+        if (nameEl && nameEl.textContent.includes(targetService)) {
+          // Find and click the book button for this service
+          const bookButton = element.querySelector('button, [class*="book"], [class*="select"], a');
+          if (bookButton) {
+            bookButton.click();
+            return true;
+          }
+        }
+      }
+      return false;
+    }, serviceName);
+
+    if (!serviceClicked) {
+      await browser.close();
+      return { error: `Could not find service: ${serviceName}` };
+    }
+
+    // Wait for calendar/time selection to load
+    await page.waitForSelector(
+      '[data-testid="calendar"], .calendar, [class*="calendar"], [class*="time"], [class*="slot"]',
+      {
+        timeout: 8000,
+      }
+    );
+
+    // Extract available appointment times
+    const availableTimes = await page.evaluate(() => {
+      const timeSlots = [];
+
+      // Look for various time slot selectors
+      const slotElements = document.querySelectorAll(
+        '[data-testid="time-slot"], [class*="time-slot"], [class*="appointment-time"], .time-option, [class*="available"]'
+      );
+
+      slotElements.forEach((slot) => {
+        const timeText = slot.textContent.trim();
+        const dateContext = slot.closest('[data-date], [class*="date"], [class*="day"]');
+        const dateText = dateContext
+          ? dateContext.getAttribute("data-date") || dateContext.textContent
+          : "";
+
+        if (timeText && timeText.match(/\d{1,2}:\d{2}|AM|PM/)) {
+          timeSlots.push({
+            time: timeText,
+            date: dateText,
+            available:
+              !slot.classList.contains("disabled") && !slot.classList.contains("unavailable"),
+          });
+        }
+      });
+
+      // If no time slots found, look for calendar dates
+      if (timeSlots.length === 0) {
+        const dateElements = document.querySelectorAll(
+          '[class*="available-date"], [class*="calendar-day"]:not([class*="disabled"]), [data-available="true"]'
+        );
+
+        dateElements.forEach((dateEl) => {
+          const dateText = dateEl.textContent.trim() || dateEl.getAttribute("data-date");
+          if (dateText) {
+            timeSlots.push({
+              date: dateText,
+              time: "Times available",
+              available: true,
+            });
+          }
+        });
+      }
+
+      return timeSlots.slice(0, 10); // Limit to first 10 slots
+    });
+
+    await browser.close();
+
+    return {
+      serviceName,
+      availableTimes,
+      totalSlots: availableTimes.length,
+      bookingUrl: BOOKSY_URL,
+      scrapedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("Appointment scraping failed:", error);
+    return {
+      error: "Could not retrieve appointment times",
+      serviceName,
+      fallback: "Please visit the booking page directly to see available times",
+    };
+  }
+}
+
+/**
+ * Generate booking link with navigation instructions (fallback)
  */
 function getBookingInstructions(serviceName) {
-  const searchTerm = serviceName.split(" ")[0]; // First word for Ctrl+F search
-
   return {
     url: BOOKSY_URL,
     instructions: [
-      `1. Click the booking link to open Tata's booking page`,
-      `2. Use Ctrl+F (Cmd+F on Mac) and search for "${searchTerm}"`,
-      `3. Select "${serviceName}" from the services list`,
-      `4. Choose your preferred date and time`,
-      `5. Fill out the booking form with your details`,
+      `1. Visit Tata's booking page using the link above`,
+      `2. Scroll down to find "${serviceName}"`,
+      `3. Click the "Book" button next to that service`,
+      `4. Select your preferred date and time from the calendar`,
+      `5. Fill out your contact information`,
       `6. Confirm your appointment`,
     ],
-    searchTerm,
-    note: "Booksy uses a single page for all services - the search tip helps you find your specific service quickly!",
+    serviceName,
+    note: "The booking page has multiple search options that can be confusing - scrolling to find your service is more reliable than searching.",
   };
 }
 
@@ -322,6 +446,28 @@ export default {
         });
       }
 
+      if (path === "/booksy/appointments") {
+        const serviceName = url.searchParams.get("service");
+        if (!serviceName) {
+          return new Response(
+            JSON.stringify({
+              error: "Service name required. Use ?service=ServiceName",
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+
+        // Try to get actual appointment times using Playwright
+        const appointmentData = await getAvailableAppointments(env, serviceName);
+
+        return new Response(JSON.stringify(appointmentData), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       if (path === "/booksy/refresh") {
         // Force refresh of service data
         const services = await scrapeBooksyServices(env);
@@ -347,6 +493,7 @@ export default {
             "/booksy/services/search?q=query - Search services",
             "/booksy/services/recommendations?type=new|returning - Get recommendations",
             "/booksy/booking?service=ServiceName - Get booking instructions",
+            "/booksy/appointments?service=ServiceName - Get available appointment times (NEW!)",
             "/booksy/refresh - Force refresh service data",
           ],
         }),

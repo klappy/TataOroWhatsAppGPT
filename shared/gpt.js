@@ -71,6 +71,15 @@ export async function executeFunctionCall(functionCall, baseUrl) {
         url = `${baseUrl}/booksy/booking?service=${encodeURIComponent(parsedArgs.serviceName)}`;
         break;
 
+      case "get_available_appointments":
+        if (!parsedArgs.serviceName) {
+          return { error: "Service name is required for appointment times" };
+        }
+        url = `${baseUrl}/booksy/appointments?service=${encodeURIComponent(
+          parsedArgs.serviceName
+        )}`;
+        break;
+
       default:
         return { error: `Unknown function: ${name}` };
     }
@@ -173,6 +182,25 @@ export const BOOKSY_FUNCTIONS = [
             type: "string",
             description:
               "Exact name of the service to book (e.g. 'Curly Adventure (First Time)', 'Curly Cut + Simple Definition')",
+          },
+        },
+        required: ["serviceName"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_available_appointments",
+      description:
+        "Get actual available appointment times for a specific service by scraping Booksy's booking calendar. This shows real-time availability instead of just booking instructions.",
+      parameters: {
+        type: "object",
+        properties: {
+          serviceName: {
+            type: "string",
+            description:
+              "Exact name of the service to get appointment times for (e.g. 'Curly Adventure (First Time)', 'Curly Cut + Simple Definition')",
           },
         },
         required: ["serviceName"],

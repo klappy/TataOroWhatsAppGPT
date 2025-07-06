@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.5 - Revolutionary Appointment Time Scraping (2025-07-06)
+
+- **NEW: Real appointment time scraping** - Can now show actual available appointment slots instead of just booking instructions
+- **Enhanced Playwright automation** - Clicks through Booksy booking flow to extract available times
+- **Fixed confusing search instructions** - No more Ctrl+F confusion with multiple search bars
+- **Better booking guidance** - Clear "scroll to find service" instructions instead of unreliable search
+- **New `/booksy/appointments` endpoint** - Returns actual available appointment times for any service
+- **Future-ready function calling** - New `get_available_appointments` function for when function calling is re-enabled
+- **Improved UX flow** - From "figure out booking yourself" to "here are the available times: Tuesday 2pm, Wednesday 10am..."
+
 ## v1.8.4 - Emergency Fix for Hanging Issue (2025-07-06)
 
 - **Temporarily disabled function calling** to eliminate hanging responses
