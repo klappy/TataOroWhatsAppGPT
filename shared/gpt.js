@@ -220,7 +220,7 @@ function transformApiResponse(functionName, result, args) {
       // Format simple time ranges - Booksy already calculated valid start times
       const consolidatedTimes =
         result.timeSlots && result.timeSlots.length > 0
-          ? result.timeSlots.slice(0, 5).map((day) => {
+          ? result.timeSlots.slice(0, 7).map((day) => {
               const slots = day.slots;
 
               // Format time for display
@@ -268,8 +268,12 @@ function transformApiResponse(functionName, result, args) {
         RESPONSE_TEMPLATE:
           totalSlots > 0
             ? `Great! I found available appointment times. Here are your options:\n\n${consolidatedTimes
-                .slice(0, 3)
-                .join("\n")}\n\nWhich time works best for you?`
+                .slice(0, 5)
+                .join("\n")}${
+                result.timeSlots && result.timeSlots.length > 5
+                  ? "\n\n📅 More dates available! Just ask about a specific day."
+                  : ""
+              }\n\nTo book, visit Tata's Booksy page and select your preferred time!`
             : "I couldn't find any available times for this service.",
       };
 

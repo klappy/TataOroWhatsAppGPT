@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.20.7] - 2025-01-07
+
+- **🚨 CRITICAL FIX**: AI can no longer pretend to book appointments - was lying to customers saying "appointment is set"
+- **More Availability**: Now shows up to 5 days instead of 3, mentions if more dates available
+- **Honest Booking**: Always directs to Booksy instead of asking "What time works for you?"
+- **Clear Boundaries**: Added explicit instructions that AI is information-only, cannot actually book
+
 ## [1.20.6] - 2025-01-07
 
 - **Simplified Time Logic**: Removed complex time calculations - Booksy already provides valid start times
