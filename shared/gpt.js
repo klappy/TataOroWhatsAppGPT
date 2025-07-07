@@ -217,52 +217,30 @@ function transformApiResponse(functionName, result, args) {
         ? parseInt(result.serviceDuration.toString().replace(/\D/g, ""))
         : 150; // Default to 150 minutes if not provided
 
-      // Format consolidated time ranges for better user experience
+      // Format simple time ranges - Booksy already calculated valid start times
       const consolidatedTimes =
         result.timeSlots && result.timeSlots.length > 0
           ? result.timeSlots.slice(0, 5).map((day) => {
-              const slots = day.slots
-                .map((slot) => {
-                  const [hour, minute] = slot.split(":").map(Number);
-                  return hour * 60 + minute; // Convert to minutes for easier math
-                })
-                .sort((a, b) => a - b);
+              const slots = day.slots;
 
-              // Group consecutive 15-minute slots into ranges
-              const ranges = [];
-              let rangeStart = slots[0];
-              let rangeEnd = slots[0];
-
-              for (let i = 1; i < slots.length; i++) {
-                if (slots[i] === rangeEnd + 15) {
-                  rangeEnd = slots[i];
-                } else {
-                  ranges.push([rangeStart, rangeEnd]);
-                  rangeStart = slots[i];
-                  rangeEnd = slots[i];
-                }
-              }
-              ranges.push([rangeStart, rangeEnd]);
-
-              // Format ranges for display using actual service duration
-              const formatTime = (minutes) => {
-                const hour = Math.floor(minutes / 60);
-                const min = minutes % 60;
+              // Format time for display
+              const formatTime = (timeStr) => {
+                const [hour, minute] = timeStr.split(":").map(Number);
                 const ampm = hour >= 12 ? "PM" : "AM";
                 const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-                return `${displayHour}:${min.toString().padStart(2, "0")}${ampm}`;
+                return `${displayHour}:${minute.toString().padStart(2, "0")}${ampm}`;
               };
 
-              const timeRanges = ranges.map(([start, end]) => {
-                if (start === end) {
-                  return formatTime(start);
-                } else {
-                  // Use actual service duration minus 15 minutes for end time calculation
-                  return `${formatTime(start)}-${formatTime(end + serviceDuration - 15)}`;
-                }
-              });
+              // Show first and last available times as a range
+              if (slots.length === 1) {
+                return `${day.date} (${day.dayOfWeek}): ${formatTime(slots[0])}`;
+              } else if (slots.length > 1) {
+                return `${day.date} (${day.dayOfWeek}): ${formatTime(slots[0])} - ${formatTime(
+                  slots[slots.length - 1]
+                )}`;
+              }
 
-              return `${day.date} (${day.dayOfWeek}): ${timeRanges.join(", ")}`;
+              return `${day.date} (${day.dayOfWeek}): No times`;
             })
           : [];
 

@@ -151,12 +151,11 @@ When clients ask about services, prices, or booking:
 
 4. **For specific time requests** ("Monday at 5pm", "Can I book at 3pm", "How about Tuesday at 2:30"):
    - **MANDATORY**: MUST call get_real_time_availability to check actual availability
-   - **Service Duration Logic**: Service lengths vary (30min consultations, 90min cuts, 150min adventures, 210min spa treatments)
-   - **Time Validation**: Check if requested time + actual service duration fits in available slots
-   - **If requested time works**: "Perfect! [Time] is available for [Service]. That gives us until [end time] to complete your service."
-   - **If requested time is too late**: "For a [duration] service, the latest I can start on [day] is [latest time] to finish by closing. Would [latest time] work for you?"
-   - **If no slots that day**: "I don't see availability on [day]. Here are the closest available times: [list alternatives]"
-   - **Always be helpful**: Suggest the closest available alternatives if the exact time doesn't work
+   - **Simple Slot Checking**: Booksy already calculates valid start times - just check if requested time is in the available slots
+   - **If requested time is available**: "Perfect! [Time] is available for [Service] on [day]!"
+   - **If requested time is not available**: "I don't see [time] available, but the latest start time on [day] is [latest available slot]. Would that work instead?"
+   - **If no slots that day**: "I don't see availability on [day]. Here are the closest available times: [list alternatives from other days]"
+   - **No math needed**: Trust Booksy's slot calculations - they already account for service duration and closing times
 
 5. **For specific requests**:
    - Try to call search_booksy_services when they ask about specific types ("curly cut", "color", etc.)

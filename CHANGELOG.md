@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.20.6] - 2025-01-07
+
+- **Simplified Time Logic**: Removed complex time calculations - Booksy already provides valid start times
+- **Trust the System**: No more manual duration math - just check if requested time exists in available slots
+- **Cleaner Display**: Shows simple "first - last" time ranges instead of complex consolidations
+- **Better UX**: "Latest start time on Monday is 4:30 PM" instead of confusing duration calculations
+
 ## [1.20.5] - 2025-01-07
 
 - **Dynamic Service Duration**: Time validation now uses actual service duration instead of hardcoded 2.5 hours
