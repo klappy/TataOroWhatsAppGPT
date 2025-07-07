@@ -46,7 +46,8 @@ export default {
     try {
       // Simple routing
       if (path === "/booksy/services") {
-        return await getServices(env);
+        const staffFilter = url.searchParams.get("staff");
+        return await getServices(env, staffFilter);
       }
 
       if (path === "/booksy/appointments") {
@@ -62,6 +63,10 @@ export default {
       if (path === "/booksy/timeslots") {
         const service = url.searchParams.get("service") || "Curly Adventure";
         return await getTimeSlots(env, service);
+      }
+
+      if (path === "/booksy/staff") {
+        return await getStaffList(env);
       }
 
       // Health check
@@ -107,14 +112,15 @@ async function getAppointments(env, serviceName, includeTimeSlots = false) {
   try {
     // Get service info via API (instant, reliable)
     const businessData = await getBusinessDataAPI();
-    const service = findServiceByName(businessData.business.top_services, serviceName);
+    const allServices = getAllServicesFromCategories(businessData.business.service_categories);
+    const service = findServiceByName(allServices, serviceName);
 
     if (!service) {
       return new Response(
         JSON.stringify({
           error: "Service not found",
           query: serviceName,
-          availableServices: businessData.business.top_services.map((s) => s.name),
+          availableServices: allServices.map((s) => s.name),
           suggestion: "Try one of the available services listed above",
         }),
         {
@@ -214,13 +220,14 @@ async function getTimeSlots(env, serviceName) {
   try {
     // Get service variant ID
     const businessData = await getBusinessDataAPI();
-    const service = findServiceByName(businessData.business.top_services, serviceName);
+    const allServices = getAllServicesFromCategories(businessData.business.service_categories);
+    const service = findServiceByName(allServices, serviceName);
 
     if (!service || !service.variants[0]?.id) {
       return new Response(
         JSON.stringify({
           error: "Service not found or no variants available",
-          availableServices: businessData.business.top_services.map((s) => s.name),
+          availableServices: allServices.map((s) => s.name),
         }),
         {
           status: 404,
@@ -356,20 +363,39 @@ async function getTimeSlotsAPI(serviceVariantId) {
 }
 
 /**
- * Get services (reuse from clean implementation)
+ * Get services with optional staff filtering
  */
-async function getServices(env) {
+async function getServices(env, staffFilter = null) {
   try {
     const businessData = await getBusinessDataAPI();
-    const services = businessData.business.top_services.map((service) => ({
+    const allServices = getAllServicesFromCategories(businessData.business.service_categories);
+
+    let filteredServices = allServices;
+
+    // Filter by staff if requested
+    if (staffFilter) {
+      const staffLower = staffFilter.toLowerCase();
+      filteredServices = allServices.filter((service) => {
+        if (!service.staffer_id || !Array.isArray(service.staffer_id)) return false;
+
+        // Check if any staff member matches the filter
+        return service.staffer_id.some((staffId) => {
+          const staff = businessData.business.staff.find((s) => s.id === staffId);
+          return staff && staff.name.toLowerCase().includes(staffLower);
+        });
+      });
+    }
+
+    const services = filteredServices.map((service) => ({
       name: service.name,
-      price: service.variants[0]?.service_price || "Contact for pricing",
+      price: service.variants[0]?.service_price || service.price || "Contact for pricing",
       duration: `${service.variants[0]?.duration || "Varies"} minutes`,
       description: service.description || "",
       category: service.category_name || "General",
-      staff: "Tatiana Orozco",
+      staff: getStaffNamesForService(service, businessData.business.staff),
       id: service.id,
       variantId: service.variants[0]?.id,
+      staffIds: service.staffer_id || [],
     }));
 
     await env.CHAT_HISTORY.put("booksy:services", JSON.stringify(services), {
@@ -380,6 +406,8 @@ async function getServices(env) {
       JSON.stringify({
         services,
         count: services.length,
+        totalServices: allServices.length,
+        staffFilter: staffFilter || "none",
         reliability: "high",
         source: "api",
         timestamp: new Date().toISOString(),
@@ -547,4 +575,87 @@ async function getCachedData(env, key) {
     console.error(`Cache retrieval failed for ${key}:`, error);
     return null;
   }
+}
+
+/**
+ * Extract all services from service categories (complete catalog)
+ */
+function getAllServicesFromCategories(serviceCategories) {
+  if (!serviceCategories) return [];
+
+  const allServices = [];
+
+  serviceCategories.forEach((category) => {
+    if (category.services && Array.isArray(category.services)) {
+      category.services.forEach((service) => {
+        // Add category info to each service
+        allServices.push({
+          ...service,
+          category_name: category.name,
+          category_id: category.id,
+        });
+      });
+    }
+  });
+
+  return allServices;
+}
+
+/**
+ * Get staff list
+ */
+async function getStaffList(env) {
+  try {
+    const businessData = await getBusinessDataAPI();
+
+    const staff = businessData.business.staff.map((member) => ({
+      id: member.id,
+      name: member.name,
+      // Count services for this staff member
+      serviceCount: businessData.business.service_categories
+        .flatMap((cat) => cat.services || [])
+        .filter((service) => service.staffer_id && service.staffer_id.includes(member.id)).length,
+    }));
+
+    return new Response(
+      JSON.stringify({
+        staff,
+        count: staff.length,
+        timestamp: new Date().toISOString(),
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  } catch (error) {
+    console.error("Staff list failed:", error);
+    return new Response(
+      JSON.stringify({
+        error: "Staff list temporarily unavailable",
+        timestamp: new Date().toISOString(),
+      }),
+      {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+}
+
+/**
+ * Get staff names for a service based on staffer_id array
+ */
+function getStaffNamesForService(service, staffList) {
+  if (!service.staffer_id || !Array.isArray(service.staffer_id) || !staffList) {
+    return "Contact for staff info";
+  }
+
+  const staffNames = service.staffer_id
+    .map((staffId) => {
+      const staff = staffList.find((s) => s.id === staffId);
+      return staff ? staff.name : null;
+    })
+    .filter(Boolean);
+
+  return staffNames.length > 0 ? staffNames.join(", ") : "Contact for staff info";
 }

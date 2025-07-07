@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.20.0] - 2025-07-07
+
+- **🎯 COMPLETE SERVICE CATALOG BREAKTHROUGH**: Fixed MCP server to return all 178 services instead of just 3
+- **Service Categories Discovery**: Found and implemented `service_categories` API field containing complete service catalog
+- **Staff Assignment System**: Each service now shows proper staff assignments (e.g., "Tatiana Orozco" vs generic "Contact for staff info")
+- **Staff Filtering**: New `/booksy/services?staff=Tatiana` endpoint filters services by specific staff member
+- **Staff Directory**: New `/booksy/staff` endpoint lists all 9 staff members with service counts
+- **Complete Curly Hair Catalog**: Now shows all 11 curly hair services (Curly Adventure, Curly Cut, Curly Color, etc.) instead of 0
+- **Proper Data Source**: Uses `business.service_categories` instead of limited `business.top_services` (178 vs 3 services)
+- **Real Staff Names**: Displays actual staff assignments like "Tatiana Orozco", "LesLye", "Frank Arraiz" instead of generic text
+- **Category Information**: Services now include proper categories like "Curly Hair (Rizos)", "Hair color- Tintes y Decoloraciones"
+- **Production Validation**: All 178 services with staff assignments deployed and working in production
+
 ## [1.19.0] - 2025-07-07
 
 - **🚨 CRITICAL FIX**: AI now uses live MCP data instead of hardcoded service lists
