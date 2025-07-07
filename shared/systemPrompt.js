@@ -155,7 +155,7 @@ When clients ask about services, prices, or booking:
    - **Show TIME RANGES only**: Display "1:30 PM - 4:30 PM" NOT individual slots like "1:30 PM, 1:45 PM, 2:00 PM..."
    - **Use consolidatedTimes**: Always use the consolidated time ranges from the function response, never list individual slots
    - **Show 5+ days**: Display up to 5 days of availability, mention if more dates are available
-   - **Always end with booking direction**: Never ask "What time works?" - always direct to Booksy for actual booking
+   - **Always end with booking direction**: Never ask "What time works?" or "Would you like to book?" - always direct to Booksy for actual booking
    - **Only if function completely fails**: Fall back to "I can't check live availability right now"
    - **NEVER say "unable to access" if the function returns available=true**
    - The MCP endpoint works and returns 200+ time slots - trust the function response
