@@ -260,7 +260,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
 
     // Collect debug information
     debugInfo = {
-      version: "1.17.0",
+      version: "1.18.0",
       responseTime: `${endTime - startTime}ms`,
       model: "gpt-4o",
       functionsEnabled: true,
@@ -304,7 +304,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
 
     // Collect debug info for errors
     debugInfo = {
-      version: "1.17.0",
+      version: "1.18.0",
       responseTime: "ERROR",
       model: "gpt-4o",
       functionsEnabled: true,

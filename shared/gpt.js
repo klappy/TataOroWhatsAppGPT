@@ -196,17 +196,52 @@ function transformApiResponse(functionName, result, args) {
         ? result.timeSlots.reduce((sum, day) => sum + day.slotCount, 0)
         : 0;
 
-      // Format sample available times for AI to show user
-      const sampleTimes =
+      // Format consolidated time ranges for better user experience
+      const consolidatedTimes =
         result.timeSlots && result.timeSlots.length > 0
-          ? result.timeSlots
-              .slice(0, 3)
-              .map(
-                (day) =>
-                  `${day.date} (${day.dayOfWeek}): ${day.slots.slice(0, 3).join(", ")}${
-                    day.slots.length > 3 ? "..." : ""
-                  }`
-              )
+          ? result.timeSlots.slice(0, 5).map((day) => {
+              const slots = day.slots
+                .map((slot) => {
+                  const [hour, minute] = slot.split(":").map(Number);
+                  return hour * 60 + minute; // Convert to minutes for easier math
+                })
+                .sort((a, b) => a - b);
+
+              // Group consecutive 15-minute slots into ranges
+              const ranges = [];
+              let rangeStart = slots[0];
+              let rangeEnd = slots[0];
+
+              for (let i = 1; i < slots.length; i++) {
+                if (slots[i] === rangeEnd + 15) {
+                  rangeEnd = slots[i];
+                } else {
+                  ranges.push([rangeStart, rangeEnd]);
+                  rangeStart = slots[i];
+                  rangeEnd = slots[i];
+                }
+              }
+              ranges.push([rangeStart, rangeEnd]);
+
+              // Format ranges for display
+              const formatTime = (minutes) => {
+                const hour = Math.floor(minutes / 60);
+                const min = minutes % 60;
+                const ampm = hour >= 12 ? "PM" : "AM";
+                const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                return `${displayHour}:${min.toString().padStart(2, "0")}${ampm}`;
+              };
+
+              const timeRanges = ranges.map(([start, end]) => {
+                if (start === end) {
+                  return formatTime(start);
+                } else {
+                  return `${formatTime(start)}-${formatTime(end + 135)}`; // +135 min for 2.5h service
+                }
+              });
+
+              return `${day.date} (${day.dayOfWeek}): ${timeRanges.join(", ")}`;
+            })
           : [];
 
       return {
@@ -217,12 +252,12 @@ function transformApiResponse(functionName, result, args) {
         source: result.source || "api",
         whatsappFriendly: true,
         available: totalSlots > 0,
-        sampleTimes: sampleTimes,
+        consolidatedTimes: consolidatedTimes,
         message:
           totalSlots > 0
             ? `SUCCESS: Found ${totalSlots} available time slots across ${
                 result.timeSlots?.length || 0
-              } days! Show the user some sample times.`
+              } days! Show consolidated time ranges to user.`
             : "No available time slots found for this service.",
       };
 
