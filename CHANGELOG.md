@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.20.8] - 2025-01-07
+
+- **Fixed Slot Spam**: AI now shows clean time ranges ("1:30 PM - 4:30 PM") instead of overwhelming individual slots
+- **Clearer Instructions**: Added explicit guidance to use consolidated time ranges from function responses
+- **Better UX**: No more listing 13 individual time slots when a simple range works better
+- **Response Template Usage**: AI now properly uses the formatted response templates instead of creating its own
+
 ## [1.20.7] - 2025-01-07
 
 - **🚨 CRITICAL FIX**: AI can no longer pretend to book appointments - was lying to customers saying "appointment is set"
