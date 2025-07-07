@@ -159,7 +159,11 @@ function transformApiResponse(functionName, result, args) {
         count: result.count || 0,
         source: result.source || "api",
         whatsappFriendly: true,
-        message: `Found ${result.count || 0} services with current pricing!`,
+        success: true,
+        available: (result.count || 0) > 0,
+        message: `SUCCESS: Found ${
+          result.count || 0
+        } current services from Booksy API! Filter and show appropriate services for client type.`,
       };
 
     case "search_booksy_services":
