@@ -82,45 +82,44 @@ async function executeBooksyFunction(functionName, args, env, attempt = 1) {
   const maxAttempts = 2;
 
   try {
-    console.log(`🔧 Executing ${functionName} (attempt ${attempt}/${maxAttempts}) - API-first`);
+    console.log(`🔧 Executing ${functionName} (attempt ${attempt}/${maxAttempts}) - DIRECT CALL`);
 
-    const baseUrl = env.BOOKSY_MCP_URL || "https://wa.tataoro.com/booksy";
+    // DIRECT INTERNAL CALL - avoid recursive loop by calling booksy worker directly
+    const booksyCompleteWorker = await import("../workers/booksy-complete.js");
 
-    // New API-first endpoint mapping
-    const endpointMap = {
-      get_booksy_services: "/services",
-      search_booksy_services: `/appointments?service=${encodeURIComponent(args.query || "")}`,
-      get_business_info: "/business",
-      get_appointment_info: `/appointments?service=${encodeURIComponent(args.service || "")}`,
-      get_real_time_availability: `/timeslots?service=${encodeURIComponent(args.service || "")}`,
-    };
+    // Create a mock request for the booksy worker
+    const endpoint = {
+      get_booksy_services: "/booksy/services",
+      search_booksy_services: `/booksy/appointments?service=${encodeURIComponent(
+        args.query || ""
+      )}`,
+      get_business_info: "/booksy/business",
+      get_appointment_info: `/booksy/appointments?service=${encodeURIComponent(
+        args.service || ""
+      )}`,
+      get_real_time_availability: `/booksy/timeslots?service=${encodeURIComponent(
+        args.service || ""
+      )}`,
+    }[functionName];
 
-    const endpoint = endpointMap[functionName];
     if (!endpoint) {
       console.log(`❌ Unknown function: ${functionName}`);
       return { error: `Unknown function: ${functionName}` };
     }
 
-    const url = `${baseUrl}${endpoint}`;
-    console.log(`🌐 API-first call: ${url} (attempt ${attempt})`);
+    // Create a mock request object for internal call
+    const mockRequest = new Request(`https://internal${endpoint}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": `TataOro-WhatsApp-GPT/1.20.1-internal`,
+      },
+    });
 
-    // Fast timeout for API calls (no more slow browser automation)
-    const timeoutMs = 5000; // 5 seconds max
-    const response = await Promise.race([
-      fetch(url, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "User-Agent": `TataOro-WhatsApp-GPT/1.16.0-api-first`,
-        },
-      }),
-      new Promise((_, reject) =>
-        setTimeout(
-          () => reject(new Error(`API timeout after ${timeoutMs / 1000} seconds`)),
-          timeoutMs
-        )
-      ),
-    ]);
+    console.log(`🔧 Direct internal call: ${endpoint} (attempt ${attempt})`);
+
+    // Call the booksy worker directly - no external HTTP call
+    const response = await booksyCompleteWorker.default.fetch(mockRequest, env);
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -270,12 +269,28 @@ function transformApiResponse(functionName, result, args) {
         whatsappFriendly: true,
         available: totalSlots > 0,
         consolidatedTimes: consolidatedTimes,
+        hasAvailability: totalSlots > 0,
+        slotsFound: totalSlots,
+        daysWithSlots: result.timeSlots ? result.timeSlots.length : 0,
+        SUCCESS_FLAG: totalSlots > 0 ? "TIMES_AVAILABLE" : "NO_TIMES",
+        EXPLICIT_INSTRUCTION:
+          totalSlots > 0
+            ? `AI: You MUST show these ${totalSlots} available times to the user. DO NOT say no availability.`
+            : "AI: No times available, show booking page.",
         message:
           totalSlots > 0
-            ? `SUCCESS: Found ${totalSlots} available time slots across ${
+            ? `🎉 AVAILABILITY CONFIRMED: ${totalSlots} time slots available across ${
                 result.timeSlots?.length || 0
-              } days! Show consolidated time ranges to user.`
+              } days! Tell user about these available times immediately. DO NOT say no availability.`
             : "No available time slots found for this service.",
+        RESPONSE_TEMPLATE:
+          totalSlots > 0
+            ? `Great! I found ${totalSlots} available appointment times across ${
+                result.timeSlots?.length || 0
+              } days. Here are your options:\n\n${consolidatedTimes
+                .slice(0, 3)
+                .join("\n")}\n\nWhich time works best for you?`
+            : "I couldn't find any available times for this service.",
       };
 
     default:

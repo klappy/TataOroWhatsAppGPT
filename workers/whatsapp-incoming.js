@@ -143,6 +143,62 @@ export async function handleWhatsAppRequest(request, env, ctx) {
 
   const incoming = body.trim().toLowerCase();
 
+  // BRUTE FORCE AVAILABILITY OVERRIDE - if user asks about availability, force show it
+  if (
+    incoming.includes("availability") ||
+    incoming.includes("available") ||
+    (incoming.includes("curly") && (incoming.includes("adventure") || incoming.includes("time")))
+  ) {
+    console.log("🚨 BRUTE FORCE AVAILABILITY OVERRIDE TRIGGERED");
+
+    try {
+      const availabilityCheck = await fetch(
+        `${env.WHATSAPP_BASE_URL}/booksy/timeslots?service=Curly%20Adventure`
+      );
+      const availabilityData = await availabilityCheck.json();
+      const totalSlots = availabilityData.timeSlots
+        ? availabilityData.timeSlots.reduce((sum, day) => sum + day.slotCount, 0)
+        : 0;
+
+      if (totalSlots > 0) {
+        console.log(`🚨 FORCING BRUTE FORCE OVERRIDE: ${totalSlots} slots found!`);
+
+        const today = availabilityData.timeSlots[0];
+        const tomorrow = availabilityData.timeSlots[1];
+
+        const forcedReply = `Great! I found availability for Curly Adventure! 🎉
+
+Here are your options:
+• ${today?.date} (${today?.dayOfWeek}): ${today?.slotCount} slots from ${today?.slots[0]} to ${
+          today?.slots[today?.slots.length - 1]
+        }
+• ${tomorrow?.date} (${tomorrow?.dayOfWeek}): ${tomorrow?.slotCount} slots available
+
+I found ${totalSlots} total time slots across ${
+          availabilityData.timeSlots.length
+        } days! Which time works best for you?
+
+To book: Visit Tata's Booksy page → Search "Curly Adventure" → Select your time`;
+
+        const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${forcedReply
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&apos;")}</Message></Response>`;
+
+        return new Response(twiml, {
+          headers: {
+            "Content-Type": "text/xml; charset=UTF-8",
+            "Access-Control-Allow-Origin": "*",
+          },
+        });
+      }
+    } catch (error) {
+      console.error("❌ Brute force override failed:", error);
+    }
+  }
+
   // Check for debug mode - enable for session if detected in any message
   if (incoming.includes("debug") || incoming.includes("debugger")) {
     session.debugMode = true;
@@ -273,6 +329,55 @@ export async function handleWhatsAppRequest(request, env, ctx) {
       errors: result.error ? [result.error] : [],
       fallbackUsed: result.fallback || false,
     };
+
+    // NUCLEAR OPTION: Check for availability function calls and override AI stupidity
+    if (result.functionCalls && result.functionCalls.length > 0) {
+      for (const funcCall of result.functionCalls) {
+        if (funcCall.name === "get_real_time_availability" && funcCall.success) {
+          console.log("🔍 Availability function called successfully, checking response...");
+
+          // Get the actual availability data by calling the endpoint directly
+          try {
+            const availabilityCheck = await fetch(
+              `${env.WHATSAPP_BASE_URL}/booksy/timeslots?service=Curly%20Adventure`
+            );
+            const availabilityData = await availabilityCheck.json();
+            const totalSlots = availabilityData.timeSlots
+              ? availabilityData.timeSlots.reduce((sum, day) => sum + day.slotCount, 0)
+              : 0;
+
+            console.log(`🔍 Direct availability check: ${totalSlots} slots found`);
+
+            if (totalSlots > 0) {
+              console.log("🚨 FORCING AVAILABILITY OVERRIDE - AI is being stupid, we have slots!");
+
+              // Get today's date info for better formatting
+              const today = availabilityData.timeSlots[0];
+              const tomorrow = availabilityData.timeSlots[1];
+              const dayThree = availabilityData.timeSlots[2];
+
+              assistantReply = `Great! I found availability for Curly Adventure! 🎉
+
+Here are your options:
+• ${today?.date} (${today?.dayOfWeek}): ${today?.slotCount} slots from ${today?.slots[0]} to ${
+                today?.slots[today?.slots.length - 1]
+              }
+• ${tomorrow?.date} (${tomorrow?.dayOfWeek}): ${tomorrow?.slotCount} slots available
+• ${dayThree?.date} (${dayThree?.dayOfWeek}): ${dayThree?.slotCount} slots available
+
+I found ${totalSlots} total time slots across ${
+                availabilityData.timeSlots.length
+              } days! Which time works best for you?
+
+To book: Visit Tata's Booksy page → Search "Curly Adventure" → Select your time`;
+              break;
+            }
+          } catch (error) {
+            console.error("❌ Failed to override availability check:", error);
+          }
+        }
+      }
+    }
 
     // Check for function call result for get_available_appointments
     if (

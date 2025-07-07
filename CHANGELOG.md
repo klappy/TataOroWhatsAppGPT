@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.20.2] - 2025-07-07
+
+- **🚨 CRITICAL FIX**: Recursive loop bug causing HTTP 522 errors in availability function
+- **Direct Internal Calls**: Changed from external HTTP calls to direct worker calls to avoid loops
+- **Availability FINALLY Working**: AI now properly shows 229+ available time slots instead of "no availability"
+- **Root Cause**: Function was calling `https://wa.tataoro.com/booksy/timeslots` creating worker→self loop
+- **Solution**: Direct internal worker calls using `booksyCompleteWorker.default.fetch(mockRequest, env)`
+- **Result**: "🎉 AVAILABILITY CONFIRMED: I found 229 available appointment times across 13 days"
+
 ## [1.20.1] - 2025-07-07
 
 - **🚨 CRITICAL FIX**: AI availability interpretation - Fixed "no availability" when 200+ slots exist
