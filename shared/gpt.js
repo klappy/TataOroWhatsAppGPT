@@ -134,7 +134,20 @@ async function executeBooksyFunction(functionName, args, env, attempt = 1) {
     console.log(`✅ Function ${functionName} executed successfully (API-first)`);
 
     // Transform response for WhatsApp-friendly format
-    return transformApiResponse(functionName, result, args);
+    const transformedResult = transformApiResponse(functionName, result, args);
+
+    // Debug logging for availability issues
+    if (functionName === "get_real_time_availability") {
+      console.log(`🔍 DEBUG ${functionName}:`, {
+        rawTotalSlots: result.totalSlots,
+        rawTimeSlots: result.timeSlots?.length || 0,
+        transformedAvailable: transformedResult.available,
+        transformedTotalSlots: transformedResult.totalSlots,
+        transformedMessage: transformedResult.message,
+      });
+    }
+
+    return transformedResult;
   } catch (error) {
     console.error(`🚨 API-first function ${functionName} failed on attempt ${attempt}:`, error);
 
