@@ -251,8 +251,9 @@ export async function handleWhatsAppRequest(request, env, ctx) {
 
   try {
     const startTime = Date.now();
+    const modelToUse = "gpt-4o-mini";
     const result = await getChatCompletion(messages, env, {
-      model: "gpt-4o-mini",
+      model: modelToUse,
       temperature: 0.7,
       includeFunctions: true, // Enable function calling for service requests
     });
@@ -262,7 +263,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
     debugInfo = {
       version: "1.18.0",
       responseTime: `${endTime - startTime}ms`,
-      model: "gpt-4o-mini",
+      model: modelToUse,
       functionsEnabled: true,
       messageCount: messages.length,
       sessionStatus: session.progress_status,
