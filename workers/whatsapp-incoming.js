@@ -142,8 +142,22 @@ export async function handleWhatsAppRequest(request, env, ctx) {
 
   const incoming = body.trim().toLowerCase();
 
-  // Check for debug mode
-  const isDebugMode = incoming.includes("debug") || incoming.includes("debugger");
+  // Check for debug mode - enable for session if detected in any message
+  if (incoming.includes("debug") || incoming.includes("debugger")) {
+    session.debugMode = true;
+  }
+
+  // Check for debug disable commands
+  if (
+    incoming.includes("debug off") ||
+    incoming.includes("disable debug") ||
+    incoming.includes("no debug")
+  ) {
+    session.debugMode = false;
+  }
+
+  // Check if debug mode is enabled for this session
+  const isDebugMode = session.debugMode || false;
 
   const resetTriggers = ["restart", "reset", "clear", "start over", "new consultation"];
   if (resetTriggers.includes(incoming)) {
@@ -151,7 +165,10 @@ export async function handleWhatsAppRequest(request, env, ctx) {
     const keys = (objects || []).map((obj) => obj.key);
     await deleteR2Objects(env, keys);
     await env.CHAT_HISTORY.delete(sessionKey);
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>No problem! I've cleared our conversation so we can start fresh. 🌱 What would you like to do next?</Message></Response>`;
+    const resetMessage = session.debugMode
+      ? "No problem! I've cleared our conversation so we can start fresh. 🌱 (Debug mode disabled) What would you like to do next?"
+      : "No problem! I've cleared our conversation so we can start fresh. 🌱 What would you like to do next?";
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${resetMessage}</Message></Response>`;
     return new Response(twiml, {
       headers: { "Content-Type": "text/xml; charset=UTF-8", "Access-Control-Allow-Origin": "*" },
     });
@@ -361,7 +378,10 @@ To book: Visit Tata's Booksy page → Use "Search for service" box → Book your
 
   // Send debug information as separate message if debug mode is enabled
   if (isDebugMode) {
-    const debugOutput = `🔧 DEBUG INFO:
+    const debugModeStatus = incoming.includes("debug")
+      ? "ENABLED this message"
+      : "ENABLED for session";
+    const debugOutput = `🔧 DEBUG MODE: ${debugModeStatus}
 • Version: ${debugInfo.version}
 • Response Time: ${debugInfo.responseTime}
 • Model: ${debugInfo.model}
@@ -374,7 +394,9 @@ To book: Visit Tata's Booksy page → Use "Search for service" box → Book your
         : "None called"
     }
 • Errors: ${debugInfo.errors.length > 0 ? debugInfo.errors.join("; ") : "None"}
-• Fallback: ${debugInfo.fallbackUsed ? "Yes" : "No"}`;
+• Fallback: ${debugInfo.fallbackUsed ? "Yes" : "No"}
+
+💡 Send "debug off" to disable`;
 
     const escapedDebugOutput = escapeXml(debugOutput);
     const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${escapedReply}</Message><Message>${escapedDebugOutput}</Message></Response>`;
