@@ -340,28 +340,6 @@ To book: Visit Tata's Booksy page → Use "Search for service" box → Book your
     session.history.push({ role: "user", content: body });
   }
 
-  // Add debug information if debug mode is enabled
-  if (isDebugMode) {
-    const debugOutput = `
-
-🔧 DEBUG INFO:
-• Version: ${debugInfo.version}
-• Response Time: ${debugInfo.responseTime}
-• Model: ${debugInfo.model}
-• Messages: ${debugInfo.messageCount}
-• Session: ${debugInfo.sessionStatus}
-• Media: ${debugInfo.hasMedia ? "Yes" : "No"}
-• Functions: ${
-      debugInfo.functionCalls.length > 0
-        ? debugInfo.functionCalls.map((f) => f.name).join(", ")
-        : "None called"
-    }
-• Errors: ${debugInfo.errors.length > 0 ? debugInfo.errors.join("; ") : "None"}
-• Fallback: ${debugInfo.fallbackUsed ? "Yes" : "No"}`;
-
-    assistantReply += debugOutput;
-  }
-
   session.history.push({ role: "assistant", content: assistantReply });
 
   // Save session state with TTL of one month to retain conversations longer
@@ -378,7 +356,33 @@ To book: Visit Tata's Booksy page → Use "Search for service" box → Book your
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&apos;");
   }
+
   const escapedReply = escapeXml(assistantReply);
+
+  // Send debug information as separate message if debug mode is enabled
+  if (isDebugMode) {
+    const debugOutput = `🔧 DEBUG INFO:
+• Version: ${debugInfo.version}
+• Response Time: ${debugInfo.responseTime}
+• Model: ${debugInfo.model}
+• Messages: ${debugInfo.messageCount}
+• Session: ${debugInfo.sessionStatus}
+• Media: ${debugInfo.hasMedia ? "Yes" : "No"}
+• Functions: ${
+      debugInfo.functionCalls.length > 0
+        ? debugInfo.functionCalls.map((f) => f.name).join(", ")
+        : "None called"
+    }
+• Errors: ${debugInfo.errors.length > 0 ? debugInfo.errors.join("; ") : "None"}
+• Fallback: ${debugInfo.fallbackUsed ? "Yes" : "No"}`;
+
+    const escapedDebugOutput = escapeXml(debugOutput);
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${escapedReply}</Message><Message>${escapedDebugOutput}</Message></Response>`;
+    return new Response(twiml, {
+      headers: { "Content-Type": "text/xml; charset=UTF-8", "Access-Control-Allow-Origin": "*" },
+    });
+  }
+
   const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${escapedReply}</Message></Response>`;
   return new Response(twiml, {
     headers: { "Content-Type": "text/xml; charset=UTF-8", "Access-Control-Allow-Origin": "*" },
