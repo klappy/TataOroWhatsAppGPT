@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.21.1] - 2025-01-07
+
+### Fixed
+
+- **🚨 CRITICAL FIX**: Video file uploads no longer crash conversations
+- **Smart Media Handling**: System now properly detects video vs image files and responds appropriately
+- **Immediate Feedback**: Users get instant helpful message when uploading unsupported files
+- **Conversation Continuity**: Fixed issue where video uploads would kill the conversation flow
+- **File Type Detection**: Added proper handling for video, image, audio, and other file types
+
 ## [1.21.0] - 2025-01-07
 
 ### Changed

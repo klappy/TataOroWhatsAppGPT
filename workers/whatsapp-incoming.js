@@ -96,10 +96,26 @@ export async function handleWhatsAppRequest(request, env, ctx) {
           transcription: transcription,
           original_key: key,
         });
-      } else {
+      } else if (mainType === "video") {
+        // Handle video files - AI can't process them directly, so inform user
+        r2Urls.push({
+          type: "video_notification",
+          message:
+            "I received your video but I can only analyze photos. Could you send a photo instead so I can help with your curl consultation?",
+          original_key: key,
+        });
+      } else if (mainType === "image") {
+        // Only send actual images to GPT vision API
         r2Urls.push({
           type: "image_url",
           image_url: { url: `${baseUrl}/images/${encodeURIComponent(key)}` },
+        });
+      } else {
+        // Handle other file types (documents, etc.)
+        r2Urls.push({
+          type: "unsupported_file",
+          message: `I received a ${contentType} file, but I can only analyze photos. Could you send a photo instead?`,
+          original_key: key,
         });
       }
     } catch (err) {
@@ -216,6 +232,47 @@ To book: Visit Tata's Booksy page → Search "Curly Adventure" → Select your t
   // Check if debug mode is enabled for this session
   const isDebugMode = session.debugMode || false;
 
+  // Handle video uploads immediately - don't send to GPT since it can't process them
+  const hasVideoOrUnsupportedFile = r2Urls.some(
+    (item) => item.type === "video_notification" || item.type === "unsupported_file"
+  );
+
+  if (hasVideoOrUnsupportedFile && !body.trim()) {
+    // User only sent a video/unsupported file with no text
+    const videoItem = r2Urls.find((item) => item.type === "video_notification");
+    const unsupportedItem = r2Urls.find((item) => item.type === "unsupported_file");
+
+    const immediateReply = videoItem ? videoItem.message : unsupportedItem.message;
+
+    // Store the media attempt in history
+    const contentArray = [];
+    r2Urls.forEach((item) => {
+      if (item.type === "video_notification") {
+        contentArray.push({ type: "text", text: `Video received: ${item.message}` });
+        contentArray.push({ type: "video_reference", original_key: item.original_key });
+      } else if (item.type === "unsupported_file") {
+        contentArray.push({ type: "text", text: `Unsupported file: ${item.message}` });
+        contentArray.push({ type: "file_reference", original_key: item.original_key });
+      }
+    });
+    session.history.push({ role: "user", content: contentArray });
+    session.history.push({ role: "assistant", content: immediateReply });
+
+    // Save session and respond immediately
+    await env.CHAT_HISTORY.put(sessionKey, JSON.stringify(session), { expirationTtl: 2592000 });
+
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${immediateReply
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;")}</Message></Response>`;
+
+    return new Response(twiml, {
+      headers: { "Content-Type": "text/xml; charset=UTF-8", "Access-Control-Allow-Origin": "*" },
+    });
+  }
+
   const resetTriggers = ["restart", "reset", "clear", "start over", "new consultation"];
   if (resetTriggers.includes(incoming)) {
     const { objects } = await env.MEDIA_BUCKET.list({ prefix: mediaPrefix("whatsapp", phone) });
@@ -294,6 +351,10 @@ To book: Visit Tata's Booksy page → Search "Curly Adventure" → Select your t
         contentArray.push({ type: "text", text: `Transcribed Audio: ${item.transcription}` });
       } else if (item.type === "image_url") {
         contentArray.push({ type: "image_url", image_url: item.image_url });
+      } else if (item.type === "video_notification") {
+        contentArray.push({ type: "text", text: `Video received: ${item.message}` });
+      } else if (item.type === "unsupported_file") {
+        contentArray.push({ type: "text", text: `Unsupported file: ${item.message}` });
       }
     });
     if (body) contentArray.push({ type: "text", text: body });
@@ -456,6 +517,12 @@ To book: Visit Tata's Booksy page → Use "Search for service" box → Book your
         contentArray.push({ type: "audio_reference", original_key: item.original_key });
       } else if (item.type === "image_url") {
         contentArray.push({ type: "image_url", image_url: item.image_url });
+      } else if (item.type === "video_notification") {
+        contentArray.push({ type: "text", text: `Video received: ${item.message}` });
+        contentArray.push({ type: "video_reference", original_key: item.original_key });
+      } else if (item.type === "unsupported_file") {
+        contentArray.push({ type: "text", text: `Unsupported file: ${item.message}` });
+        contentArray.push({ type: "file_reference", original_key: item.original_key });
       }
     });
     if (body) contentArray.push({ type: "text", text: body });
