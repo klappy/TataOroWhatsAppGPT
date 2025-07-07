@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.20.10] - 2025-01-07
+
+- **🚨 CRITICAL FIX**: New client consultation workflow now takes priority over service display
+- **Fixed Photo Response**: When new clients send photos, AI now asks consultation questions instead of showing service menu
+- **Proper Consultation Flow**: Added step-by-step consultation questions for new clients
+- **Service Discussion After**: Services are only discussed after consultation is complete
+
 ## [1.20.9] - 2025-01-07
 
 - **Clarified Start Times**: Time ranges now clearly show "1:30 PM - 4:30 PM start times available" to avoid confusion
