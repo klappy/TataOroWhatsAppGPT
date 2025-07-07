@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.21.0] - 2025-01-07
+
+### Changed
+
+- **Modern UI Redesign**: Completely redesigned consultation summary page with 2025-era conversational interface
+- **Visual Enhancements**: Added gradient backgrounds, animated elements, and modern card-based layouts
+- **Chat Bubble Design**: Implemented modern messaging UI with avatars and proper conversation flow
+- **Image Gallery**: Added responsive grid layout for uploaded images with hover effects
+- **Mobile Responsive**: Optimized design for all screen sizes with proper responsive breakpoints
+- **Brand Integration**: Added Tata Oro branding elements and professional footer
+
 ## [1.20.11] - 2025-01-07
 
 - **🚨 CRITICAL FIX**: Added missing WhatsApp sharing link in consultation summaries
