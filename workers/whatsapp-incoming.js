@@ -252,7 +252,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
   try {
     const startTime = Date.now();
     const result = await getChatCompletion(messages, env, {
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       temperature: 0.7,
       includeFunctions: true, // Enable function calling for service requests
     });
@@ -262,7 +262,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
     debugInfo = {
       version: "1.18.0",
       responseTime: `${endTime - startTime}ms`,
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       functionsEnabled: true,
       messageCount: messages.length,
       sessionStatus: session.progress_status,
@@ -306,7 +306,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
     debugInfo = {
       version: "1.18.0",
       responseTime: "ERROR",
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       functionsEnabled: true,
       messageCount: messages.length,
       sessionStatus: session.progress_status,
