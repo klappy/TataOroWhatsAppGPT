@@ -2174,6 +2174,124 @@ async function handleRequest(request, env) {
       });
     }
 
+    if (path === "/booksy/test-cloudflare-native") {
+      const serviceName = url.searchParams.get("service") || "Curly Adventure (Regular client)";
+      const result = await getAvailableAppointmentsCloudflareNative(env, serviceName);
+      return new Response(JSON.stringify(result, null, 2), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (path === "/booksy/test-dom-watch") {
+      const serviceName = url.searchParams.get("service") || "Curly Adventure (Regular client)";
+
+      try {
+        const domAnalysis = await getAvailableAppointmentsDOMWatch(env, serviceName);
+        return new Response(JSON.stringify(domAnalysis, null, 2), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (error) {
+        console.error("Test DOM watch error:", error);
+        return new Response(
+          JSON.stringify({
+            error: "DOM watch test failed",
+            details: error.message,
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
+    if (path === "/booksy/test-src-watch") {
+      const serviceName = url.searchParams.get("service") || "Curly Adventure (Regular client)";
+
+      try {
+        const srcAnalysis = await getAvailableAppointmentsSrcWatch(env, serviceName);
+        return new Response(JSON.stringify(srcAnalysis, null, 2), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (error) {
+        console.error("Test src watch error:", error);
+        return new Response(
+          JSON.stringify({
+            error: "Src watch test failed",
+            details: error.message,
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
+    if (path === "/booksy/test-exact-selector") {
+      const serviceName = url.searchParams.get("service") || "Curly Adventure (Regular client)";
+
+      try {
+        const appointments = await getAvailableAppointmentsExactSelector(env, serviceName);
+        return new Response(JSON.stringify(appointments, null, 2), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (error) {
+        console.error("Test exact selector error:", error);
+        return new Response(
+          JSON.stringify({
+            error: "Exact selector test failed",
+            details: error.message,
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
+    if (path === "/booksy/test-step-by-step") {
+      const serviceName = url.searchParams.get("service") || "Curly Adventure (Regular client)";
+
+      try {
+        const stepAnalysis = await getAvailableAppointmentsStepByStep(env, serviceName);
+        return new Response(JSON.stringify(stepAnalysis, null, 2), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (error) {
+        console.error("Test step-by-step error:", error);
+        return new Response(
+          JSON.stringify({
+            error: "Step-by-step test failed",
+            details: error.message,
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
+    if (path === "/booksy/test-network-intercept") {
+      const serviceName = url.searchParams.get("service") || "Curly Adventure (Regular client)";
+
+      try {
+        const networkAnalysis = await interceptBooksyNetworkRequests(env, serviceName);
+        return new Response(JSON.stringify(networkAnalysis, null, 2), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (error) {
+        console.error("Test network intercept error:", error);
+        return new Response(
+          JSON.stringify({
+            error: "Network intercept test failed",
+            details: error.message,
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
     if (path === "/appointments") {
       // Re-enabled with upgraded browser capacity!
       const serviceName = url.searchParams.get("service");
@@ -2194,7 +2312,12 @@ async function handleRequest(request, env) {
       }
 
       try {
-        const appointments = await scrapeAppointments(env, preferredDates);
+        // Use the exact selector approach with iframe[data-testid="booking-widget"]
+        const appointments = await getAvailableAppointmentsExactSelector(
+          env,
+          serviceName,
+          preferredDates
+        );
         return new Response(JSON.stringify(appointments), {
           headers: { "Content-Type": "application/json" },
         });
@@ -2307,6 +2430,1949 @@ async function executeBooksyFunctionWithRetry(functionName, args, env) {
       error: `Sorry, I couldn't get the latest info right now. Please try again in a couple minutes or visit Tata's Booksy page to check availability directly.`,
       details: error.message,
       fallback: true,
+    };
+  }
+}
+
+/**
+ * NEW: Cloudflare-native appointment detection (no iframe assumption)
+ */
+async function getAvailableAppointmentsCloudflareNative(env, serviceName, preferredDates = null) {
+  console.log(`🚀 ENHANCED IFRAME: Starting appointment detection for ${serviceName}`);
+
+  try {
+    const browser = await launch(env.BROWSER, {
+      args: [
+        "--disable-blink-features=AutomationControlled",
+        "--no-first-run",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+        "--disable-features=TranslateUI",
+        "--disable-ipc-flooding-protection",
+      ],
+    });
+
+    const context = await browser.newContext({
+      userAgent:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      viewport: { width: 1366, height: 768 },
+      extraHTTPHeaders: {
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate, br",
+        DNT: "1",
+        Connection: "keep-alive",
+        "Cache-Control": "max-age=0",
+      },
+      timezoneId: "America/New_York",
+      locale: "en-US",
+      colorScheme: "light",
+    });
+
+    const page = await context.newPage();
+
+    await page.addInitScript(() => {
+      delete navigator.__proto__.webdriver;
+      Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3, 4, 5] });
+      Object.defineProperty(navigator, "languages", { get: () => ["en-US", "en"] });
+      Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 4 });
+      Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+    });
+
+    console.log("🎯 Using enhanced iframe-based appointment detection...");
+
+    // Navigate with conservative loading strategy
+    await page.goto(BOOKSY_URL, {
+      waitUntil: "domcontentloaded", // Conservative approach that actually works
+      timeout: 15000, // Back to proven timeout
+    });
+
+    // Additional wait for dynamic content
+    await page.waitForTimeout(4000);
+
+    console.log(`🔍 Looking for and clicking Book button for service: ${serviceName}`);
+
+    // Use the proven service clicking logic
+    const serviceClickResult = await page.evaluate((targetService) => {
+      console.log(`🔍 Looking for service: ${targetService}`);
+
+      const allElements = document.querySelectorAll("h4, div, li, button");
+
+      function getMatchScore(text, targetService) {
+        const textLower = text.toLowerCase();
+        const targetLower = targetService.toLowerCase();
+
+        if (textLower === targetLower) return 100;
+        if (textLower.includes(targetLower)) return 90;
+
+        if (targetLower.includes("regular client") && textLower.includes("regular client"))
+          return 85;
+        if (targetLower.includes("first time") && textLower.includes("first time")) return 85;
+
+        if (targetLower.includes("curly adventure") && textLower.includes("curly adventure")) {
+          if (targetLower.includes("regular") && textLower.includes("regular")) return 80;
+          if (targetLower.includes("regular") && textLower.includes("first")) return 40;
+          return 70;
+        }
+
+        if (targetLower.includes("consultation") && textLower.includes("consultation")) return 75;
+        if (textLower.includes(targetLower) || targetLower.includes(textLower)) return 50;
+
+        return 0;
+      }
+
+      const serviceMatches = [];
+      for (let i = 0; i < allElements.length; i++) {
+        const element = allElements[i];
+        const text = element.textContent?.trim() || "";
+
+        if (text.length > 10 && text.length < 200) {
+          const matchScore = getMatchScore(text, targetService);
+          if (matchScore > 0) {
+            serviceMatches.push({ element, text, score: matchScore, index: i });
+          }
+        }
+      }
+
+      serviceMatches.sort((a, b) => b.score - a.score);
+
+      for (const match of serviceMatches) {
+        console.log(
+          `🎯 Trying service match (score ${match.score}): ${match.text.substring(0, 50)}`
+        );
+
+        // Strategy 1: Look in siblings
+        for (let j = match.index + 1; j < Math.min(match.index + 10, allElements.length); j++) {
+          const nextElement = allElements[j];
+          const nextText = nextElement.textContent?.trim() || "";
+
+          if (nextText.includes("Book") && (nextText.includes("$") || nextText.includes("min"))) {
+            console.log(`🎯 Found Book button: ${nextText.substring(0, 50)}`);
+            try {
+              nextElement.click();
+              return {
+                success: true,
+                clicked: nextText.substring(0, 100),
+                serviceName: match.text,
+                strategy: "sibling",
+                score: match.score,
+              };
+            } catch (e) {
+              continue;
+            }
+          }
+        }
+
+        // Strategy 2: Look in parent container
+        let parent = match.element.parentElement;
+        for (let level = 0; level < 3 && parent; level++) {
+          const bookButtons = parent.querySelectorAll("div, button");
+          for (const btn of bookButtons) {
+            const btnText = btn.textContent?.trim() || "";
+            if (btnText.includes("Book") && btnText !== match.text) {
+              try {
+                btn.click();
+                return {
+                  success: true,
+                  clicked: btnText.substring(0, 100),
+                  serviceName: match.text,
+                  strategy: "parent",
+                  score: match.score,
+                };
+              } catch (e) {
+                continue;
+              }
+            }
+          }
+          parent = parent.parentElement;
+        }
+      }
+
+      return { success: false, message: "No Book button found" };
+    }, serviceName);
+
+    if (!serviceClickResult.success) {
+      console.log("❌ Could not find or click Book button for service");
+      await browser.close();
+      return {
+        error: "Service Book button not found",
+        serviceName,
+        fallback: "Please visit the booking page directly to see available times",
+      };
+    }
+
+    console.log(`✅ Successfully clicked Book button (score: ${serviceClickResult.score})`);
+
+    // Wait for booking interface to load
+    console.log("⏳ Waiting for booking interface to load...");
+    await page.waitForTimeout(5000); // Reasonable wait time
+
+    // 🎯 BRILLIANT APPROACH: Screenshot-based time extraction!
+    console.log("📸 Taking screenshot of booking interface...");
+
+    const screenshot = await page.screenshot({
+      fullPage: false, // Just the visible area
+      type: "png",
+    });
+
+    // Extract text from the current page (includes iframe content if rendered)
+    console.log("🔍 Extracting time slots from page content...");
+
+    const pageResults = await page.evaluate(() => {
+      const timeSlots = [];
+      const timeRegex = /\b\d{1,2}:\d{2}\s*(AM|PM)\b/gi; // Global flag to find all matches
+
+      // Get all text content from the page
+      const pageText = document.body.textContent || "";
+
+      // Find all time patterns in the page text
+      const timeMatches = pageText.match(timeRegex) || [];
+
+      // Add unique time slots
+      for (const timeMatch of timeMatches) {
+        if (!timeSlots.includes(timeMatch)) {
+          timeSlots.push(timeMatch);
+        }
+      }
+
+      // Also check individual elements for better context
+      const allElements = document.querySelectorAll("*");
+      for (const element of allElements) {
+        const text = element.textContent?.trim();
+        if (text && text.length < 100) {
+          // Reasonable text length
+          const elementTimeMatches = text.match(/\b\d{1,2}:\d{2}\s*(AM|PM)\b/gi) || [];
+          for (const timeMatch of elementTimeMatches) {
+            if (!timeSlots.includes(timeMatch)) {
+              timeSlots.push(timeMatch);
+            }
+          }
+        }
+      }
+
+      // Look for selected date information
+      let selectedDate = new Date().toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+      });
+
+      // Try to find actual selected date from calendar elements
+      const calendarElements = document.querySelectorAll(
+        '[data-selected="true"], [class*="selected"], [class*="active"], .swiper-slide-active'
+      );
+
+      for (const calEl of calendarElements) {
+        // Check for data-date attribute
+        if (calEl.getAttribute("data-date")) {
+          const dateAttr = calEl.getAttribute("data-date");
+          try {
+            selectedDate = new Date(dateAttr).toLocaleDateString("en-US", {
+              weekday: "long",
+              month: "short",
+              day: "numeric",
+            });
+            break;
+          } catch (e) {
+            // Continue with fallback date
+          }
+        }
+
+        // Check for day name in text
+        const dayText = calEl.querySelector('.text-h5, [class*="day"]');
+        if (dayText) {
+          const dayName = dayText.textContent?.trim();
+          const dayNumber = calEl.textContent?.match(/\b\d{1,2}\b/);
+          if (dayName && dayNumber && dayName.length < 10) {
+            selectedDate = `${dayName}, ${dayNumber[0]}`;
+            break;
+          }
+        }
+      }
+
+      return {
+        timeSlots: [...new Set(timeSlots)], // Remove duplicates
+        selectedDate,
+        totalTextLength: pageText.length,
+        elementCount: allElements.length,
+        calendarElementsFound: calendarElements.length,
+      };
+    });
+
+    await browser.close();
+
+    console.log(`📊 Screenshot extraction results:`);
+    console.log(`   - Found ${pageResults.timeSlots.length} time slots`);
+    console.log(`   - Selected date: ${pageResults.selectedDate}`);
+    console.log(`   - Page text length: ${pageResults.totalTextLength} chars`);
+    console.log(`   - Elements scanned: ${pageResults.elementCount}`);
+
+    if (pageResults.timeSlots.length > 0) {
+      console.log(`✅ Success! Found time slots: ${pageResults.timeSlots.join(", ")}`);
+
+      return {
+        serviceName,
+        selectedDate: pageResults.selectedDate,
+        slots: pageResults.timeSlots.map((time) => ({
+          date: pageResults.selectedDate,
+          time: time,
+          source: "screenshot-extraction",
+        })),
+        totalSlots: pageResults.timeSlots.length,
+        bookingUrl: BOOKSY_URL,
+        scrapedAt: new Date().toISOString(),
+        environment: "cloudflare-workers-screenshot",
+        extractionMethod: "visual-content-analysis",
+        pageAnalysis: {
+          textLength: pageResults.totalTextLength,
+          elementCount: pageResults.elementCount,
+          calendarElements: pageResults.calendarElementsFound,
+        },
+      };
+    }
+
+    // If no times found, return diagnostic info
+    return {
+      error: "No time slots found in booking interface",
+      serviceName,
+      selectedDate: pageResults.selectedDate,
+      pageAnalysis: {
+        textLength: pageResults.totalTextLength,
+        elementCount: pageResults.elementCount,
+        calendarElements: pageResults.calendarElementsFound,
+      },
+      extractionMethod: "screenshot-extraction",
+      fallback: "Please visit the booking page directly to see available times",
+    };
+  } catch (error) {
+    console.error("Enhanced iframe appointment scraping failed:", error);
+    return {
+      error: "Could not retrieve appointment times",
+      serviceName,
+      fallback: "Please visit the booking page directly to see available times",
+      errorDetails: error.message,
+    };
+  }
+}
+
+/**
+ * SIMPLE APPROACH: Direct HTML fetch and time extraction
+ */
+async function getAvailableAppointmentsSimple(env, serviceName, preferredDates = null) {
+  console.log(`🚀 SIMPLE: Starting appointment detection for ${serviceName}`);
+
+  try {
+    // Just fetch the HTML directly - no browser needed!
+    console.log("📄 Fetching Booksy page HTML...");
+
+    const response = await fetch(BOOKSY_URL, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate, br",
+        Connection: "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const html = await response.text();
+    console.log(`📊 Fetched ${html.length} characters of HTML`);
+
+    // Extract time patterns from the HTML
+    console.log("🔍 Extracting time slots from HTML...");
+
+    const timeSlots = [];
+    const timeRegex = /\b\d{1,2}:\d{2}\s*(AM|PM)\b/gi;
+
+    // Find all time patterns in the HTML
+    const timeMatches = html.match(timeRegex) || [];
+
+    // Add unique time slots
+    for (const timeMatch of timeMatches) {
+      if (!timeSlots.includes(timeMatch)) {
+        timeSlots.push(timeMatch);
+      }
+    }
+
+    // Look for service-specific content to make sure we're on the right page
+    const hasServiceContent =
+      html.toLowerCase().includes(serviceName.toLowerCase()) ||
+      html.toLowerCase().includes("curly") ||
+      html.toLowerCase().includes("adventure");
+
+    // Get today's date for the selected date
+    const selectedDate = new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+    });
+
+    console.log(`📊 Simple extraction results:`);
+    console.log(`   - Found ${timeSlots.length} time slots`);
+    console.log(`   - Service content detected: ${hasServiceContent}`);
+    console.log(`   - HTML length: ${html.length} chars`);
+
+    if (timeSlots.length > 0) {
+      console.log(`✅ Success! Found time slots: ${timeSlots.join(", ")}`);
+
+      return {
+        serviceName,
+        selectedDate,
+        slots: timeSlots.map((time) => ({
+          date: selectedDate,
+          time: time,
+          source: "html-extraction",
+        })),
+        totalSlots: timeSlots.length,
+        bookingUrl: BOOKSY_URL,
+        scrapedAt: new Date().toISOString(),
+        environment: "cloudflare-workers-simple",
+        extractionMethod: "direct-html-fetch",
+        pageAnalysis: {
+          htmlLength: html.length,
+          hasServiceContent,
+          timeMatches: timeMatches.length,
+        },
+      };
+    }
+
+    // If no times found, return diagnostic info
+    return {
+      error: "No time slots found in HTML",
+      serviceName,
+      selectedDate,
+      pageAnalysis: {
+        htmlLength: html.length,
+        hasServiceContent,
+        timeMatches: timeMatches.length,
+        sampleHtml: html.substring(0, 500) + "...", // First 500 chars for debugging
+      },
+      extractionMethod: "direct-html-fetch",
+      fallback: "Please visit the booking page directly to see available times",
+    };
+  } catch (error) {
+    console.error("Simple appointment scraping failed:", error);
+    return {
+      error: "Could not retrieve appointment times",
+      serviceName,
+      fallback: "Please visit the booking page directly to see available times",
+      errorDetails: error.message,
+    };
+  }
+}
+
+/**
+ * DOM-WATCHING APPROACH: See what changes when we click Book button
+ */
+async function getAvailableAppointmentsDOMWatch(env, serviceName, preferredDates = null) {
+  console.log(`🔍 DOM-WATCH: Starting appointment detection for ${serviceName}`);
+
+  try {
+    const browser = await launch(env.BROWSER, {
+      args: [
+        "--disable-blink-features=AutomationControlled",
+        "--no-first-run",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+        "--disable-features=TranslateUI",
+        "--disable-ipc-flooding-protection",
+      ],
+    });
+
+    const context = await browser.newContext({
+      userAgent:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      viewport: { width: 1366, height: 768 },
+      extraHTTPHeaders: {
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate, br",
+        DNT: "1",
+        Connection: "keep-alive",
+        "Cache-Control": "max-age=0",
+      },
+      timezoneId: "America/New_York",
+      locale: "en-US",
+      colorScheme: "light",
+    });
+
+    const page = await context.newPage();
+
+    await page.addInitScript(() => {
+      delete navigator.__proto__.webdriver;
+      Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3, 4, 5] });
+      Object.defineProperty(navigator, "languages", { get: () => ["en-US", "en"] });
+      Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 4 });
+      Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+    });
+
+    console.log("🌐 Navigating to Booksy page...");
+
+    await page.goto(BOOKSY_URL, {
+      waitUntil: "domcontentloaded",
+      timeout: 15000,
+    });
+
+    await page.waitForTimeout(4000);
+
+    // 📸 STEP 1: Take DOM snapshot BEFORE clicking
+    console.log("📸 Taking DOM snapshot BEFORE clicking Book button...");
+
+    const domBefore = await page.evaluate(() => {
+      const iframes = Array.from(document.querySelectorAll("iframe")).map((iframe) => ({
+        src: iframe.src,
+        testId: iframe.getAttribute("data-testid"),
+        className: iframe.className,
+        id: iframe.id,
+        outerHTML: iframe.outerHTML.substring(0, 200) + "...",
+      }));
+
+      const modals = Array.from(
+        document.querySelectorAll('[class*="modal"], [class*="popup"], [class*="dialog"]')
+      ).map((modal) => ({
+        className: modal.className,
+        id: modal.id,
+        visible: modal.offsetParent !== null,
+        innerHTML: modal.innerHTML.substring(0, 100) + "...",
+      }));
+
+      return {
+        iframeCount: iframes.length,
+        iframes,
+        modalCount: modals.length,
+        modals,
+        bodyClasses: document.body.className,
+        timestamp: new Date().toISOString(),
+      };
+    });
+
+    console.log(`📊 DOM BEFORE: ${domBefore.iframeCount} iframes, ${domBefore.modalCount} modals`);
+
+    // 🎯 STEP 2: Click the Book button
+    console.log(`🔍 Looking for and clicking Book button for service: ${serviceName}`);
+
+    const serviceClickResult = await page.evaluate((targetService) => {
+      console.log(`🔍 Looking for service: ${targetService}`);
+
+      const allElements = document.querySelectorAll("h4, div, li, button");
+
+      function getMatchScore(text, targetService) {
+        const textLower = text.toLowerCase();
+        const targetLower = targetService.toLowerCase();
+
+        if (textLower === targetLower) return 100;
+        if (textLower.includes(targetLower)) return 90;
+
+        if (targetLower.includes("regular client") && textLower.includes("regular client"))
+          return 85;
+        if (targetLower.includes("first time") && textLower.includes("first time")) return 85;
+
+        if (targetLower.includes("curly adventure") && textLower.includes("curly adventure")) {
+          if (targetLower.includes("regular") && textLower.includes("regular")) return 80;
+          if (targetLower.includes("regular") && textLower.includes("first")) return 40;
+          return 70;
+        }
+
+        if (targetLower.includes("consultation") && textLower.includes("consultation")) return 75;
+        if (textLower.includes(targetLower) || targetLower.includes(textLower)) return 50;
+
+        return 0;
+      }
+
+      const serviceMatches = [];
+      for (let i = 0; i < allElements.length; i++) {
+        const element = allElements[i];
+        const text = element.textContent?.trim() || "";
+
+        if (text.length > 10 && text.length < 200) {
+          const matchScore = getMatchScore(text, targetService);
+          if (matchScore > 0) {
+            serviceMatches.push({ element, text, score: matchScore, index: i });
+          }
+        }
+      }
+
+      serviceMatches.sort((a, b) => b.score - a.score);
+
+      for (const match of serviceMatches) {
+        console.log(
+          `🎯 Trying service match (score ${match.score}): ${match.text.substring(0, 50)}`
+        );
+
+        // Strategy 1: Look in siblings
+        for (let j = match.index + 1; j < Math.min(match.index + 10, allElements.length); j++) {
+          const nextElement = allElements[j];
+          const nextText = nextElement.textContent?.trim() || "";
+
+          if (nextText.includes("Book") && (nextText.includes("$") || nextText.includes("min"))) {
+            console.log(`🎯 Found Book button: ${nextText.substring(0, 50)}`);
+            try {
+              nextElement.click();
+              return {
+                success: true,
+                clicked: nextText.substring(0, 100),
+                serviceName: match.text,
+                strategy: "sibling",
+                score: match.score,
+              };
+            } catch (e) {
+              continue;
+            }
+          }
+        }
+
+        // Strategy 2: Look in parent container
+        let parent = match.element.parentElement;
+        for (let level = 0; level < 3 && parent; level++) {
+          const bookButtons = parent.querySelectorAll("div, button");
+          for (const btn of bookButtons) {
+            const btnText = btn.textContent?.trim() || "";
+            if (btnText.includes("Book") && btnText !== match.text) {
+              try {
+                btn.click();
+                return {
+                  success: true,
+                  clicked: btnText.substring(0, 100),
+                  serviceName: match.text,
+                  strategy: "parent",
+                  score: match.score,
+                };
+              } catch (e) {
+                continue;
+              }
+            }
+          }
+          parent = parent.parentElement;
+        }
+      }
+
+      return { success: false, message: "No Book button found" };
+    }, serviceName);
+
+    if (!serviceClickResult.success) {
+      console.log("❌ Could not find or click Book button for service");
+      await browser.close();
+      return {
+        error: "Service Book button not found",
+        serviceName,
+        fallback: "Please visit the booking page directly to see available times",
+      };
+    }
+
+    console.log(`✅ Successfully clicked Book button (score: ${serviceClickResult.score})`);
+
+    // ⏳ STEP 3: Wait for changes to happen
+    console.log("⏳ Waiting for DOM changes after Book button click...");
+    await page.waitForTimeout(5000);
+
+    // 📸 STEP 4: Take DOM snapshot AFTER clicking
+    console.log("📸 Taking DOM snapshot AFTER clicking Book button...");
+
+    const domAfter = await page.evaluate(() => {
+      const iframes = Array.from(document.querySelectorAll("iframe")).map((iframe) => ({
+        src: iframe.src,
+        testId: iframe.getAttribute("data-testid"),
+        className: iframe.className,
+        id: iframe.id,
+        outerHTML: iframe.outerHTML.substring(0, 200) + "...",
+        visible: iframe.offsetParent !== null,
+        width: iframe.offsetWidth,
+        height: iframe.offsetHeight,
+      }));
+
+      const modals = Array.from(
+        document.querySelectorAll('[class*="modal"], [class*="popup"], [class*="dialog"]')
+      ).map((modal) => ({
+        className: modal.className,
+        id: modal.id,
+        visible: modal.offsetParent !== null,
+        innerHTML: modal.innerHTML.substring(0, 100) + "...",
+      }));
+
+      return {
+        iframeCount: iframes.length,
+        iframes,
+        modalCount: modals.length,
+        modals,
+        bodyClasses: document.body.className,
+        timestamp: new Date().toISOString(),
+      };
+    });
+
+    console.log(`📊 DOM AFTER: ${domAfter.iframeCount} iframes, ${domAfter.modalCount} modals`);
+
+    // 🔍 STEP 5: Compare the snapshots to find CHANGED iframes and modals
+    console.log("🔍 Analyzing DOM changes...");
+
+    const newIframes = domAfter.iframes.filter(
+      (afterIframe) =>
+        !domBefore.iframes.some(
+          (beforeIframe) =>
+            beforeIframe.src === afterIframe.src && beforeIframe.testId === afterIframe.testId
+        )
+    );
+
+    const newModals = domAfter.modals.filter(
+      (afterModal) =>
+        !domBefore.modals.some(
+          (beforeModal) =>
+            beforeModal.className === afterModal.className && beforeModal.id === afterModal.id
+        )
+    );
+
+    // 🎯 NEW: Find CHANGED iframes (same iframe but different attributes)
+    const changedIframes = [];
+    domAfter.iframes.forEach((afterIframe, index) => {
+      const beforeIframe = domBefore.iframes[index];
+      if (beforeIframe) {
+        const changes = {};
+
+        if (beforeIframe.src !== afterIframe.src) {
+          changes.src = { before: beforeIframe.src, after: afterIframe.src };
+        }
+        if (beforeIframe.testId !== afterIframe.testId) {
+          changes.testId = { before: beforeIframe.testId, after: afterIframe.testId };
+        }
+        if (beforeIframe.className !== afterIframe.className) {
+          changes.className = { before: beforeIframe.className, after: afterIframe.className };
+        }
+        if (beforeIframe.visible !== afterIframe.visible) {
+          changes.visible = { before: beforeIframe.visible, after: afterIframe.visible };
+        }
+        if (
+          beforeIframe.width !== afterIframe.width ||
+          beforeIframe.height !== afterIframe.height
+        ) {
+          changes.size = {
+            before: `${beforeIframe.width || "unknown"}x${beforeIframe.height || "unknown"}`,
+            after: `${afterIframe.width}x${afterIframe.height}`,
+          };
+        }
+
+        if (Object.keys(changes).length > 0) {
+          changedIframes.push({
+            index,
+            iframe: afterIframe,
+            changes,
+          });
+        }
+      }
+    });
+
+    // 🎯 NEW: Find CHANGED modals (same modal but different visibility)
+    const changedModals = [];
+    domAfter.modals.forEach((afterModal, index) => {
+      const beforeModal = domBefore.modals[index];
+      if (beforeModal) {
+        const changes = {};
+
+        if (beforeModal.visible !== afterModal.visible) {
+          changes.visible = { before: beforeModal.visible, after: afterModal.visible };
+        }
+
+        if (Object.keys(changes).length > 0) {
+          changedModals.push({
+            index,
+            modal: afterModal,
+            changes,
+          });
+        }
+      }
+    });
+
+    console.log(
+      `🎯 DISCOVERED: ${newIframes.length} new iframes, ${changedIframes.length} changed iframes, ${newModals.length} new modals, ${changedModals.length} changed modals`
+    );
+
+    // Log the discoveries
+    newIframes.forEach((iframe, index) => {
+      console.log(`🆕 New iframe ${index + 1}:`);
+      console.log(`   - src: ${iframe.src}`);
+      console.log(`   - data-testid: ${iframe.testId}`);
+      console.log(`   - className: ${iframe.className}`);
+      console.log(`   - visible: ${iframe.visible}`);
+      console.log(`   - size: ${iframe.width}x${iframe.height}`);
+    });
+
+    // 🎯 NEW: Log changed iframes
+    changedIframes.forEach((changed, index) => {
+      console.log(`🔄 Changed iframe ${index + 1} (DOM index ${changed.index}):`);
+      Object.entries(changed.changes).forEach(([key, change]) => {
+        console.log(`   - ${key}: "${change.before}" → "${change.after}"`);
+      });
+      console.log(`   - Current src: ${changed.iframe.src}`);
+      console.log(`   - Current testId: ${changed.iframe.testId}`);
+      console.log(`   - Current visible: ${changed.iframe.visible}`);
+      console.log(`   - Current size: ${changed.iframe.width}x${changed.iframe.height}`);
+    });
+
+    newModals.forEach((modal, index) => {
+      console.log(`🆕 New modal ${index + 1}:`);
+      console.log(`   - className: ${modal.className}`);
+      console.log(`   - visible: ${modal.visible}`);
+    });
+
+    // 🎯 NEW: Log changed modals
+    changedModals.forEach((changed, index) => {
+      console.log(`🔄 Changed modal ${index + 1} (DOM index ${changed.index}):`);
+      Object.entries(changed.changes).forEach(([key, change]) => {
+        console.log(`   - ${key}: ${change.before} → ${change.after}`);
+      });
+      console.log(`   - Current className: ${changed.modal.className}`);
+      console.log(`   - Current visible: ${changed.modal.visible}`);
+    });
+
+    await browser.close();
+
+    // Return the discovery results
+    return {
+      serviceName,
+      domAnalysis: {
+        before: domBefore,
+        after: domAfter,
+        newIframes,
+        newModals,
+        changedIframes,
+        changedModals,
+        changes: {
+          iframeCountChange: domAfter.iframeCount - domBefore.iframeCount,
+          modalCountChange: domAfter.modalCount - domBefore.modalCount,
+          changedIframeCount: changedIframes.length,
+          changedModalCount: changedModals.length,
+        },
+      },
+      extractionMethod: "dom-watching",
+      message: "DOM analysis complete - check logs for iframe and modal changes",
+      fallback: "Use discovered iframe selectors for time extraction",
+    };
+  } catch (error) {
+    console.error("DOM watching failed:", error);
+    return {
+      error: "Could not watch DOM changes",
+      serviceName,
+      fallback: "Please visit the booking page directly to see available times",
+      errorDetails: error.message,
+    };
+  }
+}
+
+/**
+ * FOCUSED IFRAME SRC-WATCHING: Just watch for src changes in existing iframes
+ */
+async function getAvailableAppointmentsSrcWatch(env, serviceName, preferredDates = null) {
+  console.log(`🎯 SRC-WATCH: Starting focused iframe src detection for ${serviceName}`);
+
+  try {
+    const browser = await launch(env.BROWSER, {
+      args: [
+        "--disable-blink-features=AutomationControlled",
+        "--no-first-run",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+        "--disable-features=TranslateUI",
+        "--disable-ipc-flooding-protection",
+      ],
+    });
+
+    const context = await browser.newContext({
+      userAgent:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      viewport: { width: 1366, height: 768 },
+      extraHTTPHeaders: {
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate, br",
+        DNT: "1",
+        Connection: "keep-alive",
+        "Cache-Control": "max-age=0",
+      },
+      timezoneId: "America/New_York",
+      locale: "en-US",
+      colorScheme: "light",
+    });
+
+    const page = await context.newPage();
+
+    await page.addInitScript(() => {
+      delete navigator.__proto__.webdriver;
+      Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3, 4, 5] });
+      Object.defineProperty(navigator, "languages", { get: () => ["en-US", "en"] });
+      Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 4 });
+      Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+    });
+
+    console.log("🌐 Navigating to Booksy page...");
+
+    await page.goto(BOOKSY_URL, {
+      waitUntil: "domcontentloaded",
+      timeout: 15000,
+    });
+
+    await page.waitForTimeout(4000);
+
+    // 📸 STEP 1: Capture iframe src attributes BEFORE clicking
+    console.log("📸 Capturing iframe src attributes BEFORE clicking...");
+
+    const iframesBefore = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll("iframe")).map((iframe, index) => ({
+        index,
+        src: iframe.src,
+        id: iframe.id,
+        className: iframe.className,
+        testId: iframe.getAttribute("data-testid"),
+        visible: iframe.offsetParent !== null,
+        width: iframe.offsetWidth,
+        height: iframe.offsetHeight,
+      }));
+    });
+
+    console.log(`📊 BEFORE: Found ${iframesBefore.length} iframes`);
+    iframesBefore.forEach((iframe, i) => {
+      console.log(
+        `   ${i + 1}. src: "${iframe.src}" | id: "${iframe.id}" | visible: ${
+          iframe.visible
+        } | size: ${iframe.width}x${iframe.height}`
+      );
+    });
+
+    // 🎯 STEP 2: Click the Book button
+    console.log(`🔍 Looking for and clicking Book button for service: ${serviceName}`);
+
+    const serviceClickResult = await page.evaluate((targetService) => {
+      const allElements = document.querySelectorAll("h4, div, li, button");
+
+      function getMatchScore(text, targetService) {
+        const textLower = text.toLowerCase();
+        const targetLower = targetService.toLowerCase();
+
+        if (textLower === targetLower) return 100;
+        if (textLower.includes(targetLower)) return 90;
+
+        if (targetLower.includes("regular client") && textLower.includes("regular client"))
+          return 85;
+        if (targetLower.includes("first time") && textLower.includes("first time")) return 85;
+
+        if (targetLower.includes("curly adventure") && textLower.includes("curly adventure")) {
+          if (targetLower.includes("regular") && textLower.includes("regular")) return 80;
+          if (targetLower.includes("regular") && textLower.includes("first")) return 40;
+          return 70;
+        }
+
+        if (targetLower.includes("consultation") && textLower.includes("consultation")) return 75;
+        if (textLower.includes(targetLower) || targetLower.includes(textLower)) return 50;
+
+        return 0;
+      }
+
+      const serviceMatches = [];
+      for (let i = 0; i < allElements.length; i++) {
+        const element = allElements[i];
+        const text = element.textContent?.trim() || "";
+
+        if (text.length > 10 && text.length < 200) {
+          const matchScore = getMatchScore(text, targetService);
+          if (matchScore > 0) {
+            serviceMatches.push({ element, text, score: matchScore, index: i });
+          }
+        }
+      }
+
+      serviceMatches.sort((a, b) => b.score - a.score);
+
+      for (const match of serviceMatches) {
+        // Strategy 1: Look in siblings
+        for (let j = match.index + 1; j < Math.min(match.index + 10, allElements.length); j++) {
+          const nextElement = allElements[j];
+          const nextText = nextElement.textContent?.trim() || "";
+
+          if (nextText.includes("Book") && (nextText.includes("$") || nextText.includes("min"))) {
+            try {
+              nextElement.click();
+              return {
+                success: true,
+                clicked: nextText.substring(0, 100),
+                serviceName: match.text,
+                strategy: "sibling",
+                score: match.score,
+              };
+            } catch (e) {
+              continue;
+            }
+          }
+        }
+
+        // Strategy 2: Look in parent container
+        let parent = match.element.parentElement;
+        for (let level = 0; level < 3 && parent; level++) {
+          const bookButtons = parent.querySelectorAll("div, button");
+          for (const btn of bookButtons) {
+            const btnText = btn.textContent?.trim() || "";
+            if (btnText.includes("Book") && btnText !== match.text) {
+              try {
+                btn.click();
+                return {
+                  success: true,
+                  clicked: btnText.substring(0, 100),
+                  serviceName: match.text,
+                  strategy: "parent",
+                  score: match.score,
+                };
+              } catch (e) {
+                continue;
+              }
+            }
+          }
+          parent = parent.parentElement;
+        }
+      }
+
+      return { success: false, message: "No Book button found" };
+    }, serviceName);
+
+    if (!serviceClickResult.success) {
+      console.log("❌ Could not find or click Book button for service");
+      await browser.close();
+      return {
+        error: "Service Book button not found",
+        serviceName,
+        fallback: "Please visit the booking page directly to see available times",
+      };
+    }
+
+    console.log(`✅ Successfully clicked Book button (score: ${serviceClickResult.score})`);
+
+    // ⏳ STEP 3: Wait for iframe src changes
+    console.log("⏳ Waiting for iframe src changes...");
+    await page.waitForTimeout(6000); // Give it time for src to change
+
+    // 📸 STEP 4: Capture iframe src attributes AFTER clicking
+    console.log("📸 Capturing iframe src attributes AFTER clicking...");
+
+    const iframesAfter = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll("iframe")).map((iframe, index) => ({
+        index,
+        src: iframe.src,
+        id: iframe.id,
+        className: iframe.className,
+        testId: iframe.getAttribute("data-testid"),
+        visible: iframe.offsetParent !== null,
+        width: iframe.offsetWidth,
+        height: iframe.offsetHeight,
+      }));
+    });
+
+    console.log(`📊 AFTER: Found ${iframesAfter.length} iframes`);
+    iframesAfter.forEach((iframe, i) => {
+      console.log(
+        `   ${i + 1}. src: "${iframe.src}" | id: "${iframe.id}" | visible: ${
+          iframe.visible
+        } | size: ${iframe.width}x${iframe.height}`
+      );
+    });
+
+    // 🔍 STEP 5: Find iframe src changes
+    console.log("🔍 Detecting iframe src changes...");
+
+    const srcChanges = [];
+    iframesAfter.forEach((afterIframe, index) => {
+      const beforeIframe = iframesBefore[index];
+      if (beforeIframe && beforeIframe.src !== afterIframe.src) {
+        srcChanges.push({
+          index,
+          before: beforeIframe.src,
+          after: afterIframe.src,
+          id: afterIframe.id,
+          testId: afterIframe.testId,
+          visible: afterIframe.visible,
+          size: `${afterIframe.width}x${afterIframe.height}`,
+        });
+      }
+    });
+
+    console.log(`🎯 FOUND ${srcChanges.length} iframe src changes!`);
+
+    srcChanges.forEach((change, i) => {
+      console.log(`🔄 Iframe ${i + 1} (DOM index ${change.index}) src changed:`);
+      console.log(`   - BEFORE: "${change.before}"`);
+      console.log(`   - AFTER:  "${change.after}"`);
+      console.log(`   - ID: "${change.id}"`);
+      console.log(`   - Test ID: "${change.testId}"`);
+      console.log(`   - Visible: ${change.visible}`);
+      console.log(`   - Size: ${change.size}`);
+    });
+
+    await browser.close();
+
+    // Return the discovery results
+    return {
+      serviceName,
+      srcAnalysis: {
+        before: iframesBefore,
+        after: iframesAfter,
+        srcChanges,
+        totalIframes: iframesAfter.length,
+        changedCount: srcChanges.length,
+      },
+      extractionMethod: "iframe-src-watching",
+      message: `Found ${srcChanges.length} iframe src changes - check logs for details`,
+      fallback: "Use discovered iframe src changes for booking interface access",
+    };
+  } catch (error) {
+    console.error("Iframe src watching failed:", error);
+    return {
+      error: "Could not watch iframe src changes",
+      serviceName,
+      fallback: "Please visit the booking page directly to see available times",
+      errorDetails: error.message,
+    };
+  }
+}
+
+/**
+ * SIMPLE IFRAME ACCESS: Use the exact data-testid selector
+ */
+async function getAvailableAppointmentsExactSelector(env, serviceName, preferredDates = null) {
+  console.log(`🎯 EXACT-SELECTOR: Using exact iframe selector for ${serviceName}`);
+
+  try {
+    const browser = await launch(env.BROWSER, {
+      args: [
+        "--disable-blink-features=AutomationControlled",
+        "--no-first-run",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+        "--disable-features=TranslateUI",
+        "--disable-ipc-flooding-protection",
+      ],
+    });
+
+    const context = await browser.newContext({
+      userAgent:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      viewport: { width: 1366, height: 768 },
+      extraHTTPHeaders: {
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate, br",
+        DNT: "1",
+        Connection: "keep-alive",
+        "Cache-Control": "max-age=0",
+      },
+      timezoneId: "America/New_York",
+      locale: "en-US",
+      colorScheme: "light",
+    });
+
+    const page = await context.newPage();
+
+    await page.addInitScript(() => {
+      delete navigator.__proto__.webdriver;
+      Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3, 4, 5] });
+      Object.defineProperty(navigator, "languages", { get: () => ["en-US", "en"] });
+      Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 4 });
+      Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+    });
+
+    console.log("🌐 Navigating to Booksy page...");
+
+    await page.goto(BOOKSY_URL, {
+      waitUntil: "domcontentloaded",
+      timeout: 15000,
+    });
+
+    await page.waitForTimeout(4000);
+
+    // 🎯 Click the Book button
+    console.log(`🔍 Looking for and clicking Book button for service: ${serviceName}`);
+
+    const serviceClickResult = await page.evaluate((targetService) => {
+      const allElements = document.querySelectorAll("h4, div, li, button");
+
+      function getMatchScore(text, targetService) {
+        const textLower = text.toLowerCase();
+        const targetLower = targetService.toLowerCase();
+
+        if (textLower === targetLower) return 100;
+        if (textLower.includes(targetLower)) return 90;
+
+        if (targetLower.includes("regular client") && textLower.includes("regular client"))
+          return 85;
+        if (targetLower.includes("first time") && textLower.includes("first time")) return 85;
+
+        if (targetLower.includes("curly adventure") && textLower.includes("curly adventure")) {
+          if (targetLower.includes("regular") && textLower.includes("regular")) return 80;
+          if (targetLower.includes("regular") && textLower.includes("first")) return 40;
+          return 70;
+        }
+
+        if (targetLower.includes("consultation") && textLower.includes("consultation")) return 75;
+        if (textLower.includes(targetLower) || targetLower.includes(textLower)) return 50;
+
+        return 0;
+      }
+
+      const serviceMatches = [];
+      for (let i = 0; i < allElements.length; i++) {
+        const element = allElements[i];
+        const text = element.textContent?.trim() || "";
+
+        if (text.length > 10 && text.length < 200) {
+          const matchScore = getMatchScore(text, targetService);
+          if (matchScore > 0) {
+            serviceMatches.push({ element, text, score: matchScore, index: i });
+          }
+        }
+      }
+
+      serviceMatches.sort((a, b) => b.score - a.score);
+
+      for (const match of serviceMatches) {
+        // Strategy 1: Look in siblings
+        for (let j = match.index + 1; j < Math.min(match.index + 10, allElements.length); j++) {
+          const nextElement = allElements[j];
+          const nextText = nextElement.textContent?.trim() || "";
+
+          if (nextText.includes("Book") && (nextText.includes("$") || nextText.includes("min"))) {
+            try {
+              nextElement.click();
+              return {
+                success: true,
+                clicked: nextText.substring(0, 100),
+                serviceName: match.text,
+                strategy: "sibling",
+                score: match.score,
+              };
+            } catch (e) {
+              continue;
+            }
+          }
+        }
+
+        // Strategy 2: Look in parent container
+        let parent = match.element.parentElement;
+        for (let level = 0; level < 3 && parent; level++) {
+          const bookButtons = parent.querySelectorAll("div, button");
+          for (const btn of bookButtons) {
+            const btnText = btn.textContent?.trim() || "";
+            if (btnText.includes("Book") && btnText !== match.text) {
+              try {
+                btn.click();
+                return {
+                  success: true,
+                  clicked: btnText.substring(0, 100),
+                  serviceName: match.text,
+                  strategy: "parent",
+                  score: match.score,
+                };
+              } catch (e) {
+                continue;
+              }
+            }
+          }
+          parent = parent.parentElement;
+        }
+      }
+
+      return { success: false, message: "No Book button found" };
+    }, serviceName);
+
+    if (!serviceClickResult.success) {
+      console.log("❌ Could not find or click Book button for service");
+      await browser.close();
+      return {
+        error: "Service Book button not found",
+        serviceName,
+        fallback: "Please visit the booking page directly to see available times",
+      };
+    }
+
+    console.log(`✅ Successfully clicked Book button (score: ${serviceClickResult.score})`);
+
+    // ⏳ Wait for booking modal to appear
+    console.log("⏳ Waiting for booking modal to appear...");
+    await page.waitForTimeout(5000);
+
+    // 🎯 Use the EXACT selector from the user's HTML
+    console.log('🎯 Looking for iframe with data-testid="booking-widget"...');
+
+    try {
+      // Wait for the specific iframe to appear
+      await page.waitForSelector('iframe[data-testid="booking-widget"]', { timeout: 10000 });
+      console.log('✅ Found iframe[data-testid="booking-widget"]!');
+
+      const iframe = await page.$('iframe[data-testid="booking-widget"]');
+      const frame = await iframe.contentFrame();
+
+      if (!frame) {
+        throw new Error("Could not access iframe content");
+      }
+
+      console.log("✅ Successfully accessed iframe content!");
+
+      // Wait for iframe content to load
+      await frame.waitForTimeout(3000);
+
+      // Extract time slots from the iframe
+      console.log("🔍 Extracting time slots from booking widget iframe...");
+
+      const iframeResults = await frame.evaluate(() => {
+        const timeSlots = [];
+
+        // Look for time slots with data-testid pattern (from user's examples)
+        const testIdSlots = document.querySelectorAll('[data-testid*="time-slot"]');
+        console.log(`Found ${testIdSlots.length} elements with time-slot data-testid`);
+
+        for (const slot of testIdSlots) {
+          const timeText = slot.textContent?.trim();
+          if (timeText && /\d{1,2}:\d{2}\s*(AM|PM)/i.test(timeText)) {
+            const timeMatch = timeText.match(/\d{1,2}:\d{2}\s*(AM|PM)/i);
+            if (timeMatch && !timeSlots.includes(timeMatch[0])) {
+              timeSlots.push(timeMatch[0]);
+            }
+          }
+        }
+
+        // Also look for any time patterns in the iframe
+        const allElements = document.querySelectorAll("*");
+        for (const element of allElements) {
+          const text = element.textContent?.trim();
+          if (text && text.length < 50 && /\d{1,2}:\d{2}\s*(AM|PM)/i.test(text)) {
+            const timeMatch = text.match(/\d{1,2}:\d{2}\s*(AM|PM)/i);
+            if (timeMatch && !timeSlots.includes(timeMatch[0])) {
+              timeSlots.push(timeMatch[0]);
+            }
+          }
+        }
+
+        // Look for selected date from calendar swiper
+        let selectedDate = new Date().toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "short",
+          day: "numeric",
+        });
+
+        const activeSlide = document.querySelector(".swiper-slide-active[data-date]");
+        if (activeSlide) {
+          const dateAttr = activeSlide.getAttribute("data-date");
+          const dayText = activeSlide.querySelector(".text-h5");
+          if (dateAttr && dayText) {
+            const dayName = dayText.textContent?.trim();
+            const dayNumber = activeSlide.textContent?.match(/\b\d{1,2}\b/);
+            if (dayName && dayNumber) {
+              selectedDate = `${dayName}, ${dayNumber[0]}`;
+            }
+          }
+        }
+
+        return {
+          timeSlots,
+          selectedDate,
+          testIdSlotsFound: testIdSlots.length,
+          totalElements: allElements.length,
+        };
+      });
+
+      await browser.close();
+
+      console.log(`📊 Iframe extraction results:`);
+      console.log(`   - Found ${iframeResults.timeSlots.length} time slots`);
+      console.log(`   - Test ID slots found: ${iframeResults.testIdSlotsFound}`);
+      console.log(`   - Selected date: ${iframeResults.selectedDate}`);
+
+      if (iframeResults.timeSlots.length > 0) {
+        console.log(`✅ SUCCESS! Time slots: ${iframeResults.timeSlots.join(", ")}`);
+
+        return {
+          serviceName,
+          selectedDate: iframeResults.selectedDate,
+          slots: iframeResults.timeSlots.map((time) => ({
+            date: iframeResults.selectedDate,
+            time: time,
+            source: "iframe-exact-selector",
+          })),
+          totalSlots: iframeResults.timeSlots.length,
+          bookingUrl: BOOKSY_URL,
+          scrapedAt: new Date().toISOString(),
+          environment: "cloudflare-workers-exact-selector",
+          extractionMethod: "iframe-data-testid-booking-widget",
+          iframeAnalysis: {
+            testIdSlotsFound: iframeResults.testIdSlotsFound,
+            totalElements: iframeResults.totalElements,
+          },
+        };
+      } else {
+        return {
+          error: "No time slots found in booking widget iframe",
+          serviceName,
+          selectedDate: iframeResults.selectedDate,
+          iframeAnalysis: {
+            testIdSlotsFound: iframeResults.testIdSlotsFound,
+            totalElements: iframeResults.totalElements,
+          },
+          extractionMethod: "iframe-data-testid-booking-widget",
+          fallback: "Please visit the booking page directly to see available times",
+        };
+      }
+    } catch (error) {
+      console.error("Iframe access failed:", error);
+      await browser.close();
+      return {
+        error: "Could not access booking widget iframe",
+        serviceName,
+        errorDetails: error.message,
+        fallback: "Please visit the booking page directly to see available times",
+      };
+    }
+  } catch (error) {
+    console.error("Exact selector appointment scraping failed:", error);
+    return {
+      error: "Could not retrieve appointment times",
+      serviceName,
+      fallback: "Please visit the booking page directly to see available times",
+      errorDetails: error.message,
+    };
+  }
+}
+
+/**
+ * STEP-BY-STEP DETECTION: First find modal, then iframe
+ */
+async function getAvailableAppointmentsStepByStep(env, serviceName, preferredDates = null) {
+  console.log(`🔍 STEP-BY-STEP: Confirming modal and iframe detection for ${serviceName}`);
+
+  try {
+    const browser = await launch(env.BROWSER, {
+      args: [
+        "--disable-blink-features=AutomationControlled",
+        "--no-first-run",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+        "--disable-features=TranslateUI",
+        "--disable-ipc-flooding-protection",
+      ],
+    });
+
+    const context = await browser.newContext({
+      userAgent:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      viewport: { width: 1366, height: 768 },
+      extraHTTPHeaders: {
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate, br",
+        DNT: "1",
+        Connection: "keep-alive",
+        "Cache-Control": "max-age=0",
+      },
+      timezoneId: "America/New_York",
+      locale: "en-US",
+      colorScheme: "light",
+    });
+
+    const page = await context.newPage();
+
+    await page.addInitScript(() => {
+      delete navigator.__proto__.webdriver;
+      Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3, 4, 5] });
+      Object.defineProperty(navigator, "languages", { get: () => ["en-US", "en"] });
+      Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 4 });
+      Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+    });
+
+    console.log("🌐 Navigating to Booksy page...");
+
+    await page.goto(BOOKSY_URL, {
+      waitUntil: "domcontentloaded",
+      timeout: 15000,
+    });
+
+    await page.waitForTimeout(4000);
+
+    // 🎯 Click the Book button
+    console.log(`🔍 Looking for and clicking Book button for service: ${serviceName}`);
+
+    const serviceClickResult = await page.evaluate((targetService) => {
+      const allElements = document.querySelectorAll("h4, div, li, button");
+
+      function getMatchScore(text, targetService) {
+        const textLower = text.toLowerCase();
+        const targetLower = targetService.toLowerCase();
+
+        if (textLower === targetLower) return 100;
+        if (textLower.includes(targetLower)) return 90;
+
+        if (targetLower.includes("regular client") && textLower.includes("regular client"))
+          return 85;
+        if (targetLower.includes("first time") && textLower.includes("first time")) return 85;
+
+        if (targetLower.includes("curly adventure") && textLower.includes("curly adventure")) {
+          if (targetLower.includes("regular") && textLower.includes("regular")) return 80;
+          if (targetLower.includes("regular") && textLower.includes("first")) return 40;
+          return 70;
+        }
+
+        if (targetLower.includes("consultation") && textLower.includes("consultation")) return 75;
+        if (textLower.includes(targetLower) || targetLower.includes(textLower)) return 50;
+
+        return 0;
+      }
+
+      const serviceMatches = [];
+      for (let i = 0; i < allElements.length; i++) {
+        const element = allElements[i];
+        const text = element.textContent?.trim() || "";
+
+        if (text.length > 10 && text.length < 200) {
+          const matchScore = getMatchScore(text, targetService);
+          if (matchScore > 0) {
+            serviceMatches.push({ element, text, score: matchScore, index: i });
+          }
+        }
+      }
+
+      serviceMatches.sort((a, b) => b.score - a.score);
+
+      for (const match of serviceMatches) {
+        // Strategy 1: Look in siblings
+        for (let j = match.index + 1; j < Math.min(match.index + 10, allElements.length); j++) {
+          const nextElement = allElements[j];
+          const nextText = nextElement.textContent?.trim() || "";
+
+          if (nextText.includes("Book") && (nextText.includes("$") || nextText.includes("min"))) {
+            try {
+              nextElement.click();
+              return {
+                success: true,
+                clicked: nextText.substring(0, 100),
+                serviceName: match.text,
+                strategy: "sibling",
+                score: match.score,
+              };
+            } catch (e) {
+              continue;
+            }
+          }
+        }
+
+        // Strategy 2: Look in parent container
+        let parent = match.element.parentElement;
+        for (let level = 0; level < 3 && parent; level++) {
+          const bookButtons = parent.querySelectorAll("div, button");
+          for (const btn of bookButtons) {
+            const btnText = btn.textContent?.trim() || "";
+            if (btnText.includes("Book") && btnText !== match.text) {
+              try {
+                btn.click();
+                return {
+                  success: true,
+                  clicked: btnText.substring(0, 100),
+                  serviceName: match.text,
+                  strategy: "parent",
+                  score: match.score,
+                };
+              } catch (e) {
+                continue;
+              }
+            }
+          }
+          parent = parent.parentElement;
+        }
+      }
+
+      return { success: false, message: "No Book button found" };
+    }, serviceName);
+
+    if (!serviceClickResult.success) {
+      console.log("❌ Could not find or click Book button for service");
+      await browser.close();
+      return {
+        error: "Service Book button not found",
+        serviceName,
+        fallback: "Please visit the booking page directly to see available times",
+      };
+    }
+
+    console.log(`✅ Successfully clicked Book button (score: ${serviceClickResult.score})`);
+
+    // ⏳ Wait for modal to potentially appear
+    console.log("⏳ Waiting for booking modal to appear...");
+    await page.waitForTimeout(5000);
+
+    // 🔍 STEP 1: Look for the booking modal first
+    console.log('🔍 STEP 1: Looking for modal with data-testid="booking-modal-booking-widget"...');
+
+    const modalDetection = await page.evaluate(() => {
+      const modal = document.querySelector('[data-testid="booking-modal-booking-widget"]');
+      if (modal) {
+        return {
+          found: true,
+          visible: modal.offsetParent !== null,
+          className: modal.className,
+          innerHTML: modal.innerHTML.substring(0, 300) + "...",
+          childElementCount: modal.children.length,
+        };
+      } else {
+        // Also check for any modal-like elements
+        const allModals = document.querySelectorAll('[class*="modal"], [data-testid*="modal"]');
+        return {
+          found: false,
+          alternativeModals: Array.from(allModals).map((m) => ({
+            testId: m.getAttribute("data-testid"),
+            className: m.className,
+            visible: m.offsetParent !== null,
+          })),
+        };
+      }
+    });
+
+    console.log("📊 Modal detection results:");
+    if (modalDetection.found) {
+      console.log(`   ✅ Found booking modal!`);
+      console.log(`   - Visible: ${modalDetection.visible}`);
+      console.log(`   - Class: ${modalDetection.className}`);
+      console.log(`   - Child elements: ${modalDetection.childElementCount}`);
+    } else {
+      console.log(`   ❌ Booking modal not found`);
+      console.log(`   - Alternative modals found: ${modalDetection.alternativeModals.length}`);
+      modalDetection.alternativeModals.forEach((modal, i) => {
+        console.log(
+          `     ${i + 1}. testId: "${modal.testId}", class: "${modal.className}", visible: ${
+            modal.visible
+          }`
+        );
+      });
+    }
+
+    // 🔍 STEP 2: Look for the iframe inside the modal (or anywhere)
+    console.log('🔍 STEP 2: Looking for iframe with data-testid="booking-widget"...');
+
+    const iframeDetection = await page.evaluate(() => {
+      const iframe = document.querySelector('iframe[data-testid="booking-widget"]');
+      if (iframe) {
+        return {
+          found: true,
+          src: iframe.src,
+          visible: iframe.offsetParent !== null,
+          width: iframe.offsetWidth,
+          height: iframe.offsetHeight,
+          className: iframe.className,
+          parentTestId: iframe.parentElement?.getAttribute("data-testid"),
+          parentClassName: iframe.parentElement?.className,
+        };
+      } else {
+        // Also check for any iframes
+        const allIframes = document.querySelectorAll("iframe");
+        return {
+          found: false,
+          alternativeIframes: Array.from(allIframes).map((iframe) => ({
+            src: iframe.src,
+            testId: iframe.getAttribute("data-testid"),
+            className: iframe.className,
+            visible: iframe.offsetParent !== null,
+            width: iframe.offsetWidth,
+            height: iframe.offsetHeight,
+          })),
+        };
+      }
+    });
+
+    console.log("📊 Iframe detection results:");
+    if (iframeDetection.found) {
+      console.log(`   ✅ Found booking widget iframe!`);
+      console.log(`   - Src: ${iframeDetection.src}`);
+      console.log(`   - Visible: ${iframeDetection.visible}`);
+      console.log(`   - Size: ${iframeDetection.width}x${iframeDetection.height}`);
+      console.log(`   - Parent testId: ${iframeDetection.parentTestId}`);
+    } else {
+      console.log(`   ❌ Booking widget iframe not found`);
+      console.log(`   - Alternative iframes found: ${iframeDetection.alternativeIframes.length}`);
+      iframeDetection.alternativeIframes.forEach((iframe, i) => {
+        console.log(
+          `     ${i + 1}. src: "${iframe.src}", testId: "${iframe.testId}", visible: ${
+            iframe.visible
+          }, size: ${iframe.width}x${iframe.height}`
+        );
+      });
+    }
+
+    await browser.close();
+
+    // Return diagnostic results
+    return {
+      serviceName,
+      stepByStepAnalysis: {
+        bookButtonClick: serviceClickResult,
+        modalDetection,
+        iframeDetection,
+        success: modalDetection.found && iframeDetection.found,
+      },
+      extractionMethod: "step-by-step-detection",
+      message: `Modal found: ${modalDetection.found}, Iframe found: ${iframeDetection.found}`,
+      fallback: "Check logs for detailed modal and iframe detection results",
+    };
+  } catch (error) {
+    console.error("Step-by-step detection failed:", error);
+    return {
+      error: "Could not perform step-by-step detection",
+      serviceName,
+      fallback: "Please visit the booking page directly to see available times",
+      errorDetails: error.message,
+    };
+  }
+}
+
+/**
+ * NETWORK INTERCEPTOR: Capture API calls made by Booksy page
+ */
+async function interceptBooksyNetworkRequests(env, serviceName, preferredDates = null) {
+  console.log(`🕵️ NETWORK-INTERCEPT: Capturing Booksy API calls for ${serviceName}`);
+
+  try {
+    const browser = await launch(env.BROWSER, {
+      args: [
+        "--disable-blink-features=AutomationControlled",
+        "--no-first-run",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+        "--disable-features=TranslateUI",
+        "--disable-ipc-flooding-protection",
+      ],
+    });
+
+    const context = await browser.newContext({
+      userAgent:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      viewport: { width: 1366, height: 768 },
+      extraHTTPHeaders: {
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate, br",
+        DNT: "1",
+        Connection: "keep-alive",
+        "Cache-Control": "max-age=0",
+      },
+      timezoneId: "America/New_York",
+      locale: "en-US",
+      colorScheme: "light",
+    });
+
+    const page = await context.newPage();
+
+    // 🕵️ Intercept all network requests
+    const apiRequests = [];
+
+    page.on("request", (request) => {
+      const url = request.url();
+      const method = request.method();
+
+      // Only capture API-like requests
+      if (
+        url.includes("/api/") ||
+        url.includes("/v1/") ||
+        url.includes("/v2/") ||
+        (url.includes("booksy.com") &&
+          (url.includes("json") || method !== "GET" || url.includes("business")))
+      ) {
+        apiRequests.push({
+          method,
+          url,
+          headers: request.headers(),
+          timestamp: new Date().toISOString(),
+        });
+        console.log(`🌐 API Request: ${method} ${url}`);
+      }
+    });
+
+    page.on("response", (response) => {
+      const url = response.url();
+      const status = response.status();
+
+      // Log API responses
+      if (
+        url.includes("/api/") ||
+        url.includes("/v1/") ||
+        url.includes("/v2/") ||
+        (url.includes("booksy.com") && (url.includes("json") || url.includes("business")))
+      ) {
+        console.log(`📡 API Response: ${status} ${url}`);
+      }
+    });
+
+    await page.addInitScript(() => {
+      delete navigator.__proto__.webdriver;
+      Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3, 4, 5] });
+      Object.defineProperty(navigator, "languages", { get: () => ["en-US", "en"] });
+      Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 4 });
+      Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+    });
+
+    console.log("🌐 Navigating to Booksy page and capturing network requests...");
+
+    await page.goto(BOOKSY_URL, {
+      waitUntil: "domcontentloaded",
+      timeout: 15000,
+    });
+
+    // Wait for initial API calls to complete
+    await page.waitForTimeout(8000);
+
+    console.log(`📊 Captured ${apiRequests.length} API requests during page load`);
+
+    // Now try clicking the Book button to see what additional API calls are made
+    console.log(`🔍 Looking for and clicking Book button for service: ${serviceName}`);
+
+    const serviceClickResult = await page.evaluate((targetService) => {
+      const allElements = document.querySelectorAll("h4, div, li, button");
+
+      function getMatchScore(text, targetService) {
+        const textLower = text.toLowerCase();
+        const targetLower = targetService.toLowerCase();
+
+        if (textLower === targetLower) return 100;
+        if (textLower.includes(targetLower)) return 90;
+
+        if (targetLower.includes("regular client") && textLower.includes("regular client"))
+          return 85;
+        if (targetLower.includes("first time") && textLower.includes("first time")) return 85;
+
+        if (targetLower.includes("curly adventure") && textLower.includes("curly adventure")) {
+          if (targetLower.includes("regular") && textLower.includes("regular")) return 80;
+          if (targetLower.includes("regular") && textLower.includes("first")) return 40;
+          return 70;
+        }
+
+        if (targetLower.includes("consultation") && textLower.includes("consultation")) return 75;
+        if (textLower.includes(targetLower) || targetLower.includes(textLower)) return 50;
+
+        return 0;
+      }
+
+      const serviceMatches = [];
+      for (let i = 0; i < allElements.length; i++) {
+        const element = allElements[i];
+        const text = element.textContent?.trim() || "";
+
+        if (text.length > 10 && text.length < 200) {
+          const matchScore = getMatchScore(text, targetService);
+          if (matchScore > 0) {
+            serviceMatches.push({ element, text, score: matchScore, index: i });
+          }
+        }
+      }
+
+      serviceMatches.sort((a, b) => b.score - a.score);
+
+      for (const match of serviceMatches) {
+        // Strategy 1: Look in siblings
+        for (let j = match.index + 1; j < Math.min(match.index + 10, allElements.length); j++) {
+          const nextElement = allElements[j];
+          const nextText = nextElement.textContent?.trim() || "";
+
+          if (nextText.includes("Book") && (nextText.includes("$") || nextText.includes("min"))) {
+            try {
+              nextElement.click();
+              return {
+                success: true,
+                clicked: nextText.substring(0, 100),
+                serviceName: match.text,
+                strategy: "sibling",
+                score: match.score,
+              };
+            } catch (e) {
+              continue;
+            }
+          }
+        }
+
+        // Strategy 2: Look in parent container
+        let parent = match.element.parentElement;
+        for (let level = 0; level < 3 && parent; level++) {
+          const bookButtons = parent.querySelectorAll("div, button");
+          for (const btn of bookButtons) {
+            const btnText = btn.textContent?.trim() || "";
+            if (btnText.includes("Book") && btnText !== match.text) {
+              try {
+                btn.click();
+                return {
+                  success: true,
+                  clicked: btnText.substring(0, 100),
+                  serviceName: match.text,
+                  strategy: "parent",
+                  score: match.score,
+                };
+              } catch (e) {
+                continue;
+              }
+            }
+          }
+          parent = parent.parentElement;
+        }
+      }
+
+      return { success: false, message: "No Book button found" };
+    }, serviceName);
+
+    const initialRequestCount = apiRequests.length;
+
+    if (serviceClickResult.success) {
+      console.log(`✅ Successfully clicked Book button (score: ${serviceClickResult.score})`);
+
+      // Wait for any additional API calls after clicking Book button
+      await page.waitForTimeout(8000);
+
+      const postClickRequests = apiRequests.slice(initialRequestCount);
+      console.log(
+        `📊 Captured ${postClickRequests.length} additional API requests after clicking Book button`
+      );
+    } else {
+      console.log("❌ Could not find or click Book button for service");
+    }
+
+    await browser.close();
+
+    // Return all captured network requests
+    return {
+      serviceName,
+      networkAnalysis: {
+        totalApiRequests: apiRequests.length,
+        initialPageLoadRequests: initialRequestCount,
+        postBookClickRequests: apiRequests.length - initialRequestCount,
+        bookButtonClick: serviceClickResult,
+        capturedRequests: apiRequests.map((req) => ({
+          method: req.method,
+          url: req.url,
+          timestamp: req.timestamp,
+          // Only include interesting headers
+          headers: {
+            authorization: req.headers.authorization || null,
+            "content-type": req.headers["content-type"] || null,
+            "x-api-key": req.headers["x-api-key"] || null,
+          },
+        })),
+      },
+      extractionMethod: "network-interception",
+      message: `Captured ${apiRequests.length} API requests - check logs for details`,
+      fallback: "Use discovered API endpoints for direct data access",
+    };
+  } catch (error) {
+    console.error("Network interception failed:", error);
+    return {
+      error: "Could not intercept network requests",
+      serviceName,
+      fallback: "Please visit the booking page directly to see available times",
+      errorDetails: error.message,
     };
   }
 }
