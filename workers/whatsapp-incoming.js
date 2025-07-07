@@ -23,6 +23,7 @@ import { SYSTEM_PROMPT } from "../shared/systemPrompt.js";
 import { sendConsultationEmail } from "../shared/emailer.js";
 import { generateOrFetchSummary } from "../shared/summary.js";
 import { deleteR2Objects, r2KeyFromUrl } from "../shared/r2.js";
+import packageJson from "../package.json" assert { type: "json" };
 // Booksy MCP functions removed - GPT now handles service requests naturally
 
 export async function handleWhatsAppRequest(request, env, ctx) {
@@ -261,7 +262,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
 
     // Collect debug information
     debugInfo = {
-      version: "1.19.0",
+      version: packageJson.version,
       responseTime: `${endTime - startTime}ms`,
       model: modelToUse,
       functionsEnabled: true,
@@ -305,7 +306,7 @@ export async function handleWhatsAppRequest(request, env, ctx) {
 
     // Collect debug info for errors
     debugInfo = {
-      version: "1.19.0",
+      version: packageJson.version,
       responseTime: "ERROR",
       model: "gpt-4o-mini",
       functionsEnabled: true,
