@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.20.1] - 2025-07-07
+
+- **🚨 CRITICAL FIX**: AI availability interpretation - Fixed "no availability" when 200+ slots exist
+- **Explicit Response Rules**: Added clear instructions for interpreting get_real_time_availability response
+- **Debug Logging**: Added transformation tracking to identify availability interpretation issues
+- **Never Say No**: AI can no longer claim "no availability" when totalSlots > 0 or timeSlots array has items
+- **User Experience Fix**: Resolves frustrating issue where real availability was hidden from customers
+
 ## [1.20.0] - 2025-07-07
 
 - **🎯 COMPLETE SERVICE CATALOG BREAKTHROUGH**: Fixed MCP server to return all 178 services instead of just 3
