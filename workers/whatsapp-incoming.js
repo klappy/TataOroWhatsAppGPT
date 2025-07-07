@@ -141,6 +141,10 @@ export async function handleWhatsAppRequest(request, env, ctx) {
   }
 
   const incoming = body.trim().toLowerCase();
+
+  // Check for debug mode
+  const isDebugMode = incoming.includes("debug") || incoming.includes("debugger");
+
   const resetTriggers = ["restart", "reset", "clear", "start over", "new consultation"];
   if (resetTriggers.includes(incoming)) {
     const { objects } = await env.MEDIA_BUCKET.list({ prefix: mediaPrefix("whatsapp", phone) });
@@ -226,12 +230,30 @@ export async function handleWhatsAppRequest(request, env, ctx) {
 
   // Use enhanced GPT completion with resilient function calling
   let assistantReply;
+  let debugInfo = {};
+
   try {
+    const startTime = Date.now();
     const result = await getChatCompletion(messages, env, {
       model: "gpt-4o",
       temperature: 0.7,
       includeFunctions: true, // Enable function calling for service requests
     });
+    const endTime = Date.now();
+
+    // Collect debug information
+    debugInfo = {
+      version: "1.17.0",
+      responseTime: `${endTime - startTime}ms`,
+      model: "gpt-4o",
+      functionsEnabled: true,
+      messageCount: messages.length,
+      sessionStatus: session.progress_status,
+      hasMedia: r2Urls.length > 0,
+      functionCalls: result.functionCalls || [],
+      errors: result.error ? [result.error] : [],
+      fallbackUsed: result.fallback || false,
+    };
 
     // Check for function call result for get_available_appointments
     if (
@@ -262,6 +284,21 @@ export async function handleWhatsAppRequest(request, env, ctx) {
     }
   } catch (error) {
     console.error("GPT completion failed:", error);
+
+    // Collect debug info for errors
+    debugInfo = {
+      version: "1.17.0",
+      responseTime: "ERROR",
+      model: "gpt-4o",
+      functionsEnabled: true,
+      messageCount: messages.length,
+      sessionStatus: session.progress_status,
+      hasMedia: r2Urls.length > 0,
+      functionCalls: [],
+      errors: [error.message],
+      fallbackUsed: true,
+    };
+
     // Enhanced fallback response (WhatsApp-friendly)
     assistantReply = `Hi there! 😊 I'm Tata's assistant for curly hair!
 
@@ -301,6 +338,28 @@ To book: Visit Tata's Booksy page → Use "Search for service" box → Book your
     session.history.push({ role: "user", content: contentArray });
   } else {
     session.history.push({ role: "user", content: body });
+  }
+
+  // Add debug information if debug mode is enabled
+  if (isDebugMode) {
+    const debugOutput = `
+
+🔧 DEBUG INFO:
+• Version: ${debugInfo.version}
+• Response Time: ${debugInfo.responseTime}
+• Model: ${debugInfo.model}
+• Messages: ${debugInfo.messageCount}
+• Session: ${debugInfo.sessionStatus}
+• Media: ${debugInfo.hasMedia ? "Yes" : "No"}
+• Functions: ${
+      debugInfo.functionCalls.length > 0
+        ? debugInfo.functionCalls.map((f) => f.name).join(", ")
+        : "None called"
+    }
+• Errors: ${debugInfo.errors.length > 0 ? debugInfo.errors.join("; ") : "None"}
+• Fallback: ${debugInfo.fallbackUsed ? "Yes" : "No"}`;
+
+    assistantReply += debugOutput;
   }
 
   session.history.push({ role: "assistant", content: assistantReply });

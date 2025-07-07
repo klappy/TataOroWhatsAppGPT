@@ -410,6 +410,7 @@ export async function getChatCompletion(messages, env, options = {}) {
       console.log(`🔧 Processing ${message.tool_calls.length} API-first function call(s)...`);
 
       const functionResults = [];
+      const functionCallsDebug = [];
 
       for (const toolCall of message.tool_calls) {
         try {
@@ -417,7 +418,19 @@ export async function getChatCompletion(messages, env, options = {}) {
           const args = JSON.parse(toolCall.function.arguments);
 
           console.log(`🔧 API-first function: ${functionName}`, args);
+          const startTime = Date.now();
           const result = await executeBooksyFunction(functionName, args, env);
+          const endTime = Date.now();
+
+          // Track function call for debug info
+          functionCallsDebug.push({
+            name: functionName,
+            args: args,
+            success: !result.error,
+            responseTime: `${endTime - startTime}ms`,
+            source: result.source || "unknown",
+            fallback: result.fallback || false,
+          });
 
           functionResults.push({
             tool_call_id: toolCall.id,
@@ -427,6 +440,18 @@ export async function getChatCompletion(messages, env, options = {}) {
           });
         } catch (error) {
           console.error(`❌ Function call failed:`, error);
+
+          // Track failed function call for debug info
+          functionCallsDebug.push({
+            name: toolCall.function.name,
+            args: {},
+            success: false,
+            responseTime: "ERROR",
+            source: "error",
+            fallback: true,
+            error: error.message,
+          });
+
           functionResults.push({
             tool_call_id: toolCall.id,
             role: "tool",
@@ -442,17 +467,30 @@ export async function getChatCompletion(messages, env, options = {}) {
 
       console.log(`🔄 Getting follow-up response after API-first function calls...`);
 
-      return await getChatCompletion([...messages, message, ...functionResults], env, {
-        ...options,
-        includeFunctions: false,
-        max_tokens: options.max_tokens || 1200,
-      });
+      const followUpResult = await getChatCompletion(
+        [...messages, message, ...functionResults],
+        env,
+        {
+          ...options,
+          includeFunctions: false,
+          max_tokens: options.max_tokens || 1200,
+        }
+      );
+
+      // Merge function call debug info
+      return {
+        ...followUpResult,
+        functionCalls: functionCallsDebug,
+        fallback: functionCallsDebug.some((f) => f.fallback),
+      };
     }
 
     console.log(`✅ GPT response: ${message.content?.length || 0} characters`);
     return {
       content: message.content || "I'm here to help with your curly hair needs!",
       usage: data.usage,
+      functionCalls: [], // No function calls in this path
+      fallback: false,
     };
   } catch (error) {
     console.error("🚨 GPT completion failed:", error);
