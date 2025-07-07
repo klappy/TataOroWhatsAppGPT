@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.19.0] - 2025-07-07
+
+- **🚨 CRITICAL FIX**: AI now uses live MCP data instead of hardcoded service lists
+- **Function Call Enforcement**: Removed hardcoded service lists that were causing AI to skip API calls
+- **Mandatory API Usage**: Changed system prompt from "Show ONLY these services" to "MUST call get_booksy_services()"
+- **Live Data Priority**: AI now gets current pricing and services from MCP server instead of static fallbacks
+- **Debug Accuracy**: Fixed model display to show correct "gpt-4o-mini" instead of hardcoded "gpt-4o"
+- **Cost Optimization**: Switched to GPT-4o-mini for 17x cost savings (94% reduction in API costs)
+- **Smart Availability Display**: Consolidated time slots into user-friendly ranges (9AM-4:30PM vs 15-min intervals)
+- **Proactive Booking**: AI now asks "Would you like me to check available times?" instead of just dumping service info
+
 ## [1.17.0] - 2025-07-06
 
 - **🔥 COMPLETE STACK MODERNIZATION**: Updated entire codebase to use API-first architecture
