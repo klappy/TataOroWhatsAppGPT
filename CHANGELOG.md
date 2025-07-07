@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.17.0] - 2025-07-06
+
+- **🔥 COMPLETE STACK MODERNIZATION**: Updated entire codebase to use API-first architecture
+- **GPT Integration Overhaul**: Replaced all old browser automation function calls with modern API endpoints
+- **System Prompt Modernization**: Updated to reflect new API-first capabilities and removed browser automation references
+- **Documentation Archive**: Moved all failed browser automation approaches to ARCHIVE.md for historical record
+- **Function Definitions Updated**: New functions use real-time API data instead of unreliable scraping
+- **Simplified Codebase**: Removed 4,379 lines of complex browser automation, archived old workers
+- **Unified Architecture**: Every layer now uses the same reliable API-first approach
+- **Complete Eradication**: Eliminated all old approaches as requested - clean slate with modern patterns
+
 ## [1.16.0] - 2025-07-06
 
 - **🎯 100% COMPLETE BOOKSY INTEGRATION**: Added real-time availability via discovered time slots API
