@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.20.11] - 2025-01-07
+
+- **🚨 CRITICAL FIX**: Added missing WhatsApp sharing link in consultation summaries
+- **Complete Handoff**: AI now provides BOTH summary link AND clickable WhatsApp link to send to Tata
+- **Prominent Instructions**: Made summary handoff instructions more visible and explicit
+- **Better UX**: Clients can now easily share their consultation with Tata via one click
+
 ## [1.20.10] - 2025-01-07
 
 - **🚨 CRITICAL FIX**: New client consultation workflow now takes priority over service display
