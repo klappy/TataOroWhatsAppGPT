@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.20.5] - 2025-01-07
+
+- **Dynamic Service Duration**: Time validation now uses actual service duration instead of hardcoded 2.5 hours
+- **Accurate Time Calculations**: 30min consultations, 90min cuts, 150min adventures, 210min spa treatments all calculated correctly
+- **Smart End Times**: Availability ranges now show correct end times based on actual service length
+- **Better Time Suggestions**: AI can now properly suggest latest start times for any service duration
+
 ## [1.20.4] - 2025-01-07
 
 - **User-Friendly Availability**: Removed overwhelming slot counts (no more "229 available times") - now just says "available appointment times"

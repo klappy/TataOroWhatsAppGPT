@@ -212,6 +212,11 @@ function transformApiResponse(functionName, result, args) {
         ? result.timeSlots.reduce((sum, day) => sum + day.slotCount, 0)
         : 0;
 
+      // Get service duration from result (parse "150 minutes" to 150)
+      const serviceDuration = result.serviceDuration
+        ? parseInt(result.serviceDuration.toString().replace(/\D/g, ""))
+        : 150; // Default to 150 minutes if not provided
+
       // Format consolidated time ranges for better user experience
       const consolidatedTimes =
         result.timeSlots && result.timeSlots.length > 0
@@ -239,7 +244,7 @@ function transformApiResponse(functionName, result, args) {
               }
               ranges.push([rangeStart, rangeEnd]);
 
-              // Format ranges for display
+              // Format ranges for display using actual service duration
               const formatTime = (minutes) => {
                 const hour = Math.floor(minutes / 60);
                 const min = minutes % 60;
@@ -252,7 +257,8 @@ function transformApiResponse(functionName, result, args) {
                 if (start === end) {
                   return formatTime(start);
                 } else {
-                  return `${formatTime(start)}-${formatTime(end + 135)}`; // +135 min for 2.5h service
+                  // Use actual service duration minus 15 minutes for end time calculation
+                  return `${formatTime(start)}-${formatTime(end + serviceDuration - 15)}`;
                 }
               });
 

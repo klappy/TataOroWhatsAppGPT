@@ -243,6 +243,7 @@ async function getTimeSlots(env, serviceName) {
       return new Response(
         JSON.stringify({
           service: service.name,
+          serviceDuration: `${service.variants[0]?.duration || 150} minutes`,
           timeSlots: cached.timeSlots,
           source: "cache",
           lastUpdated: cached.lastUpdated,
@@ -271,6 +272,7 @@ async function getTimeSlots(env, serviceName) {
     return new Response(
       JSON.stringify({
         service: service.name,
+        serviceDuration: `${service.variants[0]?.duration || 150} minutes`,
         timeSlots: timeSlots,
         source: "real-time-api",
         lastUpdated: new Date().toISOString(),
