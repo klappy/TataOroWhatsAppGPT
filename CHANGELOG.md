@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.20.4] - 2025-01-07
+
+- **User-Friendly Availability**: Removed overwhelming slot counts (no more "229 available times") - now just says "available appointment times"
+- **Simplified Display**: Shows only 3-4 relevant time ranges instead of confusing total slot counts
+- **Better UX**: Focuses on what matters (actual available times) rather than technical details
+
 ## [1.20.3] - 2025-01-07
 
 - **Smart Time Validation**: Added intelligent handling of specific time requests ("Monday at 5pm") with service duration logic

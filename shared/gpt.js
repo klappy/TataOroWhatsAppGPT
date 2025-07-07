@@ -275,19 +275,15 @@ function transformApiResponse(functionName, result, args) {
         SUCCESS_FLAG: totalSlots > 0 ? "TIMES_AVAILABLE" : "NO_TIMES",
         EXPLICIT_INSTRUCTION:
           totalSlots > 0
-            ? `AI: You MUST show these ${totalSlots} available times to the user. DO NOT say no availability.`
+            ? `AI: You MUST show available times to the user. DO NOT say no availability.`
             : "AI: No times available, show booking page.",
         message:
           totalSlots > 0
-            ? `🎉 AVAILABILITY CONFIRMED: ${totalSlots} time slots available across ${
-                result.timeSlots?.length || 0
-              } days! Tell user about these available times immediately. DO NOT say no availability.`
+            ? `🎉 AVAILABILITY CONFIRMED: Available appointment times found! Tell user about these available times immediately. DO NOT say no availability.`
             : "No available time slots found for this service.",
         RESPONSE_TEMPLATE:
           totalSlots > 0
-            ? `Great! I found ${totalSlots} available appointment times across ${
-                result.timeSlots?.length || 0
-              } days. Here are your options:\n\n${consolidatedTimes
+            ? `Great! I found available appointment times. Here are your options:\n\n${consolidatedTimes
                 .slice(0, 3)
                 .join("\n")}\n\nWhich time works best for you?`
             : "I couldn't find any available times for this service.",
