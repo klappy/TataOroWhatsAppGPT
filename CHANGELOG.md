@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.20.9] - 2025-01-07
+
+- **Clarified Start Times**: Time ranges now clearly show "1:30 PM - 4:30 PM start times available" to avoid confusion
+- **Better Messaging**: Added explanation that ranges show available START times, not appointment duration
+- **User Education**: Makes it clear users can book to begin at any time within the displayed ranges
+
 ## [1.20.8] - 2025-01-07
 
 - **Fixed Slot Spam**: AI now shows clean time ranges ("1:30 PM - 4:30 PM") instead of overwhelming individual slots

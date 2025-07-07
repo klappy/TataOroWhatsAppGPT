@@ -231,13 +231,15 @@ function transformApiResponse(functionName, result, args) {
                 return `${displayHour}:${minute.toString().padStart(2, "0")}${ampm}`;
               };
 
-              // Show first and last available times as a range
+              // Show first and last available times as a range with clear start time messaging
               if (slots.length === 1) {
-                return `${day.date} (${day.dayOfWeek}): ${formatTime(slots[0])}`;
+                return `${day.date} (${day.dayOfWeek}): ${formatTime(
+                  slots[0]
+                )} start time available`;
               } else if (slots.length > 1) {
                 return `${day.date} (${day.dayOfWeek}): ${formatTime(slots[0])} - ${formatTime(
                   slots[slots.length - 1]
-                )}`;
+                )} start times available`;
               }
 
               return `${day.date} (${day.dayOfWeek}): No times`;
@@ -273,7 +275,7 @@ function transformApiResponse(functionName, result, args) {
                 result.timeSlots && result.timeSlots.length > 5
                   ? "\n\n📅 More dates available! Just ask about a specific day."
                   : ""
-              }\n\nTo book, visit Tata's Booksy page and select your preferred time!`
+              }\n\nThese are available START times - you can book your appointment to begin at any time within these ranges!\n\nTo book, visit Tata's Booksy page and select your preferred time!`
             : "I couldn't find any available times for this service.",
       };
 
