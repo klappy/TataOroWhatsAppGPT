@@ -196,6 +196,19 @@ function transformApiResponse(functionName, result, args) {
         ? result.timeSlots.reduce((sum, day) => sum + day.slotCount, 0)
         : 0;
 
+      // Format sample available times for AI to show user
+      const sampleTimes =
+        result.timeSlots && result.timeSlots.length > 0
+          ? result.timeSlots
+              .slice(0, 3)
+              .map(
+                (day) =>
+                  `${day.date} (${day.dayOfWeek}): ${day.slots.slice(0, 3).join(", ")}${
+                    day.slots.length > 3 ? "..." : ""
+                  }`
+              )
+          : [];
+
       return {
         service: result.service,
         timeSlots: result.timeSlots || [],
@@ -203,9 +216,14 @@ function transformApiResponse(functionName, result, args) {
         daysAvailable: result.timeSlots ? result.timeSlots.length : 0,
         source: result.source || "api",
         whatsappFriendly: true,
-        message: `Found ${totalSlots} available time slots across ${
-          result.timeSlots?.length || 0
-        } days!`,
+        available: totalSlots > 0,
+        sampleTimes: sampleTimes,
+        message:
+          totalSlots > 0
+            ? `SUCCESS: Found ${totalSlots} available time slots across ${
+                result.timeSlots?.length || 0
+              } days! Show the user some sample times.`
+            : "No available time slots found for this service.",
       };
 
     default:
