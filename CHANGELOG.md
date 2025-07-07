@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.20.3] - 2025-01-07
+
+- **Smart Time Validation**: Added intelligent handling of specific time requests ("Monday at 5pm") with service duration logic
+- **Service Duration Awareness**: System now calculates if 2.5-hour services can fit in requested time slots
+- **Better Time Suggestions**: When requested time is too late, AI suggests latest possible start time to complete service
+
 ## [1.20.2] - 2025-07-07
 
 - **🚨 CRITICAL FIX**: Recursive loop bug causing HTTP 522 errors in availability function
